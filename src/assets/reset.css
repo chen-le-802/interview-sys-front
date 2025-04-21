@@ -1,0 +1,64 @@
+/* 重置边距和内填充 */
+html,
+body,
+p,
+ol,
+ul,
+li,
+dl,
+dt,
+dd,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+pre,
+form,
+fieldset,
+input,
+textarea,
+blockquote,
+figure,
+figcaption {
+  margin: 0;
+  padding: 0;
+}
+
+/* 设置默认字体 */
+body,
+html {
+  font-family: Arial, '微软雅黑', sans-serif;
+  font-size: 14px;
+  color: #333;
+}
+
+/* 设置链接样式 */
+a {
+  color: #333;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* 设置列表样式 */
+ol,
+ul {
+  list-style: none;
+}
+
+/* 设置图片样式 */
+img {
+  border: 0;
+  vertical-align: middle;
+}
+
+/* 清除浮动 - 使用现代 clearfix 方法 */
+.clearfix::after {
+  content: '';
+  display: block;
+  clear: both;
+}
