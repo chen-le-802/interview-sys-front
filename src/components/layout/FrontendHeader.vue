@@ -1,0 +1,221 @@
+<template>
+    <header>
+        <div class="header-main">
+            <div class="logo-title">
+                <div class="logo"></div>
+                <div class="title">面试斩</div>
+            </div>
+
+            <nav class="nav">
+                <ul>
+                    <li v-for="item in navItems" :key="item.name" :class="{ active: activeNav === item.name }"
+                        @click="handleNavClick(item)">
+                        {{ item.name }}
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="search">
+                <el-input placeholder="搜索" v-model="searchQuery" @keyup.enter="handleSearch">
+                    <template #suffix>
+                        <div class="search-button" @click="handleSearch">
+                            <el-icon :color="searchInfoColor">
+                                <Search />
+                            </el-icon>
+                        </div>
+                    </template>
+                </el-input>
+
+            </div>
+
+            <div class="message" @click="showNotifications">
+                <el-icon :size="18">
+                    <Bell style="cursor: pointer;" />
+                </el-icon>
+
+            </div>
+
+            <div class="user">
+                <div class="avatar" :style="{ backgroundImage: `url(${mockUser.avatar})` }"></div>
+                <div class="username">{{ mockUser.name }}</div>
+            </div>
+        </div>
+    </header>
+</template>
+
+<script lang="ts" setup>
+import { ref, reactive, computed } from 'vue'
+import { Bell, Search } from '@element-plus/icons-vue'
+
+// Mock数据
+const navItems = [
+    { name: '主页', path: '/' },
+    { name: '题库', path: '/problems' },
+    { name: '刷题路线', path: '/roadmap' },
+    { name: '25届春招热题', path: '/hot' },
+    { name: 'AI面试官', path: '/ai-interview' }
+]
+
+const mockUser = {
+    name: '麦麦头',
+    avatar: '/src/assets/images/common/avatar.png'
+}
+
+const mockNotifications = [
+    { title: '系统通知', content: '新增50道大厂真题', time: '3小时前' },
+    { title: '学习提醒', content: '你有3个收藏题目待复习', time: '5小时前' }
+]
+
+// 响应式数据
+const activeNav = ref('主页')
+const searchQuery = ref('')
+const searchInfoColor = ref('#ffffff')
+
+
+
+
+// 方法
+const handleNavClick = (item: { name: string; path: string }) => {
+    activeNav.value = item.name
+    // 这里可以添加路由跳转逻辑
+    console.log('导航至:', item.path)
+}
+
+const handleSearch = () => {
+    if (searchQuery.value.trim()) {
+        console.log('执行搜索:', searchQuery.value)
+
+    }
+}
+
+const showNotifications = () => {
+    console.log('显示通知:', mockNotifications)
+}
+</script>
+
+<style scoped>
+/* 新增样式 */
+.active {
+    background-color: #3760f7 !important;
+    color: #ffffff !important;
+}
+
+.search {
+    position: relative;
+}
+
+
+
+header {
+    width: 100%;
+    height: 56px;
+    line-height: 56px;
+    background-color: #fefefe;
+    border-bottom: 1px solid #f1efef;
+}
+
+.header-main {
+    display: flex;
+    align-items: center;
+    width: 1440px;
+    max-width: 1440px;
+    margin: 0 auto;
+    height: 56px;
+
+}
+
+.logo-title {
+    display: flex;
+    align-items: center;
+    height: 56px;
+    cursor: pointer;
+}
+
+.search {
+    width: 250px;
+    height: 56px;
+}
+
+.message {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 56px;
+    margin: 0 10px;
+
+}
+
+.user {
+    width: 150px;
+    height: 56px;
+    cursor: pointer;
+}
+
+.logo {
+    width: 40px;
+    height: 40px;
+    background: url("../../assets/images/common/logo.png");
+    background-size: cover;
+}
+
+.title {
+    font-size: 17px;
+    margin-left: 10px;
+    font-weight: 600
+}
+
+.nav {
+    margin: 0 80px;
+    flex: 1;
+}
+
+.nav ul {
+    display: flex;
+    align-items: center;
+    height: 20px;
+}
+
+.nav ul li {
+    padding: 0 30px;
+    display: block;
+    text-align: center;
+    margin: 0 5px;
+    cursor: pointer;
+}
+
+.nav ul li:hover {
+    background-color: #3760f7;
+
+    color: #ffffff
+}
+
+.user {
+    display: flex;
+    align-items: center;
+
+}
+
+.avatar {
+    width: 35px;
+    height: 35px;
+    background: url("../../assets/images/common/avatar.png");
+    background-size: cover;
+}
+
+.username {
+    margin-left: 5px;
+}
+
+.search-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background-color: #3760f6;
+    border-radius: 5px;
+    cursor: pointer;
+}
+</style>
