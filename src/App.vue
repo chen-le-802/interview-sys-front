@@ -1,14 +1,15 @@
 <template>
-    <HomeView />
+    <router-view></router-view>
 </template>
 <script lang="ts">
 import { defineComponent } from 'vue'
-import HomeView from '@/views/frontend/HomeView.vue'
+
+import router from './router';
 
 export default defineComponent({
     name: 'App',
     components: {
-        HomeView
+
     }
 })
 </script>
