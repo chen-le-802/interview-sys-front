@@ -104,7 +104,7 @@ const questionList = ref([
 ])
 
 // 交互状态
-const activeCategory = ref('全部')
+const activeCategory = ref('热门')
 const placeholder = '分类'
 
 // 事件处理

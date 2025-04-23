@@ -46,11 +46,12 @@
 <script lang="ts" setup>
 import { ref, reactive, computed } from 'vue'
 import { Bell, Search } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
 
 // Mock数据
 const navItems = [
     { name: '主页', path: '/' },
-    { name: '题库', path: '/problems' },
+    { name: '题库', path: '/banks' },
     { name: '刷题路线', path: '/roadmap' },
     { name: '25届春招热题', path: '/hot' },
     { name: 'AI面试官', path: '/ai-interview' }
@@ -67,18 +68,24 @@ const mockNotifications = [
 ]
 
 // 响应式数据
-const activeNav = ref('主页')
+const activeNav = computed(() => {
+    const matchedItem = navItems.find(item => item.path === route.path)
+    return matchedItem ? matchedItem.name : ''
+})
 const searchQuery = ref('')
 const searchInfoColor = ref('#ffffff')
 
-
+const router = useRouter()
+const route = useRoute()
 
 
 // 方法
 const handleNavClick = (item: { name: string; path: string }) => {
     activeNav.value = item.name
-    // 这里可以添加路由跳转逻辑
+    // 路由跳转
+    router.push(item.path);
     console.log('导航至:', item.path)
+
 }
 
 const handleSearch = () => {
