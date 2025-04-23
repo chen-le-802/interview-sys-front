@@ -6,10 +6,10 @@
                 @keyup.enter="handleSearch" />
         </div>
 
-        <el-table :data="filteredData" style="width: 900px;" size="large">
+        <el-table :data="filteredData" :style="{ width: tableWidth }" size="large">
             <el-table-column prop="question" label="题目" width="490" />
             <el-table-column prop="difficulty" label="难度" sortable width="100" />
-            <el-table-column prop="tags" label="标签" width="260">
+            <el-table-column prop="tags" label="标签" width="calc(tableWidth - 590px)">
                 <template #default="{ row }">
                     <el-tag v-for="(tag, index) in row.tags" :key="index" size="small" class="tag-item">
                         {{ tag }}
@@ -24,7 +24,12 @@
 
 <script lang="ts" setup>
 import { ref, computed } from 'vue';
-
+const props = defineProps({
+    tableWidth: {
+        type: String,
+        default: '900px' // 默认宽度
+    }
+});
 interface Question {
     question: string;
     difficulty: string;
@@ -81,8 +86,6 @@ const handleSearch = () => {
 </script>
 
 <style scoped>
-.container {}
-
 .search-container {
     margin-bottom: 20px;
 }

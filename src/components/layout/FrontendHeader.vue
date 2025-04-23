@@ -48,6 +48,7 @@ import { ref, reactive, computed } from 'vue'
 import { Bell, Search } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 
+
 // Mock数据
 const navItems = [
     { name: '主页', path: '/' },

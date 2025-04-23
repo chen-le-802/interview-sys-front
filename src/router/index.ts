@@ -24,6 +24,11 @@ const router = createRouter({
       component: () => import('@/views/frontend/Banks.vue'),
     },
     {
+      path: '/bank',
+      name: 'bank',
+      component: () => import('@/views/frontend/Bank.vue'),
+    },
+    {
       path: '/admin/home',
       name: 'admin-home',
       component: () => import('@/components/manager/Layout.vue'),
@@ -54,6 +59,11 @@ const router = createRouter({
       path: '/personal',
       name: 'personal',
       component: () => import('@/views/PersonalCenter.vue'),
+    },
+    {
+      path: '/bank',
+      name: 'bank',
+      component: () => import('@/views/frontend/Bank.vue'),
     },
   ],
 })
