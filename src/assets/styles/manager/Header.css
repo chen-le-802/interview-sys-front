@@ -1,0 +1,39 @@
+  /* 顶部栏样式 */
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    background-color: white;
+    padding: 10px 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: fixed; /* 使其始终处于页面顶部 */
+    height: 60px;
+    top: 0;
+    width: calc(100%);
+    z-index: 1000; /* 保证在其他元素上层 */
+    border-bottom: 1px solid #ddd; /* 顶部栏和页面内容的分隔线 */
+  }
+  
+  .logo img {
+    width: 50px;
+    height: 50px;
+    margin-top: -5px;
+  }
+  
+  .user-info span {
+    margin-left: 30px;
+    font-size: 14px;
+    color: #333;
+    margin-top: 2px;
+  }
+  
+  .user-name {
+    position: relative;
+    top: 1px;
+    left: -15px;
+  }
+
+  .user-dropdown {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}

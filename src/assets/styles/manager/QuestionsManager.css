@@ -1,0 +1,215 @@
+/* 页面居中布局 */
+.app-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* 题目管理部分 */
+.questions {
+    width: 100%;
+    max-width: 1200px;
+    padding: 20px;
+}
+
+/* 卡片样式 */
+.card {
+    width: 100%;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+/* 操作栏卡片 */
+.actions-card {
+    margin-bottom: 20px;
+}
+
+/* 操作栏（搜索框和按钮） */
+.actions {
+    display: flex;
+    justify-content: space-between;
+    padding-bottom: 10px;
+}
+
+.filters {
+    display: flex;
+    align-items: center;
+}
+
+.input-search {
+    width: 250px;
+    margin-right: 10px;
+}
+
+.select-filter {
+    width: 150px;
+    margin-right: 10px;
+}
+
+.buttons {
+    padding: 10px;
+    border-radius: 6px;
+    margin-left: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.export-button {
+    background-color: white;
+    color: #2f2764;
+    border: 1px solid #2f2764;
+    margin-right: 15px;
+    cursor: pointer;
+}
+
+.export-button:hover {
+    background-color: #e5e6e8;
+}
+
+.add-button {
+    background: linear-gradient(to bottom right, #6267f2, #3e7ff5);
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.buttons button:hover {
+    opacity: 0.8;
+}
+
+/* 题目列表卡片 */
+.problem-list-card {
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    background-color: #ffffff;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* 题目列表 */
+.problem-list {
+    margin-top: 0;
+}
+
+.custom-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.custom-table th,
+.custom-table td {
+    padding: 16px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.custom-table th {
+    background-color: #f8fafc;
+    font-weight: bold;
+}
+
+.custom-table td {
+    background-color: white;
+}
+
+.custom-table tr:hover td {
+    background-color: #f8fafc;
+}
+
+.tag {
+    background-color: #eef2ff;
+    color: #867bf2;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-right: 5px;
+    font-size: 12px;
+}
+
+/* 难度标签 */
+.difficulty-tag {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.difficulty-easy {
+    background-color: #f0fdf4;
+    color: #27ac67;
+}
+
+.difficulty-medium {
+    background-color: #fefce8;
+    color: #ca8a07;
+}
+
+.difficulty-hard {
+    background-color: #fef2f2;
+    color: #dd3f40;
+}
+
+/* 通过率颜色 */
+.pass-rate-high {
+    color: #22c78b;
+}
+
+.pass-rate-medium {
+    color: #eaba52;
+}
+
+.pass-rate-low {
+    color: #f25f60;
+}
+
+/* 操作按钮（编辑、预览、删除） */
+.edit-btn,
+.preview-btn,
+.delete-btn {
+    padding: 5px 10px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-left: 5px;
+    border: none;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    background-color: white;
+}
+
+.edit-btn:hover,
+.preview-btn:hover,
+.delete-btn:hover {
+    opacity: 0.8;
+    background-color: #e5e6e8;
+}
+
+.edit-btn {
+    color: #5190f7;
+}
+
+.preview-btn {
+    color: #8f9397;
+}
+
+.delete-btn {
+    color: #f37373;
+}
+
+.edit-icon,
+.preview-icon,
+.delete-icon {
+    margin-right: 5px;
+}
+
+/* 分页 */
+.ant-pagination {
+    padding: 15px 0;
+}

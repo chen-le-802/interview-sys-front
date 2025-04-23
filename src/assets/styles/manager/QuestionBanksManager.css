@@ -1,0 +1,226 @@
+/* 页面居中布局 */
+.questionbank {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 20px;
+}
+
+/* 顶部区域：搜索框和按钮 */
+.header {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 60px;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+/* 搜索框和筛选控制 */
+.filter-controls {
+    display: flex;
+    gap: 10px;
+}
+
+/* 搜索框宽度 */
+.input-search {
+    width: 250px;
+}
+
+/* 筛选选择框宽度 */
+.select-filter {
+    width: 150px;
+}
+
+/* 新增题库按钮样式 */
+.add-bank-btn {
+    background: linear-gradient(to right, #4f47e5, #3e7ff5);
+    color: white;
+}
+
+.add-bank-btn:hover {
+    opacity: 0.8;
+}
+
+/* 题库列表：使用 grid 布局 */
+.bank-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+    grid-row-gap: 0px;
+    grid-template-rows: 280px;
+    flex-grow: 1;
+}
+
+/* 题库卡片样式 */
+.bank-card {
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 228px;
+    width: 100%;
+    margin: 0;
+}
+
+.bank-card:hover {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* 题库卡片的头部 */
+.bank-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+/* 题库卡片的操作 */
+.bank-actions {
+    margin-left: auto;
+    display: none;
+}
+
+.bank-card:hover .bank-actions{
+    display: block;
+}
+
+.action-container {
+    margin-left: 5px;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+}
+
+.edit-icon {
+    color: #3b82f6;
+}
+
+.delete-icon {
+    color: #ef4949;
+}
+
+/* 题库信息 */
+.bank-info {
+    display: flex;
+    flex-direction: column;
+    font-size: 14px;
+    margin-left: 10px;
+    margin-top: 15px;
+}
+
+.question-count {
+    font-size: 14px;
+    color: #858c97;
+    margin-right: auto;
+}
+
+/* 题库图标 */
+.icon-box {
+    background-color: #edf1ff;
+    border-radius: 6px;
+    height: 48px;
+    width: 48px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.bank-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+}
+
+/* 题库卡片操作按钮 */
+.bank-actions .icon {
+    color: #4f47e5;
+}
+
+.bank-actions a-button {
+    padding: 0;
+}
+
+/* 题库统计信息 */
+.bank-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 14px;
+    color: #555;
+}
+
+/* 进度条 */
+.progress {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1px;
+}
+
+.progress-text {
+    color: #6e7583;
+    margin-right: auto;
+}
+
+.completion-rate-value {
+    color: #626972;
+    margin-left: auto;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    margin-top: 1px;
+    margin-bottom: 5px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(to right, #4f47e5, #3e7ff5);
+    border-radius: 4px;
+}
+
+/* 难度和活跃度 */
+.bank-level {
+    display: flex;
+    justify-content: space-between;
+}
+
+.difficulty-easy {
+    color: #3ccb71;
+}
+
+.difficulty-medium {
+    color: #eab611;
+}
+
+.difficulty-hard {
+    color: #f37272;
+}
+
+.difficulty-text {
+    color: #6e7583;
+}
+
+.active-text {
+    color: #6e7583;
+}
+
+.difficulty-value {
+    color: inherit;
+}
+
+.active-value {
+    color: #6ba0f7;
+}
+
+.last-updated {
+    color: #acb1bc;
+    font-size: 12px;
+    margin-top: 5px;
+    margin-bottom: 4px;
+    margin-right: auto;
+}

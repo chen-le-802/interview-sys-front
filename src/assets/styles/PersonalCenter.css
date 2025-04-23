@@ -1,0 +1,275 @@
+/* 页面容器 */
+.page-container {
+    min-height: 100vh;
+    font-family: Avenir, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-align: center;
+    color: #2c3e50;
+    background-color: #eef2ff;
+}
+
+/* 主内容区域 */
+.main-content {
+    min-height: 100vh;
+    padding: 24px;
+    margin-top: 60px;
+}
+
+/* 内容包装器 */
+.content-wrapper {
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* 返回按钮 */
+.back-button {
+    position: absolute;
+    top: 150px;
+    left: 185px;
+    font-size: 20px;
+    border-radius: 50%;
+    color: #a6a6a6;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.back-button:hover {
+    opacity: 0.8;
+}
+
+/* 个人资料卡片 */
+.profile-card {
+    margin-bottom: 16px;
+    overflow: hidden;
+    border-radius: 8px;
+    background-color: white;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* 个人资料页头部 */
+.profile-header {
+    position: relative;
+    height: 128px;
+    background: linear-gradient(to right, #6168f2, #3e7ff5);
+}
+
+/* 头像容器 */
+.avatar-container {
+    position: absolute;
+    bottom: -48px;
+    left: 32px;
+    display: flex;
+    align-items: flex-end;
+}
+
+.avatar-wrapper {
+    height: 96px;
+    width: 96px;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 4px solid white;
+    background-color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-image {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+}
+
+.user-info {
+    margin-bottom: 8px;
+    margin-left: 1px;
+    color: white;
+}
+
+.username {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.user-title {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* 个人资料内容 */
+.profile-content {
+    margin-top: 48px;
+    padding: 0 24px 16px;
+}
+
+/* 统计数据行 */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.stat-item {
+    padding: 4px 0;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    font-size: 20px;
+    font-weight: 600;
+    color: #4f46e5;
+    margin: 0;
+}
+
+.stat-rank {
+    color: #4f46e5;
+}
+
+/* 活动记录区块 */
+.activity-section {
+    margin-top: 16px;
+}
+
+.section-subtitle {
+    margin-bottom: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    text-align: left;
+}
+
+.heatmap-container {
+    height: 192px;
+    width: 100%;
+}
+
+/* 信息表单卡片 */
+.info-form-card {
+    border-radius: 8px;
+    background-color: white;
+    padding: 24px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    margin-bottom: 24px;
+}
+
+.section-title {
+    margin-bottom: 24px;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: left;
+}
+
+/* 表单布局 */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+}
+
+.form-column {
+    padding: 0;
+}
+
+.form-full-width {
+    grid-column: span 2;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: black;
+    text-align: left;
+}
+
+.job-selects {
+    display: flex;
+    gap: 16px;
+}
+
+.custom-input,
+.custom-textarea,
+.custom-select {
+    width: 100%;
+    border-radius: 6px;
+}
+
+/* 表单按钮 */
+.form-buttons {
+    margin-top: 24px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+}
+
+.cancel-button {
+    border-radius: 6px;
+}
+
+.save-button {
+    border-radius: 6px;
+    background: linear-gradient(to right, #6373ee, #517cee);
+    border: none;
+}
+
+.save-button:hover {
+    opacity: 0.9;
+}
+
+/* 安全设置卡片 */
+.security-card {
+    margin-top: 24px;
+    border-radius: 8px;
+    background-color: white;
+    padding: 24px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.security-items {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.security-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #cdcfd3;
+}
+
+.border-none {
+    border-bottom: none;
+}
+
+.security-info {
+    flex: 1;
+}
+
+.security-title {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.security-desc {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0;
+}
+
+.modify-button,
+.view-button {
+    border-radius: 6px;
+}

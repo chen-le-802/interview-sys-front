@@ -1,0 +1,160 @@
+/* 页面居中布局 */
+.user-management {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* 搜索框和筛选控制 */
+.filter-bar {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    margin-top: 60px;
+}
+
+.filter-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.input-search {
+    width: 250px;
+}
+
+.select-filter {
+    width: 150px;
+}
+
+/* 添加用户按钮 */
+.add-user-btn {
+    background: linear-gradient(to right, #4f47e5, #3e7ff5);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: opacity 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.add-user-btn:hover {
+    opacity: 0.8;
+}
+
+/* 用户表格 */
+.user-table {
+    margin-top: 20px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* 操作按钮样式 */
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: space-evenly;
+}
+
+.action-buttons .action-icon {
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.action-buttons a-button {
+    padding: 0;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    transition: opacity 0.3s;
+}
+
+.action-buttons a-button:hover {
+    opacity: 0.8;
+}
+
+/* 头像、角色、状态等字段的显示样式 */
+.ant-table-cell {
+    display: flex;
+    align-items: center;
+}
+
+.ant-table-cell a-avatar {
+    margin-right: 10px;
+}
+
+.ant-table-cell a-tag {
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 5px;
+}
+
+/* 处理状态的不同颜色 */
+.status-tag {
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 5px;
+    border: 1px solid;
+}
+
+.success {
+    color: #22c78b;
+    background-color: #f5ffec;
+}
+
+.warning {
+    color: #eaba52;
+    background-color: rgba(234, 186, 82, 0.1);
+}
+
+.error {
+    color: #f25f60;
+    background-color: rgba(242, 95, 96, 0.1);
+}
+
+/* 处理角色的不同颜色 */
+.role-tag {
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 5px;
+    border: 1px solid;
+}
+
+.role-admin {
+    color: #1890ff;
+    background-color: #e6f4ff;
+}
+
+.role-user {
+    color: #52c41a;
+    background-color: rgba(82, 196, 26, 0.1);
+}
+
+.role-vip {
+    color: #ff9900;
+    background: #fff9db;
+}
+
+/* 编辑、删除、封禁、解锁按钮样式 */
+.edit-icon {
+    color: #3b82f6;
+}
+
+.delete-icon {
+    color: #ef4949;
+}
+
+.ban-icon {
+    color: #eab611;
+}
+
+.unban-icon {
+    color: #52c41a;
+}
