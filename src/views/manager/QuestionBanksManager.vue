@@ -68,7 +68,7 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons-vue';
+import { EditOutlined, DeleteOutlined, PlusOutlined} from '@ant-design/icons-vue';
 
 const searchQuery = ref('');
 const bankStatus = ref('active');

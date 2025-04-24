@@ -85,7 +85,7 @@
 }
 
 /* 题目列表卡片 */
-.problem-list-card {
+.Question-list-card {
     padding: 0;
     border-radius: 8px;
     border: 1px solid #ddd;
@@ -94,7 +94,7 @@
 }
 
 /* 题目列表 */
-.problem-list {
+.Question-list {
     margin-top: 0;
 }
 
@@ -212,4 +212,91 @@
 /* 分页 */
 .ant-pagination {
     padding: 15px 0;
+}
+
+:deep(.ant-modal-body) {
+    padding-top: 20px;
+}
+
+:deep(.ant-form-item) {
+    margin-bottom: 16px;
+}
+
+:deep(.ant-select-selector) {
+    min-height: 32px;
+}
+
+
+/* 预览模态框样式 */
+.preview-container {
+    padding: 20px;
+}
+
+.preview-header {
+    margin-bottom: 20px;
+}
+
+.preview-header h3 {
+    margin: 0 0 10px 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.preview-meta {
+    display: flex;
+    align-items: center;
+    color: #666;
+    font-size: 14px;
+}
+
+.meta-divider {
+    margin: 0 10px;
+    color: #ddd;
+}
+
+.preview-tags {
+    margin-bottom: 20px;
+}
+
+.preview-content,
+.preview-answer {
+    margin-bottom: 20px;
+}
+
+.preview-content h4,
+.preview-answer h4 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+.content-box {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    white-space: pre-wrap;
+    line-height: 1.6;
+}
+
+.preview-stats {
+    display: flex;
+    gap: 30px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+}
+
+.stat-label {
+    color: #666;
+    margin-right: 8px;
+}
+
+.stat-value {
+    font-weight: 600;
 }

@@ -111,6 +111,7 @@ import 'echarts/theme/macarons';
 import { useRouter } from 'vue-router';
 import "../components/manager/Header.vue";
 import Header from '../components/manager/Header.vue';
+import { RollbackOutlined } from '@ant-design/icons-vue';
 
 const heatmapRef = ref(null);
 
