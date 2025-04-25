@@ -12,6 +12,7 @@
     width: 100%;
     max-width: 1200px;
     padding: 20px;
+    margin-top: 60px;
 }
 
 /* 卡片样式 */
@@ -346,4 +347,167 @@
 
 .empty-data .ant-empty-image {
     height: 60px;
+}
+
+
+/* 添加过渡动画样式 */
+.list-enter-active,
+.list-leave-active {
+    transition: all 0.3s ease;
+}
+
+.list-enter-from,
+.list-leave-to {
+    opacity: 0;
+    transform: translateX(30px);
+}
+
+.tag-enter-active,
+.tag-leave-active {
+    transition: all 0.2s ease;
+}
+
+.tag-enter-from,
+.tag-leave-to {
+    opacity: 0;
+    transform: scale(0.8);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+
+.tag-container {
+    display: inline-flex;
+    gap: 8px;
+}
+
+/* 按钮悬停动画 */
+.edit-btn,
+.preview-btn,
+.delete-btn {
+    transition: all 0.3s ease;
+}
+
+.edit-btn:hover,
+.preview-btn:hover,
+.delete-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.edit-btn:active,
+.preview-btn:active,
+.delete-btn:active {
+    transform: translateY(0);
+}
+
+/* 标签动画 */
+.tag {
+    transition: all 0.2s ease;
+}
+
+.tag:hover {
+    transform: scale(1.05);
+}
+
+/* 卡片入场动画 */
+.card {
+    animation: cardFadeIn 0.5s ease;
+}
+
+@keyframes cardFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 搜索框加载动画 */
+.input-search {
+    transition: all 0.3s ease;
+}
+
+.input-search:focus {
+    transform: scale(1.01);
+}
+
+/* 表格行悬停效果 */
+.custom-table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.custom-table tbody tr:hover {
+    transform: scale(1.001);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* 分页动画 */
+.pagination-container {
+    transition: all 0.3s ease;
+}
+
+/* 模态框动画 */
+.ant-modal-mask {
+    animation: fadeIn 0.3s ease;
+}
+
+.ant-modal-wrap {
+    animation: scaleIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* 加载动画 */
+.ant-spin-nested-loading > div > .ant-spin {
+    max-height: none;
+}
+
+/* 预览模态框内容动画 */
+.preview-container {
+    padding: 16px;
+}
+
+.preview-content,
+.preview-answer {
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

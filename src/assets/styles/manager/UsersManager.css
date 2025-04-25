@@ -158,3 +158,65 @@
 .unban-icon {
     color: #52c41a;
 }
+
+/* 用户信息样式 */
+.user-stats {
+    background-color: #f9f9f9;
+    padding: 12px;
+    border-radius: 4px;
+    margin-top: 8px;
+}
+
+.user-stats p {
+    margin-bottom: 8px;
+    color: #666;
+}
+
+.user-stats p:last-child {
+    margin-bottom: 0;
+}
+
+/* 模态框居中样式 */
+:deep(.ant-modal) {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+}
+
+:deep(.ant-modal-mask) {
+    backdrop-filter: blur(2px);
+}
+
+:deep(.ant-modal-content) {
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+:deep(.ant-modal-header) {
+    padding: 16px 24px;
+    border-bottom: 1px solid #f0f0f0;
+    border-radius: 8px 8px 0 0;
+}
+
+:deep(.ant-modal-footer) {
+    padding: 12px 24px;
+    border-top: 1px solid #f0f0f0;
+    border-radius: 0 0 8px 8px;
+}
+
+:deep(.ant-modal-body) {
+    padding: 24px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    :deep(.ant-modal) {
+        width: 90% !important;
+    }
+    
+    :deep(.ant-modal-body) {
+        max-height: 60vh;
+    }
+}
