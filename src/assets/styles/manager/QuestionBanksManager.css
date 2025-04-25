@@ -2,7 +2,7 @@
 .questionbank {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    min-height: 100vh;
     padding: 20px;
 }
 
@@ -46,9 +46,8 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 25px;
-    grid-row-gap: 0px;
-    grid-template-rows: 280px;
     flex-grow: 1;
+    margin-bottom: 20px;
 }
 
 /* 题库卡片样式 */
@@ -61,7 +60,8 @@
     justify-content: space-between;
     height: 228px;
     width: 100%;
-    margin: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease;
 }
 
 .bank-card:hover {
@@ -130,6 +130,61 @@
     width: 32px;
     height: 32px;
     border-radius: 6px;
+}
+
+.icon-preview {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.preview-icon {
+    background-color: #ffffff;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.icon-name {
+    color: #666;
+    font-size: 14px;
+}
+
+.bank-icon-display {
+    background-color: #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.icon-select-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.icon-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+.icon-option:hover {
+    background-color: #f0f0f0;
+}
+
+.icon-option.selected {
+    background-color: #e6f7ff;
+    border: 1px solid #91d5ff;
+}
+
+.statistics-info {
+    color: #666;
+    line-height: 1.5;
 }
 
 /* 题库卡片操作按钮 */
@@ -223,4 +278,37 @@
     margin-top: 5px;
     margin-bottom: 4px;
     margin-right: auto;
+}
+
+/* 活跃度相关样式 */
+.active-high {
+    color: #3ccb71;
+}
+
+.active-medium {
+    color: #eab611;
+}
+
+.active-low {
+    color: #acb1bc;
+}
+
+/* 状态相关样式 */
+.bank-status {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    display: inline-block;
+}
+
+.status-active {
+    background-color: #e6f7ff;
+    color: #1890ff;
+    border: 1px solid #91d5ff;
+}
+
+.status-inactive {
+    background-color: #f5f5f5;
+    color: #999;
+    border: 1px solid #d9d9d9;
 }

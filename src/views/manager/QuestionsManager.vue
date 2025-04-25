@@ -58,42 +58,65 @@
                                 <th>操作</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr v-for="Question in filteredQuestionList" :key="Question.id">
-                                <td>#{{ Question.id }}</td>
-                                <td>{{ Question.title }}</td>
+                        <tbody v-if="paginatedQuestionList.length > 0">
+                            <tr v-for="question in paginatedQuestionList" :key="question.id">
+                                <td>#{{ question.id }}</td>
+                                <td>{{ question.title }}</td>
                                 <td>
-                                    <span :class="difficultyClass(Question.difficulty)" class="difficulty-tag">
-                                        {{ Question.difficulty }}
+                                    <span :class="difficultyClass(question.difficulty)" class="difficulty-tag">
+                                        {{ question.difficulty }}
                                     </span>
                                 </td>
                                 <td>
-                                    <span v-for="tag in Question.tags" :key="tag" class="tag">{{ tag }}</span>
+                                    <span v-for="tag in question.tags" :key="tag" class="tag">{{ tag }}</span>
                                 </td>
-                                <td>{{ Question.submissions }}</td>
+                                <td>{{ question.submissions }}</td>
                                 <td>
-                                    <span :class="passRateClass(Question.passRate)">
-                                        {{ Question.passRate }}
+                                    <span :class="passRateClass(question.passRate)">
+                                        {{ question.passRate }}
                                     </span>
                                 </td>
-                                <td>{{ getQuestionBankName(Question.questionBankId) }}</td>
+                                <td>{{ getQuestionBankName(question.questionBankId) }}</td>
                                 <td>
-                                    <button class="edit-btn" @click="showEditModal(Question)">
+                                    <button class="edit-btn" @click="showEditModal(question)">
                                         <EditOutlined class="edit-icon" />编辑
                                     </button>
-                                    <button class="preview-btn" @click="showPreviewModal(Question)">
+                                    <button class="preview-btn" @click="showPreviewModal(question)">
                                         <FolderViewOutlined class="preview-icon" />预览
                                     </button>
-                                    <button class="delete-btn" @click="handleDelete(Question)">
+                                    <button class="delete-btn" @click="handleDelete(question)">
                                         <DeleteOutlined class="delete-icon" />删除
                                     </button>
                                 </td>
                             </tr>
                         </tbody>
+                        <tbody v-else>
+                            <tr>
+                                <td colspan="8">
+                                    <div class="empty-data">
+                                        <a-empty description="暂无符合条件的题目" />
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
-                <a-pagination :current="currentPage" :total="totalItems" :pageSize="itemsPerPage"
-                    @change="handlePageChange" showQuickJumper style="margin-top: 20px; text-align: center;" />
+                <div class="pagination-container">
+                    <a-pagination 
+                        v-model:current="currentPage" 
+                        v-model:pageSize="itemsPerPage"
+                        :total="totalItems" 
+                        :showTotal="showTotal"
+                        :pageSizeOptions="pageSizeOptions"
+                        showSizeChanger 
+                        showQuickJumper 
+                        @change="handlePageChange"
+                        @showSizeChange="handlePageSizeChange"
+                    />
+                    <div class="pagination-info">
+                        当前显示: {{ (currentPage - 1) * itemsPerPage + (totalItems > 0 ? 1 : 0) }}-{{ Math.min(currentPage * itemsPerPage, totalItems) }} 条，共 {{ totalItems }} 条
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -247,7 +270,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { DownloadOutlined, PlusOutlined, EditOutlined, FolderViewOutlined, DeleteOutlined } from '@ant-design/icons-vue';
 import { message, Modal } from 'ant-design-vue';
 import type { Rule } from 'ant-design-vue/es/form';
@@ -275,8 +298,9 @@ const searchQuery = ref('');
 
 // 页码相关状态
 const currentPage = ref(1);
-const totalItems = ref(100);
 const itemsPerPage = ref(10);
+const pageSizeOptions = ref(['10', '20', '50', '100']);
+const showTotal = (total: number) => `共 ${total} 条记录`;
 
 // 新增题目相关
 const addModalVisible = ref(false);
@@ -401,6 +425,41 @@ const QuestionList = [
     },
 ];
 
+// 筛选后的题目列表
+const filteredQuestionList = computed(() => {
+    return QuestionList.filter(question => {
+        // 搜索过滤
+        const searchMatch = searchQuery.value === '' ||
+            question.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+            question.id.toString().includes(searchQuery.value);
+
+        // 难度过滤
+        const difficultyMatch = difficulty.value === 'all' ||
+            (difficulty.value === 'easy' && question.difficulty === '简单') ||
+            (difficulty.value === 'medium' && question.difficulty === '中等') ||
+            (difficulty.value === 'hard' && question.difficulty === '困难');
+
+        // 题库过滤
+        const bankMatch = bank.value === 'all' ||
+            question.questionBankId === bank.value;
+
+        return searchMatch && difficultyMatch && bankMatch;
+    });
+});
+
+// 分页后的题目列表计算属性
+const paginatedQuestionList = computed(() => {
+    const filteredList = filteredQuestionList.value;
+    const startIndex = (currentPage.value - 1) * itemsPerPage.value;
+    const endIndex = startIndex + itemsPerPage.value;
+    return filteredList.slice(startIndex, Math.min(endIndex, filteredList.length));
+});
+
+// 总条数计算属性
+const totalItems = computed(() => {
+    return filteredQuestionList.value.length;
+});
+
 // 获取题库名称
 const getQuestionBankName = (questionBankId: number) => {
     const bank = questionBanks.value.find(bank => bank.id === questionBankId);
@@ -428,28 +487,6 @@ const fetchQuestionBanks = async () => {
     }
 };
 
-// 筛选后的题目列表
-const filteredQuestionList = computed(() => {
-    return QuestionList.filter(Question => {
-        // 搜索过滤
-        const searchMatch = searchQuery.value === '' ||
-            Question.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-            Question.id.toString().includes(searchQuery.value);
-
-        // 难度过滤
-        const difficultyMatch = difficulty.value === 'all' ||
-            (difficulty.value === 'easy' && Question.difficulty === '简单') ||
-            (difficulty.value === 'medium' && Question.difficulty === '中等') ||
-            (difficulty.value === 'hard' && Question.difficulty === '困难');
-
-        // 题库过滤
-        const bankMatch = bank.value === 'all' ||
-            Question.questionBankId === bank.value;
-
-        return searchMatch && difficultyMatch && bankMatch;
-    });
-});
-
 // 难度标签样式
 const difficultyClass = (difficulty: string) => {
     switch (difficulty) {
@@ -472,11 +509,28 @@ const passRateClass = (rate: string) => {
     return 'pass-rate-low';
 };
 
-// 分页控制
+// 分页变化处理函数
 const handlePageChange = (page: number) => {
     currentPage.value = page;
-    console.log(`Page changed to: ${page}`);
+    // 如果有需要，可以在这里添加其他逻辑，比如滚动到页面顶部
+    window.scrollTo(0, 0);
 };
+
+// 每页显示条数变化处理函数
+const handlePageSizeChange = (current: number, size: number) => {
+    itemsPerPage.value = size;
+    currentPage.value = 1; // 重置为第一页
+};
+
+// 重置分页状态的函数（在筛选条件改变时调用）
+const resetPagination = () => {
+    currentPage.value = 1;
+};
+
+// 添加筛选条件变化监听器
+watch([searchQuery, difficulty, bank, status], () => {
+    resetPagination();
+}, { immediate: true });
 
 // 题目增删改查Modal
 

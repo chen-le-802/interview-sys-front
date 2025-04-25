@@ -1,0 +1,32 @@
+.bank-icon-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #ffffff;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .bank-icon {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 4px;
+  }
+  
+  /* 尺寸定义 */
+  .small {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .medium {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .large {
+    width: 48px;
+    height: 48px;
+  }
