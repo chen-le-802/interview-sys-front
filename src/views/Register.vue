@@ -19,8 +19,9 @@
                             <el-icon class="input-icon">
                                 <User />
                             </el-icon>
-                            <input v-model="registerForm.account" id="account" type="text" placeholder="请输入账号"
-                                autocomplete="username">
+                            <input v-model="registerForm.userAccount" id="account" type="text" placeholder="请输入账号"
+                                autocomplete="username" :disabled="loading" @blur="validateAccount">
+                            <div class="error-msg" v-if="errors.userAccount">{{ errors.userAccount }}</div>
                         </div>
 
                         <!-- 用户名输入 -->
@@ -29,8 +30,8 @@
                             <el-icon class="input-icon">
                                 <User />
                             </el-icon>
-                            <input v-model="registerForm.username" id="username" type="text" placeholder="请输入用户名"
-                                autocomplete="nickname">
+                            <input v-model="registerForm.userName" id="username" type="text" placeholder="请输入用户名"
+                                autocomplete="nickname" :disabled="loading">
                         </div>
 
                         <!-- 密码输入 -->
@@ -39,13 +40,15 @@
                             <el-icon class="input-icon">
                                 <Lock />
                             </el-icon>
-                            <input v-model="registerForm.password" id="password" :type="passwordFieldType"
-                                placeholder="请输入密码" autocomplete="new-password" @keyup.enter="handleSubmit">
+                            <input v-model="registerForm.userPassword" id="password" :type="passwordFieldType"
+                                placeholder="请输入密码(8-20位)" autocomplete="new-password" :disabled="loading"
+                                @blur="validatePassword">
                             <el-icon class="password-toggle" role="button" tabindex="0"
-                                @click="togglePasswordVisibility">
+                                @click="togglePasswordVisibility" @keyup.enter="togglePasswordVisibility">
                                 <View v-if="!showPassword" />
                                 <Hide v-else />
                             </el-icon>
+                            <div class="error-msg" v-if="errors.userPassword">{{ errors.userPassword }}</div>
                         </div>
 
                         <!-- 确认密码 -->
@@ -54,18 +57,19 @@
                             <el-icon class="input-icon">
                                 <Lock />
                             </el-icon>
-                            <input v-model="registerForm.confirmPassword" id="confirm-password"
+                            <input v-model="registerForm.checkPassword" id="confirm-password"
                                 :type="confirmPasswordFieldType" placeholder="请确认密码" autocomplete="new-password"
-                                @keyup.enter="handleSubmit">
+                                :disabled="loading" @blur="validateConfirmPassword">
                             <el-icon class="password-toggle" role="button" tabindex="0"
-                                @click="toggleConfirmPasswordVisibility">
+                                @click="toggleConfirmPasswordVisibility" @keyup.enter="toggleConfirmPasswordVisibility">
                                 <View v-if="!showConfirmPassword" />
                                 <Hide v-else />
                             </el-icon>
+                            <div class="error-msg" v-if="errors.checkPassword">{{ errors.checkPassword }}</div>
                         </div>
 
-                        <el-button native-type="submit" type="primary" class="login-btn">
-                            注册
+                        <el-button native-type="submit" type="primary" class="login-btn" :loading="loading">
+                            {{ loading ? '注册中...' : '注册' }}
                         </el-button>
                     </form>
                 </div>
@@ -84,7 +88,9 @@
 <script lang="ts">
 import { defineComponent, reactive, ref, computed } from 'vue'
 import { User, Lock, View, Hide } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import router from '@/router'
+import { userRegister } from '@/apis/authApi'
 
 const LOGIN_PATH = '/login'
 
@@ -98,14 +104,21 @@ export default defineComponent({
     },
     setup() {
         const registerForm = reactive({
-            account: '',
-            username: '',
-            password: '',
-            confirmPassword: ''
+            userAccount: '',
+            userName: '',
+            userPassword: '',
+            checkPassword: ''
+        })
+
+        const errors = reactive({
+            userAccount: '',
+            userPassword: '',
+            checkPassword: ''
         })
 
         const showPassword = ref(false)
         const showConfirmPassword = ref(false)
+        const loading = ref(false)
 
         // 计算属性优化输入类型
         const passwordFieldType = computed(() =>
@@ -127,43 +140,119 @@ export default defineComponent({
         const togglePasswordVisibility = () => toggleVisibility('password')
         const toggleConfirmPasswordVisibility = () => toggleVisibility('confirmPassword')
 
-        const handleSubmit = () => {
-            if (!registerForm.username.trim() || !registerForm.password.trim() || !registerForm.confirmPassword.trim() || !registerForm.account.trim()) {
+        // 表单验证
+        const validateAccount = () => {
+            if (!registerForm.userAccount.trim()) {
+                errors.userAccount = '账号不能为空'
+                return false
+            } else if (registerForm.userAccount.length < 4) {
+                errors.userAccount = '账号长度不能少于4位'
+                return false
+            } else if (!/^[a-zA-Z0-9_]{4,16}$/.test(registerForm.userAccount)) {
+                errors.userAccount = '账号只能包含字母、数字和下划线，长度4-16位'
+                return false
+            }
+            errors.userAccount = ''
+            return true
+        }
+
+        const validatePassword = () => {
+            if (!registerForm.userPassword) {
+                errors.userPassword = '密码不能为空'
+                return false
+            } else if (registerForm.userPassword.length < 8 || registerForm.userPassword.length > 20) {
+                errors.userPassword = '密码长度应为8-20位'
+                return false
+            }
+            errors.userPassword = ''
+            return true
+        }
+
+        const validateConfirmPassword = () => {
+            if (!registerForm.checkPassword) {
+                errors.checkPassword = '请确认密码'
+                return false
+            } else if (registerForm.userPassword !== registerForm.checkPassword) {
+                errors.checkPassword = '两次输入的密码不一致'
+                return false
+            }
+            errors.checkPassword = ''
+            return true
+        }
+
+        const validateForm = () => {
+            const isAccountValid = validateAccount()
+            const isPasswordValid = validatePassword()
+            const isConfirmPasswordValid = validateConfirmPassword()
+
+            return isAccountValid && isPasswordValid && isConfirmPasswordValid
+        }
+
+        const handleSubmit = async () => {
+            if (!validateForm()) {
                 ElMessage({
-                    message: '请填写完整信息',
+                    message: '请检查表单输入',
                     type: 'warning',
-                    plain: true,
                     duration: 2000
                 })
                 return
             }
-            // mock提交表单
-            console.log('注册表单提交：', registerForm)
-            ElMessage({
-                message: '注册成功，正在跳转登录页面',
-                type: 'success',
-                plain: true,
-                duration: 2000
-            })
-            setTimeout(() => {
-                navigateToLogin()
-            }, 2000)
+
+            try {
+                loading.value = true
+                console.log('发送注册请求:', registerForm)
+
+                const response = await userRegister(registerForm)
+                console.log('注册响应:', response)
+
+                if (response.code === 0) {
+                    ElMessage({
+                        message: '注册成功，正在跳转登录页面',
+                        type: 'success',
+                        duration: 2000
+                    })
+
+                    setTimeout(() => {
+                        navigateToLogin()
+                    }, 1500)
+                } else {
+                    ElMessage({
+                        message: response.message || '注册失败，请重试',
+                        type: 'error',
+                        duration: 3000,
+                        showClose: true
+                    })
+                }
+            } catch (error: any) {
+                console.error('注册失败:', error)
+                ElMessage({
+                    message: error.message || '注册失败，请检查网络连接',
+                    type: 'error',
+                    duration: 3000,
+                    showClose: true
+                })
+            } finally {
+                loading.value = false
+            }
         }
 
         const navigateToLogin = () => {
-            // 实际项目中建议使用 vue-router 的 useRouter
             router.push(LOGIN_PATH)
-
         }
 
         return {
             registerForm,
+            errors,
             showPassword,
             showConfirmPassword,
             passwordFieldType,
             confirmPasswordFieldType,
+            loading,
             togglePasswordVisibility,
             toggleConfirmPasswordVisibility,
+            validateAccount,
+            validatePassword,
+            validateConfirmPassword,
             handleSubmit,
             navigateToLogin
         }

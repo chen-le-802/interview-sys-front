@@ -19,8 +19,8 @@
                             <el-icon class="input-icon">
                                 <User />
                             </el-icon>
-                            <input v-model="loginForm.username" id="username" type="text" placeholder="请输入用户名"
-                                autocomplete="username">
+                            <input v-model="loginForm.userAccount" id="username" type="text" placeholder="请输入账号"
+                                autocomplete="username" :disabled="loading">
                         </div>
 
                         <div class="input-box password">
@@ -28,17 +28,18 @@
                             <el-icon class="input-icon">
                                 <Lock />
                             </el-icon>
-                            <input v-model="loginForm.password" id="password" :type="showPassword ? 'text' : 'password'"
-                                placeholder="请输入密码" autocomplete="current-password" @keyup.enter="handleSubmit">
+                            <input v-model="loginForm.userPassword" id="password"
+                                :type="showPassword ? 'text' : 'password'" placeholder="请输入密码"
+                                autocomplete="current-password" @keyup.enter="handleSubmit" :disabled="loading">
                             <el-icon class="password-toggle" role="button" tabindex="0"
-                                @click="togglePasswordVisibility">
+                                @click="togglePasswordVisibility" @keyup.enter="togglePasswordVisibility">
                                 <View v-if="!showPassword" />
                                 <Hide v-else />
                             </el-icon>
                         </div>
 
-                        <el-button native-type="submit" type="primary" class="login-btn">
-                            登录
+                        <el-button native-type="submit" type="primary" class="login-btn" :loading="loading">
+                            {{ loading ? '登录中...' : '登录' }}
                         </el-button>
                     </form>
                 </div>
@@ -55,10 +56,11 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref } from 'vue'
+import { defineComponent, reactive, ref, onMounted } from 'vue'
 import { User, Lock, View, Hide } from '@element-plus/icons-vue'
-
+import { ElMessage } from 'element-plus'
 import router from '@/router'
+import { userLogin } from '@/apis/authApi'
 
 const REGISTER_PATH = '/register'
 
@@ -71,51 +73,85 @@ export default defineComponent({
         Hide
     },
     setup() {
-        const mockUser = {
-            username: 'admin',
-            password: '123456'
-        }
+        onMounted(() => {
+
+        });
+
         const loginForm = reactive({
-            username: '',
-            password: ''
+            userAccount: '',
+            userPassword: ''
         })
 
         const showPassword = ref(false)
+        const loading = ref(false)
 
         const togglePasswordVisibility = () => {
             showPassword.value = !showPassword.value
         }
 
-        const handleSubmit = () => {
+        const handleSubmit = async () => {
             // 输入验证
-            if (!loginForm.username.trim() || !loginForm.password.trim()) {
+            if (!loginForm.userAccount.trim()) {
                 ElMessage({
-                    message: '用户名和密码不能为空',
+                    message: '请输入账号',
                     type: 'warning',
-                    plain: true,
                     duration: 2000
                 })
                 return
             }
 
-            if (loginForm.username === mockUser.username && loginForm.password === mockUser.password) {
+            if (!loginForm.userPassword.trim()) {
                 ElMessage({
-                    message: '登录成功，正在跳转...',
-                    type: 'success',
-                    plain: true,
+                    message: '请输入密码',
+                    type: 'warning',
                     duration: 2000
                 })
-                setTimeout(() => {
-                    router.push('/')
-                }, 2000)
-            } else {
+                return
+            }
+
+            try {
+                loading.value = true
+                const response = await userLogin(loginForm)
+                console.log('登录响应:', response)
+
+                if (response.code === 0) {
+                    // 保存登录状态
+                    localStorage.setItem('token', response.data.id.toString())
+                    localStorage.setItem('userInfo', JSON.stringify(response.data))
+                    // 设置过期时间（例如1小时后过期）
+                    const expireTime = new Date().getTime() + 60 * 60 * 1000
+                    localStorage.setItem('expireTime', expireTime.toString())
+
+                    // 显示成功消息
+                    ElMessage({
+                        message: '登录成功，正在跳转...',
+                        type: 'success',
+                        duration: 1500
+                    })
+
+                    setTimeout(() => {
+                        router.push('/').catch(err => {
+                            console.error('路由跳转失败:', err)
+                        })
+                    }, 1000)
+                } else {
+                    ElMessage({
+                        message: response.message || '登录失败，请重试',
+                        type: 'error',
+                        duration: 3000,
+                        showClose: true
+                    })
+                }
+            } catch (error: any) {
+                console.error('登录失败:', error)
                 ElMessage({
-                    message: '用户名或密码错误',
+                    message: error.message || '登录失败，请检查网络连接',
                     type: 'error',
-                    plain: true,
-                    duration: 2000,
+                    duration: 3000,
                     showClose: true
                 })
+            } finally {
+                loading.value = false
             }
         }
 
@@ -126,6 +162,7 @@ export default defineComponent({
         return {
             loginForm,
             showPassword,
+            loading,
             togglePasswordVisibility,
             handleSubmit,
             navigateToRegister

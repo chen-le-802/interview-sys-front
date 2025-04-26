@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { isAuthenticated, isAdmin } from '@/utils/auth'
+import { ElMessage } from 'element-plus'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -12,11 +14,13 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('@/views/Login.vue'),
+      meta: { allowAnyState: true }
     },
     {
       path: '/register',
       name: 'register',
       component: () => import('@/views/Register.vue'),
+      meta: { allowAnyState: true }
     },
     {
       path: '/banks',
@@ -32,6 +36,7 @@ const router = createRouter({
       path: '/admin/home',
       name: 'admin-home',
       component: () => import('@/components/manager/Layout.vue'),
+      meta: { requiresAdmin: true },
       children: [
         {
           path: '',
@@ -66,6 +71,35 @@ const router = createRouter({
       component: () => import('@/views/frontend/Bank.vue'),
     },
   ],
+})
+
+// 全局前置守卫
+router.beforeEach((to, from, next) => {
+  console.log('路由跳转:', from.path, '->', to.path)
+  
+  // 始终允许访问登录和注册页面
+  const isPublicPage = to.matched.some(record => record.meta.allowAnyState)
+  if (isPublicPage) {
+    return next()
+  }
+  
+  // 检查是否需要管理员权限
+  const adminRequired = to.matched.some(record => record.meta.requiresAdmin)
+  
+  // 需要认证且未登录
+  if (!isAuthenticated()) {
+    ElMessage.warning('请先登录')
+    return next('/login')
+  }
+  
+  // 需要管理员权限但不是管理员
+  if (adminRequired && !isAdmin()) {
+    ElMessage.error('无权访问此页面')
+    return next('/')
+  }
+  
+  // 默认放行
+  next()
 })
 
 export default router

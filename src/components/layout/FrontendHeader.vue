@@ -1,7 +1,7 @@
 <template>
     <header>
         <div class="header-main">
-            <div class="logo-title">
+            <div class="logo-title" @click="handleNavClick({ name: '主页', path: '/' })">
                 <div class="logo"></div>
                 <div class="title">面试斩</div>
             </div>
@@ -25,29 +25,28 @@
                         </div>
                     </template>
                 </el-input>
-
             </div>
 
             <div class="message" @click="showNotifications">
                 <el-icon :size="18">
                     <Bell style="cursor: pointer;" />
                 </el-icon>
-
             </div>
 
             <div class="user">
-                <div class="avatar" :style="{ backgroundImage: `url(${mockUser.avatar})` }"></div>
-                <div class="username">{{ mockUser.name }}</div>
+                <div class="avatar" :style="{ backgroundImage: `url(${userAvatar})` }"></div>
+                <Logout />
             </div>
         </div>
     </header>
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Bell, Search } from '@element-plus/icons-vue'
-import { useRouter } from 'vue-router'
-
+import { useRouter, useRoute } from 'vue-router'
+import Logout from '@/components/Logout.vue'
+import { getUserInfo } from '@/utils/auth'
 
 // Mock数据
 const navItems = [
@@ -58,47 +57,49 @@ const navItems = [
     { name: 'AI面试官', path: '/ai-interview' }
 ]
 
-const mockUser = {
-    name: '麦麦头',
-    avatar: '/src/assets/images/common/avatar.png'
-}
-
 const mockNotifications = [
     { title: '系统通知', content: '新增50道大厂真题', time: '3小时前' },
     { title: '学习提醒', content: '你有3个收藏题目待复习', time: '5小时前' }
 ]
 
 // 响应式数据
-const activeNav = computed(() => {
-    const matchedItem = navItems.find(item => item.path === route.path)
-    return matchedItem ? matchedItem.name : ''
-})
 const searchQuery = ref('')
 const searchInfoColor = ref('#ffffff')
+const userInfo = ref<any>(null)
 
 const router = useRouter()
 const route = useRoute()
 
+// 计算属性
+const activeNav = computed(() => {
+    const matchedItem = navItems.find(item => item.path === route.path)
+    return matchedItem ? matchedItem.name : ''
+})
+
+const userAvatar = computed(() => {
+    return userInfo.value?.userAvatar || '/src/assets/images/common/avatar.png'
+})
 
 // 方法
 const handleNavClick = (item: { name: string; path: string }) => {
-    activeNav.value = item.name
-    // 路由跳转
-    router.push(item.path);
-    console.log('导航至:', item.path)
-
+    router.push(item.path)
 }
 
 const handleSearch = () => {
     if (searchQuery.value.trim()) {
         console.log('执行搜索:', searchQuery.value)
-
+        // 这里可以添加搜索逻辑，比如跳转到搜索结果页面
+        // router.push({ path: '/search', query: { q: searchQuery.value } })
     }
 }
 
 const showNotifications = () => {
     console.log('显示通知:', mockNotifications)
 }
+
+onMounted(() => {
+    userInfo.value = getUserInfo()
+})
 </script>
 
 <style scoped>
@@ -111,8 +112,6 @@ const showNotifications = () => {
 .search {
     position: relative;
 }
-
-
 
 header {
     width: 100%;
@@ -129,7 +128,6 @@ header {
     max-width: 1440px;
     margin: 0 auto;
     height: 56px;
-
 }
 
 .logo-title {
@@ -152,13 +150,14 @@ header {
     width: 50px;
     height: 56px;
     margin: 0 10px;
-
 }
 
 .user {
-    width: 150px;
+    width: 180px;
     height: 56px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
 }
 
 .logo {
@@ -195,25 +194,15 @@ header {
 
 .nav ul li:hover {
     background-color: #3760f7;
-
     color: #ffffff
-}
-
-.user {
-    display: flex;
-    align-items: center;
-
 }
 
 .avatar {
     width: 35px;
     height: 35px;
-    background: url("../../assets/images/common/avatar.png");
+    margin-right: 10px;
     background-size: cover;
-}
-
-.username {
-    margin-left: 5px;
+    border-radius: 50%;
 }
 
 .search-button {
@@ -225,5 +214,10 @@ header {
     background-color: #3760f6;
     border-radius: 5px;
     cursor: pointer;
+}
+
+.user :deep(.el-dropdown-link) {
+    color: #333;
+    font-size: 14px;
 }
 </style>
