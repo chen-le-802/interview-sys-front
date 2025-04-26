@@ -10,7 +10,14 @@
         <template #dropdown>
             <el-dropdown-menu class="custom-dropdown-menu">
                 <template v-if="isLoggedIn">
-                    <el-dropdown-item v-if="isAdmin" command="admin">
+                    <el-dropdown-item v-if="isAdmin && isAdminRoute" command="front">
+                        <el-icon>
+                            <HomeFilled />
+                        </el-icon>
+                        <span>前台首页</span>
+                    </el-dropdown-item>
+
+                    <el-dropdown-item v-if="isAdmin && !isAdminRoute " command="admin">
                         <el-icon>
                             <setting />
                         </el-icon>
@@ -42,11 +49,11 @@
 
 <script lang="ts">
 import { defineComponent, computed, ref } from 'vue'
-import { ArrowDown, User, Setting, SwitchButton } from '@element-plus/icons-vue'
+import { useRouter, useRoute } from 'vue-router'
+import { ArrowDown, User, Setting, SwitchButton, HomeFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { userLogout } from '@/apis/authApi'
 import { clearAuth, getUserInfo, isAdmin as checkIsAdmin } from '@/utils/auth'
-import router from '@/router'
 
 export default defineComponent({
     name: 'LogoutComponent',
@@ -54,9 +61,13 @@ export default defineComponent({
         ArrowDown,
         User,
         Setting,
-        SwitchButton
+        SwitchButton,
+        HomeFilled
     },
     setup() {
+        const router = useRouter()
+        const route = useRoute()
+
         const loading = ref(false)
 
         // 获取用户信息
@@ -77,6 +88,9 @@ export default defineComponent({
         // 是否管理员
         const isAdmin = computed(() => checkIsAdmin())
 
+        // 判断当前是否处于后台路由
+        const isAdminRoute = computed(() => route.path.startsWith('/admin'))
+
         const handleCommand = async (command: string) => {
             switch (command) {
                 case 'logout':
@@ -87,6 +101,9 @@ export default defineComponent({
                     break
                 case 'admin':
                     router.push('/admin/home')
+                    break
+                case 'front':
+                    router.push('/')
                     break
                 case 'login':
                     router.push('/login')
@@ -105,16 +122,13 @@ export default defineComponent({
                 loading.value = true
 
                 try {
-                    // 调用登出接口
                     await userLogout()
                 } catch (err) {
                     console.error('登出API调用失败，但继续清除本地状态', err)
                 }
 
-                // 清除本地存储
                 clearAuth()
 
-                // 使用setTimeout确保状态清除完全生效
                 setTimeout(() => {
                     ElMessage.success('退出成功')
                     window.location.href = '/login'
@@ -134,6 +148,7 @@ export default defineComponent({
             userAvatar,
             isAdmin,
             isLoggedIn,
+            isAdminRoute,
             handleCommand,
             handleLogout,
             loading
