@@ -34,8 +34,7 @@
             </div>
 
             <div class="user">
-                <div class="avatar" :style="{ backgroundImage: `url(${userAvatar})` }"></div>
-                <Logout />
+                <UserInfoDropDown />
             </div>
         </div>
     </header>
@@ -45,8 +44,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Bell, Search } from '@element-plus/icons-vue'
 import { useRouter, useRoute } from 'vue-router'
-import Logout from '@/components/Logout.vue'
-import { getUserInfo } from '@/utils/auth'
+import UserInfoDropDown from '@/components/UserInfoDropDown.vue'
 
 // Mock数据
 const navItems = [
@@ -65,7 +63,6 @@ const mockNotifications = [
 // 响应式数据
 const searchQuery = ref('')
 const searchInfoColor = ref('#ffffff')
-const userInfo = ref<any>(null)
 
 const router = useRouter()
 const route = useRoute()
@@ -74,10 +71,6 @@ const route = useRoute()
 const activeNav = computed(() => {
     const matchedItem = navItems.find(item => item.path === route.path)
     return matchedItem ? matchedItem.name : ''
-})
-
-const userAvatar = computed(() => {
-    return userInfo.value?.userAvatar || '/src/assets/images/common/avatar.png'
 })
 
 // 方法
@@ -97,9 +90,6 @@ const showNotifications = () => {
     console.log('显示通知:', mockNotifications)
 }
 
-onMounted(() => {
-    userInfo.value = getUserInfo()
-})
 </script>
 
 <style scoped>
@@ -153,7 +143,7 @@ header {
 }
 
 .user {
-    width: 180px;
+    width: 150px;
     height: 56px;
     cursor: pointer;
     display: flex;
@@ -194,15 +184,7 @@ header {
 
 .nav ul li:hover {
     background-color: #3760f7;
-    color: #ffffff
-}
-
-.avatar {
-    width: 35px;
-    height: 35px;
-    margin-right: 10px;
-    background-size: cover;
-    border-radius: 50%;
+    color: #ffffff;
 }
 
 .search-button {

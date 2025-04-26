@@ -54,12 +54,13 @@ declare module 'vue' {
     Header: typeof import('./components/manager/Header.vue')['default']
     HomeViewHeader: (typeof import('./components/layout/HomeViewHeader.vue'))['default']
     Layout: typeof import('./components/manager/Layout.vue')['default']
-    Logout: typeof import('./components/Logout.vue')['default']
+    Logout: typeof import('./components/UserInfoDropDown.vue')['default']
     QuestionBank: typeof import('./components/shared/QuestionBank.vue')['default']
     RankList: typeof import('./components/shared/RankList.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Table: typeof import('./components/shared/Table.vue')['default']
+    UserInfoDropDown: typeof import('./components/UserInfoDropDown.vue')['default']
     UserRankList: typeof import('./components/shared/UserRankList.vue')['default']
   }
 }

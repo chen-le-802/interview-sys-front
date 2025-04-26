@@ -109,8 +109,7 @@ import { ref, onMounted, reactive } from 'vue';
 import * as echarts from 'echarts';
 import 'echarts/theme/macarons';
 import { useRouter } from 'vue-router';
-import "../components/manager/Header.vue";
-import Header from '../components/manager/Header.vue';
+import Header from '@/components/layout/FrontendHeader.vue';
 import { RollbackOutlined } from '@ant-design/icons-vue';
 
 const heatmapRef = ref(null);

@@ -87,7 +87,7 @@ router.beforeEach((to, from, next) => {
   const adminRequired = to.matched.some(record => record.meta.requiresAdmin)
   
   // 需要认证且未登录
-  if (!isAuthenticated()) {
+  if (!isAuthenticated() && to.path !== '/') {
     ElMessage.warning('请先登录')
     return next('/login')
   }
