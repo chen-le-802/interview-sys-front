@@ -27,12 +27,12 @@ export const getUserById = (id: number) => {
   });
 };
 
-// 封禁用户 (后端未实现)
-export const blockUser = (id: number) => {
-  return request.post('/api/user/block', { id });
+// 封禁用户
+export const blockUser = (userId: number) => {
+  return request.post(`/api/user/block?userId=${userId}`);
 };
 
-// 解封用户 (后端未实现)
-export const unblockUser = (id: number) => {
-  return request.post('/api/user/unblock', { id });
+// 解封用户
+export const unblockUser = (userId: number) => {
+  return request.post(`/api/user/unblock?userId=${userId}`);
 };
