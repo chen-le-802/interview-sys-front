@@ -1,8 +1,8 @@
 import request from '@/utils/request';
 
-// 分页获取用户列表
+// 分页获取用户列表（后台）
 export const getUsers = (params: any) => {
-  return request.post('/api/user/list/page/vo', params);
+  return request.post('/api/user/list/page', params);
 };
 
 // 添加用户
@@ -20,7 +20,7 @@ export const deleteUser = (id: number) => {
   return request.post('/api/user/delete', { id });
 };
 
-// 获取用户详情
+// 获取用户详情（后台）
 export const getUserById = (id: number) => {
   return request.get('/api/user/get', {
     params: { id }
