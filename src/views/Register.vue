@@ -31,7 +31,8 @@
                                 <User />
                             </el-icon>
                             <input v-model="registerForm.userName" id="username" type="text" placeholder="请输入用户名"
-                                autocomplete="nickname" :disabled="loading">
+                                autocomplete="nickname" :disabled="loading" @blur="validateUsername">
+                            <div class="error-msg" v-if="errors.userName">{{ errors.userName }}</div>
                         </div>
 
                         <!-- 密码输入 -->
@@ -88,7 +89,6 @@
 <script lang="ts">
 import { defineComponent, reactive, ref, computed } from 'vue'
 import { User, Lock, View, Hide } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
 import router from '@/router'
 import { userRegister } from '@/apis/authApi'
 
@@ -113,7 +113,8 @@ export default defineComponent({
         const errors = reactive({
             userAccount: '',
             userPassword: '',
-            checkPassword: ''
+            checkPassword: '',
+            userName: ''
         })
 
         const showPassword = ref(false)
@@ -180,12 +181,28 @@ export default defineComponent({
             return true
         }
 
+        const validateUsername = () => {
+             if (!registerForm.userName.trim()) {
+                 errors.userName = '用户名不能为空'
+                 return false
+             } else if (registerForm.userName.length < 2) {
+                 errors.userName = '用户名长度不能少于2位'
+                 return false
+             } else if (!/^[a-zA-Z0-9_]{2,16}$/.test(registerForm.userName)) {
+                 errors.userName = '用户名只能包含字母、数字和下划线，长度2-16位'
+                 return false
+             }
+             errors.userName = ''
+             return true
+         }
+ 
         const validateForm = () => {
             const isAccountValid = validateAccount()
             const isPasswordValid = validatePassword()
             const isConfirmPasswordValid = validateConfirmPassword()
+            const isUsernameValid = validateUsername() // 未实现用户名验证
 
-            return isAccountValid && isPasswordValid && isConfirmPasswordValid
+            return isAccountValid && isPasswordValid && isConfirmPasswordValid && isUsernameValid
         }
 
         const handleSubmit = async () => {
@@ -253,6 +270,7 @@ export default defineComponent({
             validateAccount,
             validatePassword,
             validateConfirmPassword,
+            validateUsername,
             handleSubmit,
             navigateToLogin
         }
@@ -413,6 +431,16 @@ input:focus {
     justify-content: center;
 }
 
+.error-msg {
+     color: red;
+     position: absolute;
+     bottom: -20px;
+     left: 10px;
+     font-size: 12px;
+ }
+
+
+ 
 input[type="password"]::-ms-reveal {
     display: none !important;
 }

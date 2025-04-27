@@ -18,22 +18,3 @@
     height: 50px;
     margin-top: -5px;
   }
-  
-  .user-info span {
-    margin-left: 30px;
-    font-size: 14px;
-    color: #333;
-    margin-top: 2px;
-  }
-  
-  .user-name {
-    position: relative;
-    top: 1px;
-    left: -15px;
-  }
-
-  .user-dropdown {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-}

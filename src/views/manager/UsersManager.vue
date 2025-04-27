@@ -3,29 +3,17 @@
         <!-- 搜索和筛选 -->
         <div class="filter-bar">
             <div class="filter-controls">
-                <a-input-search 
-                    v-model:value="searchQuery" 
-                    placeholder="搜索用户名" 
-                    class="input-search" 
-                    allow-clear
-                    :loading="isSearching"
-                    @search="handleSearch"
-                />
-                <a-select 
-                    v-model:value="userRole" 
-                    placeholder="用户角色" 
-                    class="select-filter"
-                >
+                <a-input-search v-model:value="searchQuery" placeholder="搜索用户名" class="input-search" allow-clear
+                    :loading="isSearching" @search="handleSearch" />
+                <a-select v-model:value="userRole" placeholder="用户角色" class="select-filter"
+                    @change="handleFilterChange">
                     <a-select-option value="">全部用户</a-select-option>
                     <a-select-option value="admin">管理员</a-select-option>
                     <a-select-option value="user">普通用户</a-select-option>
                     <a-select-option value="vip">VIP用户</a-select-option>
                 </a-select>
-                <a-select 
-                    v-model:value="userStatus" 
-                    placeholder="状态" 
-                    class="select-filter"
-                >
+                <a-select v-model:value="userStatus" placeholder="状态" class="select-filter"
+                    @change="handleFilterChange">
                     <a-select-option value="">全部状态</a-select-option>
                     <a-select-option value="active">正常</a-select-option>
                     <a-select-option value="blocked">已封禁</a-select-option>
@@ -37,26 +25,24 @@
         </div>
 
         <!-- 用户列表 -->
-        <a-table 
-            :columns="userColumns" 
-            :data-source="filteredUserList" 
-            :pagination="{ 
-                pageSize: 10,
-                showTotal: (total) => `共 ${total} 条记录`,
-                showSizeChanger: true,
-                showQuickJumper: true
-            }"
-            class="user-table" 
-            :loading="loading" 
-            :row-key="record => record.id"
-        >
+        <a-table :columns="userColumns" :data-source="userList" :pagination="{
+            pageSize: pagination.pageSize,
+            current: pagination.current,
+            total: pagination.total,
+            showTotal: (total) => `共 ${total} 条记录`,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            onChange: handleTableChange,
+            onShowSizeChange: handleTableChange
+        }" class="user-table" :loading="loading" :row-key="record => record?.id || 0">
             <template #bodyCell="{ column, record }">
-                <template v-if="column.key === 'avatar'">
-                    <a-avatar :src="(record as User).avatar || getDefaultAvatar((record as User).username)" />
+                <template v-if="column.key === 'userAvatar'">
+                    <a-avatar
+                        :src="record && record.userAvatar ? record.userAvatar : getDefaultAvatar(record ? record.userName : '')" />
                 </template>
-                <template v-if="column.key === 'role'">
-                    <a-tag :class="['role-tag', getRoleClass((record as User).role)]">
-                        {{ getRoleText((record as User).role) }}
+                <template v-if="column.key === 'userRole'">
+                    <a-tag :class="['role-tag', getRoleClass((record as User).userRole)]">
+                        {{ getRoleText((record as User).userRole) }}
                     </a-tag>
                 </template>
                 <template v-if="column.key === 'status'">
@@ -85,27 +71,23 @@
         </a-table>
 
         <!-- 添加用户 -->
-        <a-modal 
-            v-model:visible="addModalVisible" 
-            title="添加用户" 
-            @ok="handleAddUser" 
-            @cancel="resetForm"
-            :confirm-loading="modalLoading" 
-            centered 
-            class="custom-modal"
-        >
+        <a-modal v-model:visible="addModalVisible" title="添加用户" @ok="handleAddUser" @cancel="resetForm"
+            :confirm-loading="modalLoading" centered class="custom-modal">
             <a-form :model="formState" :rules="formRules" ref="addFormRef" layout="vertical">
-                <a-form-item label="用户名" name="username">
-                    <a-input v-model:value="formState.username" placeholder="请输入用户名" />
+                <a-form-item label="账号" name="userAccount">
+                    <a-input v-model:value="formState.userAccount" placeholder="请输入账号" />
                 </a-form-item>
-                <a-form-item label="密码" name="password">
-                    <a-input-password v-model:value="formState.password" placeholder="请输入密码" />
+                <a-form-item label="用户名" name="userName">
+                    <a-input v-model:value="formState.userName" placeholder="请输入用户名" />
+                </a-form-item>
+                <a-form-item label="密码" name="userPassword">
+                    <a-input-password v-model:value="formState.userPassword" placeholder="请输入密码" />
                 </a-form-item>
                 <a-form-item label="确认密码" name="confirmPassword">
                     <a-input-password v-model:value="formState.confirmPassword" placeholder="请再次输入密码" />
                 </a-form-item>
-                <a-form-item label="用户角色" name="role">
-                    <a-radio-group v-model:value="formState.role">
+                <a-form-item label="用户角色" name="userRole">
+                    <a-radio-group v-model:value="formState.userRole">
                         <a-radio value="user">普通用户</a-radio>
                         <a-radio value="vip">VIP用户</a-radio>
                         <a-radio value="admin">管理员</a-radio>
@@ -121,27 +103,20 @@
         </a-modal>
 
         <!-- 编辑用户 -->
-        <a-modal 
-            v-model:visible="editModalVisible" 
-            title="编辑用户" 
-            @ok="handleEditUser" 
-            @cancel="resetForm"
-            :confirm-loading="modalLoading" 
-            centered 
-            class="custom-modal"
-        >
+        <a-modal v-model:visible="editModalVisible" title="编辑用户" @ok="handleEditUser" @cancel="resetForm"
+            :confirm-loading="modalLoading" centered class="custom-modal">
             <a-form :model="editFormState" :rules="editFormRules" ref="editFormRef" layout="vertical">
-                <a-form-item label="用户ID">
-                    <a-input v-model:value="editFormState.id" disabled />
+                <a-form-item label="账号">
+                    <a-input v-model:value="editFormState.userAccount" disabled />
                 </a-form-item>
-                <a-form-item label="用户名" name="username">
-                    <a-input v-model:value="editFormState.username" placeholder="请输入用户名" />
+                <a-form-item label="用户名" name="userName">
+                    <a-input v-model:value="editFormState.userName" placeholder="请输入用户名" />
                 </a-form-item>
-                <a-form-item label="密码" name="password" extra="如不修改密码，请留空">
-                    <a-input-password v-model:value="editFormState.password" placeholder="请输入新密码" />
+                <a-form-item label="密码" name="userPassword" extra="如不修改密码，请留空">
+                    <a-input-password v-model:value="editFormState.userPassword" placeholder="请输入新密码" />
                 </a-form-item>
-                <a-form-item label="用户角色" name="role">
-                    <a-radio-group v-model:value="editFormState.role">
+                <a-form-item label="用户角色" name="userRole">
+                    <a-radio-group v-model:value="editFormState.userRole">
                         <a-radio value="user">普通用户</a-radio>
                         <a-radio value="vip">VIP用户</a-radio>
                         <a-radio value="admin">管理员</a-radio>
@@ -155,9 +130,9 @@
                 </a-form-item>
                 <a-form-item label="用户信息">
                     <div class="user-stats">
-                        <p>已解题数: {{ editFormState.solved }}</p>
-                        <p>注册时间: {{ editFormState.registerTime }}</p>
-                        <p>最近登录: {{ editFormState.lastLogin }}</p>
+                        <p>创建时间: {{ formatDateTime(editFormState.createTime) }}</p>
+                        <p>更新时间: {{ formatDateTime(editFormState.updateTime) }}</p>
+                        <p>编辑时间: {{ formatDateTime(editFormState.editTime) }}</p>
                     </div>
                 </a-form-item>
             </a-form>
@@ -166,38 +141,36 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import { EditOutlined, DeleteOutlined, LockOutlined, UnlockOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import { message, Modal } from 'ant-design-vue';
 import type { FormInstance } from 'ant-design-vue';
 import type { Rule } from 'ant-design-vue/es/form';
-// import { getUsers, addUser, updateUser, deleteUser, blockUser as apiBlockUser, unblockUser as apiUnblockUser} from '@/api/userApi';
-
-// 用户状态类型
-type UserStatus = 'active' | 'blocked';
-// 用户角色类型
-type UserRole = 'admin' | 'user' | 'vip';
+import { getUsers, addUser, updateUser, deleteUser, blockUser, unblockUser, getUserById } from '@/apis/userApi';
 
 // 用户类型
 interface User {
     id: number;
-    username: string;
-    role: UserRole;
-    solved: number;
-    registerTime: string;
-    lastLogin: string;
-    status: UserStatus;
-    avatar?: string;
-    password?: string;
+    userAccount: string;
+    userName: string;
+    userRole: string;
+    userAvatar?: string;
+    status: string;
+    createTime: string;
+    updateTime: string;
+    editTime: string;
+    userPassword?: string;
+    isDelete: number;
 }
 
 // 声明表单类型
 interface UserFormState {
-    username: string;
-    password: string;
+    userAccount: string;
+    userName: string;
+    userPassword: string;
     confirmPassword: string;
-    role: UserRole;
-    status: UserStatus;
+    userRole: string;
+    status: string;
 }
 
 // 表格列类型定义
@@ -206,6 +179,22 @@ interface TableColumn {
     dataIndex?: string;
     key: string;
     width?: number;
+}
+
+// 分页参数
+interface Pagination {
+    current: number;
+    pageSize: number;
+    total: number;
+}
+
+// 查询参数
+interface QueryParams {
+    page: number;
+    size: number;
+    role?: string;
+    status?: string;
+    keyword?: string;
 }
 
 // 筛选条件
@@ -222,25 +211,40 @@ const modalLoading = ref(false);
 const addFormRef = ref<FormInstance>();
 const editFormRef = ref<FormInstance>();
 
+// 分页
+const pagination = reactive<Pagination>({
+    current: 1,
+    pageSize: 10,
+    total: 0
+});
+
+// 用户列表
+const userList = ref<User[]>([]);
+
 // 表单状态
 const formState = reactive<UserFormState>({
-    username: '',
-    password: '',
+    userAccount: '',
+    userName: '',
+    userPassword: '',
     confirmPassword: '',
-    role: 'user',
+    userRole: 'user',
+    userProfile: '',
     status: 'active'
 });
 
 // 编辑表单状态
 const editFormState = reactive<User>({
     id: 0,
-    username: '',
-    role: 'user',
-    solved: 0,
-    registerTime: '',
-    lastLogin: '',
+    userAccount: '',
+    userName: '',
+    userRole: 'user',
+    userProfile: '',
     status: 'active',
-    password: ''
+    createTime: '',
+    updateTime: '',
+    editTime: '',
+    userPassword: '',
+    isDelete: 0
 });
 
 // 定义规则对象类型
@@ -248,19 +252,23 @@ type FormRules = Record<string, Rule[]>;
 
 // 表单验证规则
 const formRules: FormRules = {
-    username: [
-        { required: true, message: '请输入用户名', trigger: 'blur' },
-        { min: 3, max: 20, message: '用户名长度应为3-20个字符', trigger: 'blur' }
+    userAccount: [
+        { required: true, message: '请输入账号', trigger: 'blur' },
+        { min: 4, max: 16, message: '账号长度应为4-16个字符', trigger: 'blur' }
     ],
-    password: [
+    userName: [
+        { required: true, message: '请输入用户名', trigger: 'blur' },
+        { min: 4, max: 16, message: '用户名长度应为4-16个字符', trigger: 'blur' }
+    ],
+    userPassword: [
         { required: true, message: '请输入密码', trigger: 'blur' },
-        { min: 6, message: '密码长度应不少于6个字符', trigger: 'blur' }
+        { min: 8, message: '密码长度应不少于8个字符', trigger: 'blur' }
     ],
     confirmPassword: [
         { required: true, message: '请确认密码', trigger: 'blur' },
         {
             validator: async (_rule: Rule, value: string) => {
-                if (value !== formState.password) {
+                if (value !== formState.userPassword) {
                     return Promise.reject('两次输入的密码不一致');
                 }
                 return Promise.resolve();
@@ -268,7 +276,7 @@ const formRules: FormRules = {
             trigger: 'blur'
         }
     ],
-    role: [
+    userRole: [
         { required: true, message: '请选择用户角色', trigger: 'change' }
     ],
     status: [
@@ -278,14 +286,14 @@ const formRules: FormRules = {
 
 // 编辑表单验证规则
 const editFormRules: FormRules = {
-    username: [
+    userName: [
         { required: true, message: '请输入用户名', trigger: 'blur' },
-        { min: 3, max: 20, message: '用户名长度应为3-20个字符', trigger: 'blur' }
+        { min: 4, max: 16, message: '用户名长度应为4-16个字符', trigger: 'blur' }
     ],
-    password: [
-        { min: 6, message: '密码长度应不少于6个字符', trigger: 'blur' }
+    userPassword: [
+        { min: 8, message: '密码长度应不少于8个字符', trigger: 'blur' }
     ],
-    role: [
+    userRole: [
         { required: true, message: '请选择用户角色', trigger: 'change' }
     ],
     status: [
@@ -295,96 +303,21 @@ const editFormRules: FormRules = {
 
 // 表格列定义
 const userColumns: TableColumn[] = [
-    { title: '头像', dataIndex: 'avatar', key: 'avatar', width: 80 },
-    { title: '用户名', dataIndex: 'username', key: 'username' },
-    { title: '角色', dataIndex: 'role', key: 'role' },
-    { title: '已解题数', dataIndex: 'solved', key: 'solved' },
-    { title: '注册时间', dataIndex: 'registerTime', key: 'registerTime' },
-    { title: '最近登录', dataIndex: 'lastLogin', key: 'lastLogin' },
+    { title: '头像', dataIndex: 'userAvatar', key: 'userAvatar', width: 80 },
+    { title: '账号', dataIndex: 'userAccount', key: 'userAccount' },
+    { title: '用户名', dataIndex: 'userName', key: 'userName' },
+    { title: '角色', dataIndex: 'userRole', key: 'userRole' },
+    {
+        title: '注册时间', dataIndex: 'createTime', key: 'createTime',
+        customRender: ({ text }: { text: string }) => formatDateTime(text)
+    },
+    {
+        title: '更新时间', dataIndex: 'updateTime', key: 'updateTime',
+        customRender: ({ text }: { text: string }) => formatDateTime(text)
+    },
     { title: '状态', dataIndex: 'status', key: 'status' },
     { title: '操作', key: 'action', width: 120 }
 ];
-
-// 示例数据
-const userList = ref<User[]>([
-    {
-        id: 1,
-        username: '001',
-        role: 'admin',
-        solved: 328,
-        registerTime: '2023-01-15',
-        lastLogin: '2024-03-10 15:30',
-        status: 'active',
-        avatar: ''
-    },
-    {
-        id: 2,
-        username: '002',
-        role: 'user',
-        solved: 312,
-        registerTime: '2023-02-20',
-        lastLogin: '2024-03-10 14:45',
-        status: 'active',
-        avatar: ''
-    },
-    {
-        id: 3,
-        username: '003',
-        role: 'user',
-        solved: 289,
-        registerTime: '2023-03-10',
-        lastLogin: '2024-03-09 16:20',
-        status: 'active',
-        avatar: ''
-    },
-    {
-        id: 4,
-        username: '004',
-        role: 'user',
-        solved: 276,
-        registerTime: '2023-04-05',
-        lastLogin: '2024-03-10 11:15',
-        status: 'active',
-        avatar: ''
-    },
-    {
-        id: 5,
-        username: '005',
-        role: 'user',
-        solved: 245,
-        registerTime: '2023-05-18',
-        lastLogin: '2024-02-28 09:40',
-        status: 'blocked',
-        avatar: ''
-    },
-    {
-        id: 6,
-        username: '006',
-        role: 'vip',
-        solved: 400,
-        registerTime: '2023-06-01',
-        lastLogin: '2024-03-10 12:00',
-        status: 'active',
-        avatar: ''
-    }
-]);
-
-// 根据筛选条件过滤用户列表
-const filteredUserList = computed(() => {
-    return userList.value.filter(user => {
-        // 模糊搜索用户名
-        const searchLower = searchQuery.value.toLowerCase().trim();
-        const usernameMatch = !searchLower || user.username.toLowerCase().includes(searchLower);
-        
-        // 角色筛选
-        const roleMatch = userRole.value === '' || user.role === userRole.value;
-        
-        // 状态筛选
-        const statusMatch = userStatus.value === '' || user.status === userStatus.value;
-        
-        return usernameMatch && roleMatch && statusMatch;
-    });
-});
 
 const getRoleText = (role: string) => {
     switch (role) {
@@ -434,8 +367,29 @@ const getStatusClass = (status: string) => {
     }
 };
 
+// 格式化日期时间
+const formatDateTime = (dateTime: string) => {
+    if (!dateTime) return '';
+    try {
+        const date = new Date(dateTime);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+
+        return `${year}-${month}-${day} ${hours}:${minutes}`;
+    } catch (error) {
+        return dateTime;
+    }
+};
+
 // 获取默认头像
 const getDefaultAvatar = (username: string) => {
+    if (!username) {
+        return `https://ui-avatars.com/api/?name=U&background=cccccc&color=fff`;
+    }
+
     // 使用用户名生成不同颜色的默认头像
     const colors = ['#1890ff', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#13c2c2'];
     const hash = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -443,41 +397,141 @@ const getDefaultAvatar = (username: string) => {
     return `https://ui-avatars.com/api/?name=${username.charAt(0)}&background=${colors[colorIndex].substring(1)}&color=fff`;
 };
 
+// 获取查询参数
+const getQueryParams = (): QueryParams => {
+    const params: QueryParams = {
+        page: pagination.current,
+        size: pagination.pageSize
+    };
+
+    if (userRole.value) {
+        params.role = userRole.value;
+    }
+
+    if (userStatus.value) {
+        params.status = userStatus.value;
+    }
+
+    if (searchQuery.value.trim()) {
+        params.keyword = searchQuery.value.trim();
+    }
+
+    return params;
+};
+
+// 加载用户数据
+const loadUserData = async () => {
+    loading.value = true;
+
+    try {
+        const params = getQueryParams();
+        const response = await getUsers(params);
+
+        // 根据API返回格式进行适配
+        if (response && response.data) {
+            // 确保每个用户对象都有所需的属性，防止渲染错误
+            const records = (response.data.records || []).map((user: any) => {
+                // 处理时间显示格式化
+                let editTimeFormatted = user.editTime;
+                let createTimeFormatted = user.createTime;
+
+                return {
+                    id: user.id || 0,
+                    userAccount: user.userAccount || '',
+                    userName: user.userName || '',
+                    userRole: user.userRole || 'user',
+                    userAvatar: user.userAvatar || '',
+                    userProfile: user.userProfile || '',
+                    status: user.status || 'active',
+                    createTime: createTimeFormatted || '',
+                    updateTime: user.updateTime || '',
+                    editTime: editTimeFormatted || '',
+                    isDelete: user.isDelete || 0
+                };
+            });
+
+            console.log('API返回的用户数据:', records); // 调试用
+            userList.value = records;
+            pagination.total = response.data.total || 0;
+        } else {
+            userList.value = [];
+            pagination.total = 0;
+        }
+    } catch (error) {
+        console.error('获取用户数据失败:', error);
+        message.error('获取用户数据失败，请重试');
+        userList.value = [];
+        pagination.total = 0;
+    } finally {
+        loading.value = false;
+    }
+};
+
+// 处理表格分页变化
+const handleTableChange = (page: number, pageSize: number) => {
+    pagination.current = page;
+    pagination.pageSize = pageSize;
+    loadUserData();
+};
+
+// 处理搜索
 const handleSearch = () => {
     isSearching.value = true;
-    
+    pagination.current = 1;
+    loadUserData();
     setTimeout(() => {
         isSearching.value = false;
     }, 300);
 };
 
-// 监听搜索和筛选条件变化，自动更新列表
-watch([searchQuery, userRole, userStatus], () => {
-    // 这里可以添加API调用来获取过滤后的数据
-}, { immediate: false });
+// 处理筛选条件变化
+const handleFilterChange = () => {
+    pagination.current = 1;
+    loadUserData();
+};
+
+// 监听搜索输入变化
+watch(searchQuery, (newVal, oldVal) => {
+    if (newVal !== oldVal && !isSearching.value) {
+        handleSearch();
+    }
+});
 
 const showAddModal = () => {
     addModalVisible.value = true;
 };
 
-const showEditModal = (user: User) => {
-    editFormState.id = user.id;
-    editFormState.username = user.username;
-    editFormState.role = user.role;
-    editFormState.status = user.status;
-    editFormState.solved = user.solved;
-    editFormState.registerTime = user.registerTime;
-    editFormState.lastLogin = user.lastLogin;
-    editFormState.avatar = user.avatar;
+const showEditModal = async (user: User) => {
+    modalLoading.value = true;
 
-    editFormState.password = '';
-    editModalVisible.value = true;
+    try {
+        const response = await getUserById(user.id);
+        const userData = response.data || user;
+
+        editFormState.id = userData.id;
+        editFormState.userAccount = userData.userAccount;
+        editFormState.userName = userData.userName;
+        editFormState.userRole = userData.userRole;
+        editFormState.userProfile = userData.userProfile || '';
+        editFormState.status = userData.status;
+        editFormState.createTime = userData.createTime || '';
+        editFormState.updateTime = userData.updateTime || '';
+        editFormState.editTime = userData.editTime || '';
+        editFormState.userPassword = '';
+
+        editModalVisible.value = true;
+    } catch (error) {
+        console.error('获取用户详情失败:', error);
+        message.error('获取用户详情失败，请重试');
+    } finally {
+        modalLoading.value = false;
+    }
 };
 
 const showDeleteConfirm = (user: User) => {
     Modal.confirm({
         title: '确认删除',
-        content: `确定要删除用户 "${user.username}" 吗？此操作不可撤销。`,
+        content: `确定要删除用户 "${user.userName}" 吗？此操作不可撤销。`,
         okText: '确认',
         okType: 'danger',
         cancelText: '取消',
@@ -488,7 +542,7 @@ const showDeleteConfirm = (user: User) => {
 const showBlockConfirm = (user: User) => {
     Modal.confirm({
         title: '确认封禁',
-        content: `确定要封禁用户 "${user.username}" 吗？封禁后该用户将无法登录系统。`,
+        content: `确定要封禁用户 "${user.userName}" 吗？封禁后该用户将无法登录系统。`,
         okText: '确认',
         okType: 'danger',
         cancelText: '取消',
@@ -499,7 +553,7 @@ const showBlockConfirm = (user: User) => {
 const showUnblockConfirm = (user: User) => {
     Modal.confirm({
         title: '确认解封',
-        content: `确定要解封用户 "${user.username}" 吗？解封后该用户将可以正常访问系统。`,
+        content: `确定要解封用户 "${user.userName}" 吗？解封后该用户将可以正常访问系统。`,
         okText: '确认',
         okType: 'primary',
         cancelText: '取消',
@@ -512,74 +566,56 @@ const handleAddUser = async () => {
         await addFormRef.value?.validate();
         modalLoading.value = true;
 
-        const newUser: User = {
-            id: userList.value.length + 1,
-            username: formState.username,
-            role: formState.role,
-            status: formState.status,
-            solved: 0,
-            registerTime: new Date().toISOString().split('T')[0],
-            lastLogin: '未登录',
-            avatar: ''
-        };
+        await addUser({
+            userAccount: formState.userAccount,
+            userName: formState.userName,
+            userPassword: formState.userPassword,
+            userRole: formState.userRole,
+            userProfile: formState.userProfile,
+            status: formState.status
+        });
 
-        // 调用API添加用户
-        // await addUser({
-        //     username: formState.username,
-        //     password: formState.password,
-        //     role: formState.role,
-        //     status: formState.status
-        // });
-
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        userList.value.push(newUser);
         message.success('用户添加成功');
         addModalVisible.value = false;
         resetForm();
+
+        loadUserData();
     } catch (error) {
-        console.error('添加用户验证失败:', error);
+        console.error('添加用户失败:', error);
         message.error('添加用户失败，请检查表单信息');
     } finally {
         modalLoading.value = false;
     }
 };
 
-// 处理编辑用户
 const handleEditUser = async () => {
     try {
         await editFormRef.value?.validate();
         modalLoading.value = true;
 
-        // 调用API更新用户 TO DO
-        // await updateUser({
-        //     id: editFormState.id,
-        //     username: editFormState.username,
-        //     password: editFormState.password, // 如果密码为空，API应该忽略密码更新
-        //     role: editFormState.role,
-        //     status: editFormState.status
-        // });
+        // 准备要更新的数据
+        const updateData: any = {
+            id: editFormState.id,
+            userName: editFormState.userName,
+            userRole: editFormState.userRole,
+            userProfile: editFormState.userProfile,
+            status: editFormState.status
+        };
 
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        const index = userList.value.findIndex(user => user.id === editFormState.id);
-        if (index !== -1) {
-            const updatedUser: User = {
-                ...userList.value[index],
-                username: editFormState.username,
-                role: editFormState.role,
-                status: editFormState.status
-            };
-            userList.value[index] = updatedUser;
+        // 如果密码不为空，添加到更新数据中
+        if (editFormState.userPassword) {
+            updateData.userPassword = editFormState.userPassword;
         }
-        
+
+        await updateUser(updateData);
+
         message.success('用户信息更新成功');
         editModalVisible.value = false;
         resetForm();
+
+        loadUserData();
     } catch (error) {
-        console.error('编辑用户验证失败:', error);
+        console.error('编辑用户失败:', error);
         message.error('更新用户信息失败，请检查表单信息');
     } finally {
         modalLoading.value = false;
@@ -590,14 +626,10 @@ const handleDeleteUser = async (id: number) => {
     loading.value = true;
 
     try {
-        // 调用API删除用户 TO DO
-        // await deleteUser(id);
-
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        userList.value = userList.value.filter(user => user.id !== id);
+        await deleteUser(id);
         message.success('用户删除成功');
+
+        loadUserData();
     } catch (error) {
         console.error('删除用户失败:', error);
         message.error('删除用户失败，请重试');
@@ -610,17 +642,17 @@ const handleBlockUser = async (id: number) => {
     loading.value = true;
 
     try {
-        // 调用API封禁用户 TO DO
-        // await apiBlockUser(id);
+        const response = await blockUser(id);
 
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        const user = userList.value.find(user => user.id === id);
-        if (user) {
-            user.status = 'blocked';
+        if (response && response.code === 0) {
+            message.success('用户已封禁');
+
+            await loadUserData();
+        } else {
+            const errorMsg = (response && response.message) ? response.message : '封禁用户失败，请重试';
+            message.error(errorMsg);
+            console.error('封禁用户API错误响应:', response);
         }
-        message.success('用户已封禁');
     } catch (error) {
         console.error('封禁用户失败:', error);
         message.error('封禁用户失败，请重试');
@@ -633,17 +665,17 @@ const handleUnblockUser = async (id: number) => {
     loading.value = true;
 
     try {
-        // 调用API解封用户 TO DO
-        // await apiUnblockUser(id);
+        const response = await unblockUser(id);
 
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        const user = userList.value.find(user => user.id === id);
-        if (user) {
-            user.status = 'active';
+        if (response && response.code === 0) {
+            message.success('用户已解封');
+
+            await loadUserData();
+        } else {
+            const errorMsg = (response && response.message) ? response.message : '解封用户失败，请重试';
+            message.error(errorMsg);
+            console.error('解封用户API错误响应:', response);
         }
-        message.success('用户已解封');
     } catch (error) {
         console.error('解封用户失败:', error);
         message.error('解封用户失败，请重试');
@@ -659,29 +691,17 @@ const resetForm = () => {
         editFormRef.value?.resetFields();
     }
 
-    formState.username = '';
-    formState.password = '';
+    formState.userAccount = '';
+    formState.userName = '';
+    formState.userPassword = '';
     formState.confirmPassword = '';
-    formState.role = 'user';
+    formState.userRole = 'user';
+    formState.userProfile = '';
     formState.status = 'active';
 };
 
-onMounted(async () => {
-    loading.value = true;
-
-    try {
-        // 调用API获取用户列表
-        // const response = await getUsers();
-        // userList.value = response.data;
-
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 500));
-    } catch (error) {
-        message.error('获取用户数据失败');
-        console.error(error);
-    } finally {
-        loading.value = false;
-    }
+onMounted(() => {
+    loadUserData();
 });
 </script>
 
