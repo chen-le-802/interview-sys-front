@@ -25,6 +25,10 @@ figcaption {
   margin: 0;
   padding: 0;
 }
+div {
+  box-sizing: border-box;
+  text-align: start;
+}
 
 /* 设置默认字体 */
 body,

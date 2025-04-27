@@ -17,7 +17,7 @@
                         <span>前台首页</span>
                     </el-dropdown-item>
 
-                    <el-dropdown-item v-if="isAdmin && !isAdminRoute " command="admin">
+                    <el-dropdown-item v-if="isAdmin && !isAdminRoute" command="admin">
                         <el-icon>
                             <setting />
                         </el-icon>
@@ -51,7 +51,7 @@
 import { defineComponent, computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowDown, User, Setting, SwitchButton, HomeFilled } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+
 import { userLogout } from '@/apis/authApi'
 import { clearAuth, getUserInfo, isAdmin as checkIsAdmin } from '@/utils/auth'
 

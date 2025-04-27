@@ -26,7 +26,7 @@
 import { ref, computed } from 'vue';
 const props = defineProps({
     tableWidth: {
-        type: String,
+        type: Number,
         default: '900px' // 默认宽度
     }
 });

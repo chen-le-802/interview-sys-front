@@ -58,7 +58,6 @@
 <script lang="ts">
 import { defineComponent, reactive, ref, onMounted } from 'vue'
 import { User, Lock, View, Hide } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
 import router from '@/router'
 import { userLogin } from '@/apis/authApi'
 
