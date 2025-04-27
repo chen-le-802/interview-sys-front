@@ -186,10 +186,10 @@ export default defineComponent({
                 errors.userName = '用户名不能为空'
                 return false
             } else if (registerForm.userName.length < 2) {
-                errors.userName = '用户名长度不能少于2位'
+                errors.userName = '用户名长度不能少于4位'
                 return false
-            } else if (!/^[a-zA-Z0-9_]{2,16}$/.test(registerForm.userName)) {
-                errors.userName = '用户名只能包含字母、数字和下划线，长度2-16位'
+            } else if (!/^[a-zA-Z0-9_]{4,16}$/.test(registerForm.userName)) {
+                errors.userName = '用户名只能包含字母、数字和下划线，长度4-16位'
                 return false
             }
             errors.userName = ''
