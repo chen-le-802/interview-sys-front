@@ -106,12 +106,14 @@ const questionList = ref([
 // 交互状态
 const activeCategory = ref('热门')
 const placeholder = '分类'
+const router = useRouter()
 
 // 事件处理
 const handleCategoryClick = (category: string) => {
     if (!category) return
     activeCategory.value = category
     console.log('当前分类：', category)
+
 }
 
 const handleStartPractice = () => {
@@ -125,6 +127,7 @@ const handleHotClick = () => {
 
 const handleQuestionClick = (item: any) => {
     console.log('查看题目集：', item.title)
+    router.push("/bank")
 }
 </script>
 
