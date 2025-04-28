@@ -1,8 +1,8 @@
 import request from '@/utils/request';
 
-// 分页获取用户列表
+// 分页获取用户列表（后台）
 export const getUsers = (params: any) => {
-  return request.post('/api/user/list/page/vo', params);
+  return request.post('/api/user/list/page', params);
 };
 
 // 添加用户
@@ -20,19 +20,19 @@ export const deleteUser = (id: number) => {
   return request.post('/api/user/delete', { id });
 };
 
-// 获取用户详情
+// 获取用户详情（后台）
 export const getUserById = (id: number) => {
   return request.get('/api/user/get', {
     params: { id }
   });
 };
 
-// 封禁用户 (后端未实现)
-export const blockUser = (id: number) => {
-  return request.post('/api/user/block', { id });
+// 封禁用户
+export const blockUser = (userId: number) => {
+  return request.post(`/api/user/block?userId=${userId}`);
 };
 
-// 解封用户 (后端未实现)
-export const unblockUser = (id: number) => {
-  return request.post('/api/user/unblock', { id });
+// 解封用户
+export const unblockUser = (userId: number) => {
+  return request.post(`/api/user/unblock?userId=${userId}`);
 };
