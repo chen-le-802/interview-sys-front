@@ -14,13 +14,13 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('@/views/Login.vue'),
-      meta: { allowAnyState: true }
+      meta: { allowAnyState: true },
     },
     {
       path: '/register',
       name: 'register',
       component: () => import('@/views/Register.vue'),
-      meta: { allowAnyState: true }
+      meta: { allowAnyState: true },
     },
     {
       path: '/banks',
@@ -41,24 +41,24 @@ const router = createRouter({
         {
           path: '',
           name: 'dashboard',
-          component: () => import('@/views/manager/Dashboard.vue')
+          component: () => import('@/views/manager/Dashboard.vue'),
         },
         {
           path: 'question',
           name: 'question',
-          component: () => import('@/views/manager/QuestionsManager.vue')
+          component: () => import('@/views/manager/QuestionsManager.vue'),
         },
         {
           path: 'questionbank',
           name: 'questionbank',
-          component: () => import('@/views/manager/QuestionBanksManager.vue')
+          component: () => import('@/views/manager/QuestionBanksManager.vue'),
         },
         {
           path: 'user',
           name: 'user',
-          component: () => import('@/views/manager/UsersManager.vue')
-        }
-      ]
+          component: () => import('@/views/manager/UsersManager.vue'),
+        },
+      ],
     },
     {
       path: '/personal',
@@ -70,34 +70,39 @@ const router = createRouter({
       name: 'bank',
       component: () => import('@/views/frontend/Bank.vue'),
     },
+    {
+      path: '/category',
+      name: 'category',
+      component: () => import('@/views/frontend/Category.vue'),
+    },
   ],
 })
 
 // 全局前置守卫
 router.beforeEach((to, from, next) => {
   console.log('路由跳转:', from.path, '->', to.path)
-  
+
   // 始终允许访问登录和注册页面
-  const isPublicPage = to.matched.some(record => record.meta.allowAnyState)
+  const isPublicPage = to.matched.some((record) => record.meta.allowAnyState)
   if (isPublicPage) {
     return next()
   }
-  
+
   // 检查是否需要管理员权限
-  const adminRequired = to.matched.some(record => record.meta.requiresAdmin)
-  
+  const adminRequired = to.matched.some((record) => record.meta.requiresAdmin)
+
   // 需要认证且未登录
   if (!isAuthenticated() && to.path !== '/') {
     ElMessage.warning('请先登录')
     return next('/login')
   }
-  
+
   // 需要管理员权限但不是管理员
   if (adminRequired && !isAdmin()) {
     ElMessage.error('无权访问此页面')
     return next('/')
   }
-  
+
   // 默认放行
   next()
 })

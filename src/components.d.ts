@@ -32,6 +32,7 @@ declare module 'vue' {
     ATextarea: typeof import('ant-design-vue/es')['Textarea']
     ATooltip: typeof import('ant-design-vue/es')['Tooltip']
     BankIcon: typeof import('./components/BankIcon.vue')['default']
+    BankList: typeof import('./components/shared/bankList.vue')['default']
     ElAlert: (typeof import('element-plus/es'))['ElAlert']
     ElAvatar: typeof import('element-plus/es')['ElAvatar']
     ElBacktop: typeof import('element-plus/es')['ElBacktop']
