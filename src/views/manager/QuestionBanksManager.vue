@@ -19,6 +19,7 @@
 
         <!-- 分类列表 -->
         <div class="bank-list-container">
+            <a-spin :spinning="loading" tip="数据加载中...">
                 <transition name="fade">
                     <div v-if="!loading && filteredBankList.length === 0" class="empty-state-container">
                         <div :class="['empty-state', { 'search-empty': searchQuery || bankStatus !== 'all' }]">
@@ -105,6 +106,7 @@
                         </div>
                     </div>
                 </transition>
+            </a-spin>
         </div>
 
         <!-- 新增题库 -->
@@ -167,6 +169,7 @@
                     <div class="statistics-info">
                         <p>题目数量: {{ editForm.questionCount || 0 }}</p>
                         <p>完成率: {{ editForm.completionRate || 0 }}%</p>
+                        <p>平均难度: {{ getDifficultyText(editForm.avgDifficulty || 0) }}</p>
                         <p>最近更新: {{ formatDate(editForm.updateTime) }}</p>
                     </div>
                 </a-form-item>
@@ -183,6 +186,7 @@ import type { Rule } from 'ant-design-vue/es/form';
 import type { FormInstance } from 'ant-design-vue';
 import BankIcon from '@/components/BankIcon.vue';
 import { getQuestionBankList, addQuestionBank, updateQuestionBank, deleteQuestionBank } from '@/apis/questionBankApi';
+import { getQuestionsByBankId } from '@/apis/questionBankQuestionApi';
 
 // 数据接口定义
 interface QuestionBank {
@@ -202,14 +206,18 @@ interface QuestionBank {
     activeLevel?: string;
 }
 
-// 查询参数接口
-interface QueryParams {
-    current: number;
-    pageSize: number;
-    sortField?: string;
-    sortOrder?: string;
-    title?: string;
-    isDelete?: number;
+// 题目接口定义
+interface Question {
+    id: number;
+    title: string;
+    content?: string;
+    tags?: string;
+    tagList?: string[]; // 前端解析后的标签列表
+    difficulty?: string;
+    submissionQuantity?: number; // 提交数量
+    passQuantity?: number; // 通过数量
+    passRate?: string; // 通过率
+    userId?: number;
 }
 
 // 图标映射
@@ -339,7 +347,22 @@ const bankList = ref<QuestionBank[]>([]);
 
 // 筛选后的题库列表
 const filteredBankList = computed(() => {
-    return bankList.value;
+    let result = [...bankList.value];
+    
+    // 按标题搜索
+    if (searchQuery.value.trim()) {
+        result = result.filter(bank => 
+            bank.title.toLowerCase().includes(searchQuery.value.trim().toLowerCase())
+        );
+    }
+    
+    // 按状态筛选
+    if (bankStatus.value !== 'all') {
+        const isDeleteValue = parseInt(bankStatus.value);
+        result = result.filter(bank => bank.isDelete === isDeleteValue);
+    }
+    
+    return result;
 });
 
 // 获取空状态描述
@@ -361,6 +384,19 @@ const getDifficultyText = (value: number) => {
     if (value < 3) return '简单';
     if (value < 4) return '中等';
     return '困难';
+};
+
+// 将后端难度字符串转为数值
+const difficultyToNumber = (difficultyStr?: string): number => {
+    switch (difficultyStr?.toLowerCase()) {
+        case 'easy': return 1;
+        case 'medium': return 3;
+        case 'hard': return 5;
+        case '简单': return 1;
+        case '中等': return 3;
+        case '困难': return 5;
+        default: return 3; // 默认中等难度
+    }
 };
 
 // 获取难度类名
@@ -394,6 +430,109 @@ const formatDate = (dateString?: string): string => {
     }
 };
 
+// 计算题库的统计数据
+const calculateBankStats = async (bank: QuestionBank): Promise<QuestionBank> => {
+    try {
+        // 尝试先使用明确的参数格式调用接口
+        const response = await getQuestionsByBankId(bank.id, {
+            current: 1,
+            pageSize: 100,
+            sortField: 'createTime',
+            sortOrder: 'descend'
+        });
+        
+        if (response.code !== 0) {
+            console.error('获取题库题目失败:', response.message);
+            // 发生错误时，返回带有默认值的题库
+            return {
+                ...bank,
+                questionCount: 0,
+                completionRate: 0,
+                avgDifficulty: 0,
+                activeLevel: '低'
+            };
+        }
+        
+        // 确保 records 存在，如果不存在则使用空数组
+        const questions = (response.data && response.data.records) ? response.data.records : [];
+        const questionCount = questions.length;
+        
+        // 如果没有题目，返回默认值
+        if (questionCount === 0) {
+            return {
+                ...bank,
+                questionCount: 0,
+                completionRate: 0,
+                avgDifficulty: 0,
+                activeLevel: '低'
+            };
+        }
+        
+        // 计算平均难度
+        let totalDifficulty = 0;
+        let validDifficultyCount = 0;
+        
+        questions.forEach((question: Question) => {
+            if (question.difficulty) {
+                totalDifficulty += difficultyToNumber(question.difficulty);
+                validDifficultyCount++;
+            }
+        });
+        
+        const avgDifficulty = validDifficultyCount > 0 ? 
+            totalDifficulty / validDifficultyCount : 0;
+        
+        // 计算完成率 - 处理可能的数据问题
+        let totalCompletionRate = 0;
+        let validRateCount = 0;
+        
+        questions.forEach((question: Question) => {
+            if (question.passRate) {
+                try {
+                    // 尝试将 passRate 转换为数字
+                    const passRate = typeof question.passRate === 'string' ?
+                        parseFloat(question.passRate.replace('%', '')) : 
+                        question.passRate;
+                    
+                    if (!isNaN(passRate)) {
+                        totalCompletionRate += passRate;
+                        validRateCount++;
+                    }
+                } catch (e) {
+                    console.warn('解析通过率失败:', question.passRate);
+                }
+            }
+        });
+        
+        // 避免除以零，并确保结果是合理的百分比
+        const completionRate = validRateCount > 0 ? 
+            Math.min(100, Math.max(0, Math.round(totalCompletionRate / validRateCount))) : 0;
+        
+        // 计算活跃度 - 基于题目数量
+        let activeLevel = '低';
+        if (questionCount > 50) activeLevel = '高';
+        else if (questionCount > 20) activeLevel = '中';
+        
+        return {
+            ...bank,
+            questionCount,
+            completionRate,
+            avgDifficulty,
+            activeLevel
+        };
+    } catch (error) {
+        console.error('计算题库统计数据失败:', error);
+        // 出错时返回带有默认值的题库
+        return {
+            ...bank,
+            questionCount: 0,
+            completionRate: 0,
+            avgDifficulty: 0,
+            activeLevel: '低'
+        };
+    }
+};
+
 // 清除筛选条件
 const clearFilters = () => {
     isManualClear.value = true;
@@ -403,12 +542,10 @@ const clearFilters = () => {
     bankStatus.value = 'all';
 
     setTimeout(() => {
-        getQuestionBanks().then(() => {
-            message.destroy('clearMessage');
-            setTimeout(() => {
-                isManualClear.value = false;
-            }, 300);
-        });
+        message.destroy('clearMessage');
+        setTimeout(() => {
+            isManualClear.value = false;
+        }, 300);
     }, 300);
 };
 
@@ -418,46 +555,49 @@ const getQuestionBanks = async () => {
         if (loading.value) return Promise.resolve();
 
         loading.value = true;
-
         bankList.value = [];
 
-        const queryParams: QueryParams = {
-            current: current.value,
-            pageSize: 100,
-            sortField: 'updateTime',
-            sortOrder: 'descend'
-        };
-
-        if (searchQuery.value.trim()) {
-            queryParams.title = searchQuery.value.trim();
-        }
-
-        if (bankStatus.value !== 'all') {
-            queryParams.isDelete = parseInt(bankStatus.value);
-        }
-
         message.destroy();
-
         message.loading({ content: '题库列表加载中...', key: 'loadingMessage', duration: 0 });
 
-        const response = await getQuestionBankList(queryParams);
+        // 使用不分页的 API - 不需要参数
+        const response = await getQuestionBankList();
 
         if (response.code === 0) {
-            total.value = response.data.total || 0;
+            // 处理返回的数据
+            const banks: QuestionBank[] = response.data || [];
+            total.value = banks.length;
 
-            // 为每个题库添加前端需要的计算属性
-            const formattedData = (response.data.records || []).map(bank => ({
+            // 初始化基本属性
+            const initialBanks = banks.map((bank: QuestionBank) => ({
                 ...bank,
                 iconName: bank.picture || 'default',
-                questionCount: Math.floor(Math.random() * 300), // 模拟数据 TODO
-                completionRate: Math.floor(Math.random() * 100), // 模拟数据 TODO
-                avgDifficulty: Math.random() * 5, // 模拟数据 TODO
-                activeLevel: ['低', '中', '高'][Math.floor(Math.random() * 3)] // 模拟数据 TODO
+                questionCount: 0,
+                completionRate: 0,
+                avgDifficulty: 0,
+                activeLevel: '低',
+                createTime: typeof bank.createTime === 'string' ? bank.createTime : '',
+                updateTime: typeof bank.updateTime === 'string' ? bank.updateTime : ''
             }));
 
-            bankList.value = formattedData;
+            // 先显示初始列表
+            bankList.value = initialBanks;
 
+            // 异步计算每个题库的统计数据
             message.destroy('loadingMessage');
+            message.loading({ content: '正在计算题库统计数据...', key: 'statMessage', duration: 0 });
+
+            // 逐个计算每个题库的统计数据
+            const updatedBanks = [];
+            for (const bank of initialBanks) {
+                const updatedBank = await calculateBankStats(bank);
+                updatedBanks.push(updatedBank);
+            }
+
+            // 更新列表
+            bankList.value = updatedBanks;
+
+            message.destroy('statMessage');
             message.success('题库列表加载成功');
         } else {
             message.destroy('loadingMessage');
@@ -468,6 +608,7 @@ const getQuestionBanks = async () => {
     } catch (error) {
         console.error('获取题库列表失败:', error);
         message.destroy('loadingMessage');
+        message.destroy('statMessage');
         message.error('获取题库列表失败，请重试');
         return Promise.reject(error);
     } finally {
@@ -502,8 +643,7 @@ const showEditModal = (bank: QuestionBank) => {
 // 新增题库
 const handleAddBank = async () => {
     try {
-        const valid = await addFormRef.value?.validate();
-        if (!valid) return;
+        await addFormRef.value?.validate();
 
         addLoading.value = true;
 
@@ -532,8 +672,7 @@ const handleAddBank = async () => {
 // 编辑题库
 const handleEditBank = async () => {
     try {
-        const valid = await editFormRef.value?.validate();
-        if (!valid) return;
+        await editFormRef.value?.validate();
 
         editLoading.value = true;
 
@@ -616,10 +755,15 @@ const handleSearch = () => {
     message.destroy();
     message.loading({ content: '正在搜索题库...', key: 'searchMessage', duration: 0 });
 
-    // 执行搜索
-    getQuestionBanks().then(() => {
+    // 前端筛选，无需重新请求API
+    setTimeout(() => {
         message.destroy('searchMessage');
-    });
+        if (filteredBankList.value.length > 0) {
+            message.success(`找到 ${filteredBankList.value.length} 个匹配的题库`);
+        } else {
+            message.info('未找到匹配的题库');
+        }
+    }, 300);
 };
 
 // 处理状态变更
@@ -633,13 +777,18 @@ const handleStatusChange = () => {
     message.destroy();
     message.loading({ content: '正在筛选题库...', key: 'filterMessage', duration: 0 });
 
-    // 执行筛选
-    getQuestionBanks().then(() => {
+    // 前端筛选，无需重新请求API
+    setTimeout(() => {
         message.destroy('filterMessage');
-    });
+        if (filteredBankList.value.length > 0) {
+            message.success(`找到 ${filteredBankList.value.length} 个符合条件的题库`);
+        } else {
+            message.info(`未找到${bankStatus.value === '0' ? '已启用' : '已停用'}的题库`);
+        }
+    }, 300);
 };
 
-// 监听搜索关键词变化，使用防抖处理
+// 监听搜索关键词变化
 watch(searchQuery, (newVal, oldVal) => {
     // 如果是通过clearFilters清空的，不要触发搜索
     if (isManualClear.value) return;
@@ -654,11 +803,7 @@ watch(searchQuery, (newVal, oldVal) => {
         // 设置新的定时器，防抖处理
         searchTimer.value = window.setTimeout(() => {
             if (!loading.value) {
-                message.destroy();
-                message.loading({ content: '正在重置搜索...', key: 'searchResetMessage', duration: 0 });
-                getQuestionBanks().then(() => {
-                    message.destroy('searchResetMessage');
-                });
+                handleSearch();
             }
             searchTimer.value = null;
         }, 300);
