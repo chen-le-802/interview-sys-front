@@ -6,13 +6,13 @@ interface BaseResponse<T = any> {
   message: string;
 }
 
-// 获取题库列表（不分页）
-export const fetchQuestionBanks = (): Promise<BaseResponse> => {
-  return request.post('/api/questionBank/list/vo');
+// 不分页获取题库列表（管理员端）
+export const getQuestionBankList = (): Promise<BaseResponse> => {
+  return request.post('/api/questionBank/list');
 };
 
-// 分页获取题库列表（管理员使用）
-export const getQuestionBankList = (params: any): Promise<BaseResponse> => {
+// 分页获取题库列表（管理员端）
+export const getQuestionBankPage = (params: any): Promise<BaseResponse> => {
   return request.post('/api/questionBank/list/page', params);
 };
 
@@ -31,9 +31,14 @@ export const deleteQuestionBank = (id: number): Promise<BaseResponse> => {
   return request.post('/api/questionBank/delete', { id });
 };
 
-// 获取题库详情（管理员使用）
+// 获取题库详情（管理员端）
 export const getQuestionBankById = (id: number): Promise<BaseResponse> => {
   return request.get('/api/questionBank/get', {
     params: { id }
   });
+};
+
+// 分页获取我的题库列表（用户端）
+export const getMyQuestionBanks = (params: any): Promise<BaseResponse> => {
+  return request.post('/api/questionBank/my/list/page/vo', params);
 };

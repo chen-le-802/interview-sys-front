@@ -24,6 +24,10 @@ interface LoginResponse {
   userAvatar: string;
   userRole: string;
   createTime: string;
+  userAccount: string;  
+  userProfile?: string;
+  jobPosition?: string[] | string;
+  status?: string;
 }
 
 // 用户登录
