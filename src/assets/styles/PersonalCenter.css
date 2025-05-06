@@ -77,12 +77,49 @@
     border: 4px solid white;
     background-color: white;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
 }
 
 .avatar-image {
     height: 100%;
     width: 100%;
     object-fit: cover;
+}
+
+
+.avatar-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+    color: white;
+}
+
+.avatar-wrapper:hover .avatar-overlay {
+    opacity: 1;
+}
+
+.camera-icon {
+    font-size: 24px;
+    margin-bottom: 4px;
+}
+
+.upload-text {
+    font-size: 12px;
+}
+
+.hidden-uploader {
+    display: none;
 }
 
 .user-info {
@@ -92,13 +129,18 @@
 }
 
 .username {
+    margin-left: 15px;
+    transform: translateY(-110%);
     font-size: 20px;
     font-weight: 600;
 }
 
-.user-title {
-    color: rgba(255, 255, 255, 0.85);
+.user-profile {
+    color: #6b7280;
+    margin-left: 16px;
+    transform: translateY(-80%);
 }
+
 
 /* 个人资料内容 */
 .profile-content {
@@ -272,4 +314,16 @@
 .modify-button,
 .view-button {
     border-radius: 6px;
+}
+
+/* 密码提示样式 */
+.password-hint {
+    color: #999;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+/* 目标岗位选择框样式 */
+.custom-select-full {
+    width: 100%;
 }

@@ -7,14 +7,8 @@
                 <div class="actions">
                     <div class="filters">
                         <!-- 搜索框 -->
-                        <a-input-search 
-                            v-model:value="searchQuery" 
-                            placeholder="搜索题目标题、ID..." 
-                            class="input-search"
-                            @search="handleSearch" 
-                            allow-clear
-                            :loading="isSearching"
-                        />
+                        <a-input-search v-model:value="searchQuery" placeholder="搜索题目标题、ID..." class="input-search"
+                            @search="handleSearch" allow-clear :loading="isSearching" />
                         <!-- 筛选选项 -->
                         <a-select v-model:value="difficulty" placeholder="难度" class="select-filter">
                             <a-select-option value="all">全部难度</a-select-option>
@@ -59,7 +53,7 @@
                             </thead>
                             <transition-group name="list" tag="tbody" v-if="paginatedQuestionList.length > 0">
                                 <tr v-for="question in paginatedQuestionList" :key="question.id">
-                                    <td>#{{ question.id }}</td>
+                                    <td>{{ question.id }}</td>
                                     <td>{{ question.title }}</td>
                                     <td>
                                         <span :class="difficultyClass(question.difficulty)" class="difficulty-tag">
@@ -68,13 +62,14 @@
                                     </td>
                                     <td>
                                         <transition-group name="tag" class="tag-container">
-                                            <span v-for="tag in question.tags" :key="tag" class="tag">{{ tag }}</span>
+                                            <span v-for="tag in question.tagList" :key="tag" class="tag">{{ tag
+                                                }}</span>
                                         </transition-group>
                                     </td>
-                                    <td>{{ question.submissions }}</td>
+                                    <td>{{ question.submissionQuantity || 0 }}</td>
                                     <td>
                                         <span :class="passRateClass(question.passRate)">
-                                            {{ question.passRate }}
+                                            {{ question.passRate || '0%' }}
                                         </span>
                                     </td>
                                     <td>{{ getQuestionBankName(question.questionBankId) }}</td>
@@ -104,12 +99,12 @@
                     </div>
                 </a-spin>
                 <div class="pagination-container">
-                    <a-pagination v-model:current="currentPage" v-model:pageSize="itemsPerPage" :total="totalItems"
+                    <a-pagination v-model:current="currentPage" v-model:pageSize="pageSize" :total="total"
                         :showTotal="showTotal" :pageSizeOptions="pageSizeOptions" showSizeChanger showQuickJumper
                         @change="handlePageChange" @showSizeChange="handlePageSizeChange" />
                     <div class="pagination-info">
-                        当前显示: {{ (currentPage - 1) * itemsPerPage + (totalItems > 0 ? 1 : 0) }}-{{ Math.min(currentPage
-                            * itemsPerPage, totalItems) }} 条，共 {{ totalItems }} 条
+                        当前显示: {{ (currentPage - 1) * pageSize + (total > 0 ? 1 : 0) }}-{{ Math.min(currentPage
+                            * pageSize, total) }} 条，共 {{ total }} 条
                     </div>
                 </div>
             </div>
@@ -202,20 +197,12 @@
                         </a-select-option>
                     </a-select>
                 </a-form-item>
-
-                <a-form-item label="统计信息">
-                    <div class="statistics-info">
-                        <p>提交次数: {{ editForm.submissions || 0 }}</p>
-                        <p>通过率: {{ editForm.passRate || '0%' }}</p>
-                        <p>最近更新: {{ editForm.lastUpdated || '暂无记录' }}</p>
-                    </div>
-                </a-form-item>
             </a-form>
         </a-modal>
 
         <!-- 预览题目 -->
-        <a-modal v-model:visible="previewModalVisible" title="题目预览" width="800px" :footer="null" 
-            :maskClosable="true" :destroyOnClose="true">
+        <a-modal v-model:visible="previewModalVisible" title="题目预览" width="800px" :footer="null" :maskClosable="true"
+            :destroyOnClose="true">
             <transition name="fade" mode="out-in">
                 <div class="preview-container" v-if="previewQuestion">
                     <div class="preview-header">
@@ -227,13 +214,13 @@
                             <span class="meta-divider">|</span>
                             <span class="bank-name">题库：{{ getQuestionBankName(previewQuestion.questionBankId) }}</span>
                             <span class="meta-divider">|</span>
-                            <span class="question-id">题目ID：#{{ previewQuestion.id }}</span>
+                            <span class="question-id">题目ID：{{ previewQuestion.id }}</span>
                         </div>
                     </div>
 
                     <div class="preview-tags">
                         <transition-group name="tag">
-                            <span v-for="tag in previewQuestion.tags" :key="tag" class="tag">{{ tag }}</span>
+                            <span v-for="tag in previewQuestion.tagList" :key="tag" class="tag">{{ tag }}</span>
                         </transition-group>
                     </div>
 
@@ -246,6 +233,26 @@
                         <h4>参考答案</h4>
                         <div class="content-box">{{ previewQuestion.answer || '暂无答案' }}</div>
                     </div>
+
+                    <div class="preview-statistics">
+                        <div class="statistics-box">
+                            <div class="stat-item">
+                                <span class="stat-label">提交次数：</span>
+                                <span class="stat-value">{{ previewQuestion.submissionQuantity || 0 }}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">通过率：</span>
+                                <span class="stat-value" :class="passRateClass(previewQuestion.passRate)">
+                                    {{ previewQuestion.passRate || '0%' }}
+                                </span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">最近更新：</span>
+                                <span class="stat-value">{{ formatDateTime(previewQuestion.updateTime) }}</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </transition>
         </a-modal>
@@ -258,7 +265,9 @@ import { DownloadOutlined, PlusOutlined, EditOutlined, FolderViewOutlined, Delet
 import { message, Modal } from 'ant-design-vue';
 import type { Rule } from 'ant-design-vue/es/form';
 import type { FormInstance } from 'ant-design-vue';
-// import { addQuestion, updateQuestion, deleteQuestion, getQuestionBanks, getQuestions } from '@/api/questionApi';
+import { formatDateTime } from '@/utils/dateTimeFormat';
+import { addQuestion, updateQuestion, deleteQuestion, getQuestionBankList, getQuestionList } from '@/apis/questionApi';
+import { addQuestionToBank, getQuestionBanksByQuestionId, updateQuestionBankRelation } from '@/apis/questionBankQuestionApi';
 
 // 题目接口
 interface Question {
@@ -267,11 +276,32 @@ interface Question {
     content?: string;
     answer?: string;
     difficulty: string;
-    tags: string[];
-    submissions: number;
-    passRate: string;
+    tagList?: string[];
+    tags?: string;
+    submissionQuantity?: number;
+    passQuantity?: number;
+    passRate?: string;
+    questionBankId?: number;
+    updateTime?: string;
+    userId?: number;
+}
+
+// 题库接口
+interface QuestionBank {
+    id: number;
+    title: string;
+    description?: string;
+    picture?: string;
+}
+
+// 题目与题库的关联
+interface QuestionBankQuestion {
+    id: number;
     questionBankId: number;
-    lastUpdated?: string;
+    questionId: number;
+    userId: number;
+    createTime: string;
+    updateTime: string;
 }
 
 // 标签列表
@@ -307,7 +337,8 @@ const loading = ref(false);
 
 // 页码相关状态
 const currentPage = ref(1);
-const itemsPerPage = ref(10);
+const pageSize = ref(10);
+const total = ref(0);
 const pageSizeOptions = ref(['10', '20', '50', '100']);
 const showTotal = (total: number) => `共 ${total} 条记录`;
 
@@ -326,7 +357,7 @@ const previewModalVisible = ref(false);
 const previewQuestion = ref<Question | null>(null);
 
 // 题库列表
-const questionBanks = ref<Array<{ id: number; title: string }>>([]);
+const questionBanks = ref<QuestionBank[]>([]);
 
 // 题目列表
 const questionList = ref<Question[]>([]);
@@ -350,9 +381,9 @@ const editForm = reactive({
     difficulty: '',
     tags: [] as string[],
     questionBankId: undefined as number | undefined,
-    submissions: 0,
+    submissionQuantity: 0,
     passRate: '',
-    lastUpdated: ''
+    updateTime: ''
 });
 
 // 表单验证规则
@@ -381,279 +412,123 @@ const addFormRules: Record<string, Rule[]> = {
 
 const editFormRules = addFormRules;
 
-// 筛选后的题目列表
-const filteredQuestionList = computed(() => {
-    return questionList.value.filter(question => {
-        // 搜索过滤 - 模糊搜索
-        const searchLower = searchQuery.value.toLowerCase().trim();
-        const searchMatch = !searchLower || 
-            question.title.toLowerCase().includes(searchLower) || 
-            String(question.id).includes(searchLower);
-
-        // 难度过滤
-        const difficultyMatch = difficulty.value === 'all' ||
-            (difficulty.value === 'easy' && question.difficulty === '简单') ||
-            (difficulty.value === 'medium' && question.difficulty === '中等') ||
-            (difficulty.value === 'hard' && question.difficulty === '困难');
-
-        // 题库过滤
-        const bankMatch = bank.value === 'all' ||
-            question.questionBankId === bank.value;
-
-        return searchMatch && difficultyMatch && bankMatch;
-    });
-});
+// 获取请求参数
+const getRequestParams = () => {
+    const params = {
+        current: currentPage.value,
+        pageSize: pageSize.value,
+        title: searchQuery.value ? searchQuery.value : undefined,
+        difficulty: difficulty.value === 'all' ? undefined :
+            difficulty.value === 'easy' ? '简单' :
+                difficulty.value === 'medium' ? '中等' : '困难',
+        questionBankId: bank.value === 'all' ? undefined : bank.value
+    };
+    return params;
+};
 
 // 处理搜索事件
 const handleSearch = () => {
     isSearching.value = true;
     currentPage.value = 1;
-    
-    // 模拟搜索延迟
-    setTimeout(() => {
-        isSearching.value = false;
-    }, 300);
+    fetchQuestionList();
 };
 
+// 分页后的题目列表
 const paginatedQuestionList = computed(() => {
-    const filteredList = filteredQuestionList.value;
-    const startIndex = (currentPage.value - 1) * itemsPerPage.value;
-    const endIndex = startIndex + itemsPerPage.value;
-    return filteredList.slice(startIndex, Math.min(endIndex, filteredList.length));
+    return questionList.value;
 });
 
-const totalItems = computed(() => {
-    return filteredQuestionList.value.length;
-});
-
-
-const getQuestionBankName = (questionBankId: number) => {
+// 获取题库名称
+const getQuestionBankName = (questionBankId?: number) => {
+    if (!questionBankId) return '未分配题库';
     const bank = questionBanks.value.find(bank => bank.id === questionBankId);
     return bank ? bank.title : '未知题库';
 };
 
 // 获取题库列表
-const getQuestionBanks = async () => {
+const fetchQuestionBanks = async () => {
     try {
-        // 调用API获取题库列表
-        // const response = await getQuestionBanks();
-        // questionBanks.value = response.data;
-
-        // 示例数据
-        questionBanks.value = [
-            { id: 1, title: '操作系统' },
-            { id: 2, title: '计算机网络' },
-            { id: 3, title: '数据库' },
-            { id: 4, title: 'Java' },
-            { id: 5, title: '分布式系统' },
-            { id: 6, title: '算法与数据结构' }
-        ];
+        const response = await getQuestionBankList();
+        if (response.code === 0 || response.code === 200) {
+            questionBanks.value = response.data || [];
+        } else {
+            message.error(response.message || '获取题库列表失败');
+        }
     } catch (error) {
         console.error('获取题库列表失败:', error);
         message.error('获取题库列表失败');
     }
 };
 
-const getQuestions = async () => {
+// 获取题目列表
+const fetchQuestionList = async () => {
     try {
         loading.value = true;
+        isSearching.value = true;
 
-        // 调用API获取题目列表
-        // const response = await getQuestions();
-        // questionList.value = response.data;
+        const params = getRequestParams();
+        const response = await getQuestionList(params);
 
-        // 模拟API调用延迟
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (response.code === 0 || response.code === 200) {
+            // 处理后端返回的数据
+            const data = response.data;
+            const questions = data.records || [];
+            total.value = data.total || 0;
 
-        // 从后端获取数据后，为标签管理增加一个额外步骤，收集所有使用过的标签
-        const questions = [
-            {
-                id: 1,
-                title: '进程与线程的区别',
-                content: '请详细说明进程与线程的区别，包括它们的定义、特点、优缺点等。',
-                answer: '进程是资源分配的基本单位，线程是CPU调度的基本单位。主要区别如下：\n1. 进程有独立的地址空间，线程共享进程的地址空间...',
-                difficulty: '简单',
-                tags: ['操作系统', '基础概念'],
-                submissions: 12543,
-                passRate: '65%',
-                questionBankId: 1,
-                lastUpdated: '2024-01-15 13:30'
-            },
-            {
-                id: 2,
-                title: 'HTTP与HTTPS的区别',
-                content: '请比较HTTP和HTTPS协议的区别，说明HTTPS的安全性是如何实现的。',
-                answer: 'HTTP是超文本传输协议，HTTPS是HTTP的安全版本。主要区别：\n1. HTTPS使用SSL/TLS加密...',
-                difficulty: '中等',
-                tags: ['计算机网络', '安全'],
-                submissions: 8765,
-                passRate: '48%',
-                questionBankId: 2,
-                lastUpdated: '2024-01-16 09:45'
-            },
-            {
-                id: 3,
-                title: 'Redis分布式锁实现',
-                content: '请说明Redis如何实现分布式锁，包括实现原理、具体步骤和需要注意的问题。',
-                answer: 'Redis分布式锁的实现原理是利用Redis的原子性操作。具体实现：\n1. 使用SETNX命令...',
-                difficulty: '困难',
-                tags: ['分布式系统', '缓存'],
-                submissions: 5432,
-                passRate: '35%',
-                questionBankId: 5,
-                lastUpdated: '2024-01-14 16:20'
-            },
-            {
-                id: 4,
-                title: 'TCP三次握手详解',
-                content: '请详细描述TCP三次握手的过程，并说明为什么需要三次握手而不是两次？',
-                answer: 'TCP三次握手过程：\n1. 客户端发送SYN包...\n2. 服务器响应SYN+ACK包...\n3. 客户端发送ACK包...',
-                difficulty: '简单',
-                tags: ['计算机网络', '协议'],
-                submissions: 9876,
-                passRate: '72%',
-                questionBankId: 2,
-                lastUpdated: '2024-01-15 10:55'
-            },
-            {
-                id: 5,
-                title: 'MySQL索引原理',
-                content: '请解释MySQL索引的工作原理，包括B+树索引的结构、优化原理等。',
-                answer: 'MySQL索引主要使用B+树数据结构。原理如下：\n1. B+树是平衡树结构...\n2. 叶子节点存储数据...',
-                difficulty: '中等',
-                tags: ['数据库', '性能优化'],
-                submissions: 7654,
-                passRate: '52%',
-                questionBankId: 3,
-                lastUpdated: '2024-01-16 14:30'
-            },
-            {
-                id: 6,
-                title: 'Java多线程编程',
-                content: '请介绍Java中的多线程实现方式，以及如何保证线程安全。',
-                answer: 'Java中实现多线程主要有两种方式：继承Thread类和实现Runnable接口。线程安全保证方法包括：\n1. 使用synchronized关键字...',
-                difficulty: '中等',
-                tags: ['Java', '并发编程'],
-                submissions: 8932,
-                passRate: '61%',
-                questionBankId: 4,
-                lastUpdated: '2024-01-14 09:20'
-            },
-            {
-                id: 7,
-                title: '快速排序算法实现',
-                content: '请详细描述快速排序算法的原理和实现步骤，并分析其时间复杂度和空间复杂度。',
-                answer: '快速排序是一种分治算法，基本思想是：选择一个基准元素，将数组分为两部分，一部分小于基准，另一部分大于基准...',
-                difficulty: '中等',
-                tags: ['算法', '排序'],
-                submissions: 10541,
-                passRate: '68%',
-                questionBankId: 6,
-                lastUpdated: '2024-01-16 11:25'
-            },
-            {
-                id: 8,
-                title: 'Spring Bean生命周期',
-                content: '请详细描述Spring Bean的完整生命周期。',
-                answer: 'Spring Bean的生命周期主要包括：\n1. 实例化\n2. 设置属性值\n3. BeanNameAware接口的setBeanName方法\n4. BeanFactoryAware接口的setBeanFactory方法...',
-                difficulty: '中等',
-                tags: ['Java', 'Spring'],
-                submissions: 6754,
-                passRate: '45%',
-                questionBankId: 4,
-                lastUpdated: '2024-01-15 16:40'
-            },
-            {
-                id: 9,
-                title: 'CAP理论详解',
-                content: '请详细解释分布式系统中的CAP理论，并举例说明常见系统的取舍。',
-                answer: 'CAP理论指的是在一个分布式系统中，Consistency（一致性）、Availability（可用性）、Partition tolerance（分区容错性）三者不可兼得...',
-                difficulty: '困难',
-                tags: ['分布式系统', '理论基础'],
-                submissions: 4532,
-                passRate: '39%',
-                questionBankId: 5,
-                lastUpdated: '2024-01-17 09:10'
-            },
-            {
-                id: 10,
-                title: '数据库事务特性与隔离级别',
-                content: '请详细描述数据库事务的ACID特性以及四种隔离级别。',
-                answer: '数据库事务的ACID特性：\n1. 原子性（Atomicity）\n2. 一致性（Consistency）\n3. 隔离性（Isolation）\n4. 持久性（Durability）...',
-                difficulty: '简单',
-                tags: ['数据库', '基础概念'],
-                submissions: 9876,
-                passRate: '75%',
-                questionBankId: 3,
-                lastUpdated: '2024-01-14 13:50'
-            },
-            {
-                id: 11,
-                title: '操作系统内存管理',
-                content: '请介绍操作系统的内存管理方式，包括分页、分段和虚拟内存等概念。',
-                answer: '操作系统内存管理主要包括以下几种方式：\n1. 分页管理：将物理内存和逻辑内存分为固定大小的块...',
-                difficulty: '困难',
-                tags: ['操作系统', '内存管理'],
-                submissions: 6432,
-                passRate: '41%',
-                questionBankId: 1,
-                lastUpdated: '2024-01-15 14:20'
-            },
-            {
-                id: 12,
-                title: 'HTTPS加密原理',
-                content: '请详细描述HTTPS的加密原理，包括对称加密和非对称加密的应用场景。',
-                answer: 'HTTPS加密过程结合了对称加密和非对称加密的优点：\n1. 使用非对称加密（RSA、ECC等）安全地交换对称密钥...',
-                difficulty: '中等',
-                tags: ['计算机网络', '安全'],
-                submissions: 7123,
-                passRate: '58%',
-                questionBankId: 2,
-                lastUpdated: '2024-01-16 08:30'
-            },
-            {
-                id: 14,
-                title: 'Redis数据结构及应用',
-                content: '请介绍Redis中的五种基本数据结构及其应用场景。',
-                answer: 'Redis的五种基本数据结构：\n1. String（字符串）：缓存、计数器、分布式锁等\n2. List（列表）：消息队列、文章列表等...',
-                difficulty: '中等',
-                tags: ['数据库', 'Redis'],
-                submissions: 8234,
-                passRate: '62%',
-                questionBankId: 3,
-                lastUpdated: '2024-01-17 14:15'
-            },
-            {
-                id: 15,
-                title: 'Java垃圾回收机制',
-                content: '请详细介绍Java的垃圾回收机制，包括垃圾回收算法和垃圾回收器。',
-                answer: 'Java垃圾回收机制主要包括:\n1. 垃圾识别算法：引用计数法和可达性分析法\n2. 垃圾回收算法：标记-清除、复制、标记-整理、分代收集...',
-                difficulty: '困难',
-                tags: ['Java', 'JVM'],
-                submissions: 7543,
-                passRate: '42%',
-                questionBankId: 4,
-                lastUpdated: '2024-01-16 15:50'
-            }
-        ];
-        
-        questionList.value = questions;
-        
-        const allTags = new Set<string>();
-        questions.forEach(question => {
-            question.tags.forEach(tag => allTags.add(tag));
-        });
-        
-        const existingTags = new Set(tagsList.value);
-        allTags.forEach(tag => existingTags.add(tag));
-        tagsList.value = Array.from(existingTags);
+            // 处理标签数据
+            const processedQuestions = await Promise.all(questions.map(async (question: Question) => {
+                // 处理标签
+                if (question.tags && typeof question.tags === 'string') {
+                    try {
+                        // 尝试解析JSON字符串
+                        const tagsArray = JSON.parse(question.tags);
+                        question.tagList = Array.isArray(tagsArray) ? tagsArray : question.tags.split(',');
+                    } catch (e) {
+                        // 如果解析失败，尝试直接分割字符串
+                        question.tagList = question.tags.replace(/[\[\]"]/g, '').split(',').map(tag => tag.trim()).filter(Boolean);
+                    }
+                } else if (!question.tagList) {
+                    question.tagList = [];
+                }
 
-        message.success('题目列表加载成功');
+                // 查询题目关联的题库
+                try {
+                    const bankResponse = await getQuestionBanksByQuestionId(question.id);
+                    if (bankResponse.code === 0 || bankResponse.code === 200) {
+                        const records = bankResponse.data.records || [];
+                        if (records.length > 0) {
+                            question.questionBankId = records[0].questionBankId;
+                        }
+                    }
+                } catch (error) {
+                    console.error(`获取题目[${question.id}]的题库关联失败:`, error);
+                }
+
+                return question;
+            }));
+
+            questionList.value = processedQuestions;
+
+            // 更新标签列表
+            const allTags = new Set<string>();
+            questionList.value.forEach(question => {
+                if (question.tagList && question.tagList.length > 0) {
+                    question.tagList.forEach(tag => allTags.add(tag));
+                }
+            });
+
+            const existingTags = new Set(tagsList.value);
+            allTags.forEach(tag => existingTags.add(tag));
+            tagsList.value = Array.from(existingTags);
+        } else {
+            message.error(response.message || '获取题目列表失败');
+        }
     } catch (error) {
         console.error('获取题目列表失败:', error);
         message.error('获取题目列表失败');
     } finally {
         loading.value = false;
+        isSearching.value = false;
     }
 };
 
@@ -672,7 +547,8 @@ const difficultyClass = (difficulty: string) => {
 };
 
 // 通过率样式
-const passRateClass = (rate: string) => {
+const passRateClass = (rate?: string) => {
+    if (!rate) return 'pass-rate-low';
     const pass = parseInt(rate.replace('%', ''));
     if (pass >= 60) return 'pass-rate-high';
     if (pass >= 40) return 'pass-rate-medium';
@@ -681,74 +557,56 @@ const passRateClass = (rate: string) => {
 
 // 分页变化处理函数
 const handlePageChange = (page: number) => {
-    loading.value = true;
-    setTimeout(() => {
-        currentPage.value = page;
-        window.scrollTo(0, 0);
-        loading.value = false;
-    }, 300);
+    currentPage.value = page;
+    fetchQuestionList();
+    window.scrollTo(0, 0);
 };
 
 // 每页显示条数变化处理函数
 const handlePageSizeChange = (current: number, size: number) => {
-    loading.value = true;
-    setTimeout(() => {
-        itemsPerPage.value = size;
-        currentPage.value = 1;
-        loading.value = false;
-    }, 300);
-};
-
-// 重置分页状态的函数（在筛选条件改变时调用）
-const resetPagination = () => {
+    pageSize.value = size;
     currentPage.value = 1;
-};
-
-// 刷新题目列表
-const refreshQuestionList = async () => {
-    await getQuestions();
+    fetchQuestionList();
 };
 
 // 导出题目数据
 const exportQuestionData = async () => {
     try {
         // 确认有数据可导出
-        if (filteredQuestionList.value.length === 0) {
+        if (questionList.value.length === 0) {
             message.warning('没有符合条件的题目可导出');
             return;
         }
-        
+
         isExporting.value = true;
-        
-        // 模拟导出延迟
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // 准备CSV数据
+
+        // CSV导出逻辑
         let csvContent = '题目ID,题目标题,难度,标签,提交次数,通过率,所属题库,最近更新\n';
-        
-        filteredQuestionList.value.forEach(question => {
+
+        questionList.value.forEach(question => {
             // 处理标签中的逗号，避免CSV格式错误
-            const formattedTags = `"${question.tags.join(',')}"`;
+            const formattedTags = `"${question.tagList?.join(',') || ''}"`;
             const bankName = getQuestionBankName(question.questionBankId);
-            
-            csvContent += `${question.id},${question.title},${question.difficulty},${formattedTags},${question.submissions},${question.passRate},${bankName},${question.lastUpdated || ''}\n`;
+            const formattedTime = question.updateTime ? formatDateTime(question.updateTime) : '';
+
+            csvContent += `${question.id},${question.title},${question.difficulty},${formattedTags},${question.submissionQuantity || 0},${question.passRate || '0%'},${bankName},${question.updateTime || ''}\n`;
         });
-        
+
         // 创建下载链接
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.setAttribute('href', url);
-        link.setAttribute('download', `题目列表_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute('download', `题目列表_${formatDateTime(new Date(), 'YYYY-MM-DD')}.csv`);
         document.body.appendChild(link);
-        
+
         // 触发下载
         link.click();
-        
+
         // 清理
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        
+
         message.success('题目导出成功');
     } catch (error) {
         console.error('导出题目失败:', error);
@@ -760,22 +618,8 @@ const exportQuestionData = async () => {
 
 // 添加筛选条件变化监听器
 watch([searchQuery, difficulty, bank], () => {
-    resetPagination();
-}, { immediate: true });
-
-// 当题目列表变化时自动更新标签列表
-watch(questionList, (newQuestions) => {
-    if (newQuestions.length > 0) {
-        const allTags = new Set<string>();
-        newQuestions.forEach(question => {
-            question.tags.forEach(tag => allTags.add(tag));
-        });
-        
-        // 更新标签列表，保留原有顺序
-        const existingTags = new Set(tagsList.value);
-        allTags.forEach(tag => existingTags.add(tag));
-        tagsList.value = Array.from(existingTags);
-    }
+    currentPage.value = 1;
+    fetchQuestionList();
 }, { deep: true });
 
 // 题目增删改查Modal
@@ -797,17 +641,21 @@ const showEditModal = (question: Question) => {
     editForm.content = question.content || '';
     editForm.answer = question.answer || '';
     editForm.difficulty = question.difficulty;
-    editForm.tags = [...question.tags];
+    editForm.tags = [...(question.tagList || [])];
     editForm.questionBankId = question.questionBankId;
-    editForm.submissions = question.submissions;
-    editForm.passRate = question.passRate;
-    editForm.lastUpdated = question.lastUpdated || new Date().toLocaleString();
+    editForm.submissionQuantity = question.submissionQuantity || 0;
+    editForm.passRate = question.passRate || '0%';
+    editForm.updateTime = question.updateTime ? formatDateTime(question.updateTime) : '暂无记录';
 
     editModalVisible.value = true;
 };
 
 const showPreviewModal = (question: Question) => {
-    previewQuestion.value = question;
+    previewQuestion.value = {
+        ...question,
+        updateTime: question.updateTime || undefined
+    };
+
     previewModalVisible.value = true;
 };
 
@@ -840,32 +688,42 @@ const handleAddQuestion = async () => {
             }
         }
 
-        const newQuestion = {
-            id: questionList.value.length > 0 ? Math.max(...questionList.value.map(q => q.id)) + 1 : 1,
+        // 创建题目数据，不包含题库ID（题库关联通过单独的API处理）
+        const questionData = {
             title: addForm.title,
             content: addForm.content,
             answer: addForm.answer,
             difficulty: addForm.difficulty,
-            tags: [...addForm.tags],
-            questionBankId: addForm.questionBankId,
-            submissions: 0,
-            passRate: '0%',
-            lastUpdated: new Date().toLocaleString()
+            tags: addForm.tags  // 后端会处理tags数组
         };
 
-        // 调用API
-        // await addQuestion(newQuestion);
+        // 添加题目
+        const response = await addQuestion(questionData);
 
-        // 模拟API调用成功
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        console.log('新增题目:', newQuestion);
-        questionList.value.push(newQuestion);
-        message.success('题目添加成功！');
+        if (response.code === 0 || response.code === 200) {
+            const questionId = response.data;
 
-        addModalVisible.value = false;
-        addFormRef.value?.resetFields();
+            // 添加成功后，建立题目与题库的关联
+            if (questionId && addForm.questionBankId) {
+                try {
+                    const bankResult = await addQuestionToBank(questionId, addForm.questionBankId);
+                    if (bankResult.code !== 0 && bankResult.code !== 200) {
+                        message.warning('题目添加成功，但关联题库失败');
+                    }
+                } catch (error) {
+                    console.error('关联题库失败:', error);
+                    message.warning('题目添加成功，但关联题库失败');
+                }
+            }
 
+            message.success('题目添加成功！');
+            addModalVisible.value = false;
+            addFormRef.value?.resetFields();
+            // 刷新题目列表
+            fetchQuestionList();
+        } else {
+            message.error(response.message || '添加题目失败');
+        }
     } catch (error) {
         console.error('添加题目失败:', error);
         message.error('添加题目失败，请重试');
@@ -896,36 +754,38 @@ const handleEditQuestion = async () => {
             }
         }
 
+        // 更新题目数据，不包含题库ID（题库关联通过单独的API处理）
         const updatedQuestion = {
             id: editForm.id,
             title: editForm.title,
             content: editForm.content,
             answer: editForm.answer,
             difficulty: editForm.difficulty,
-            tags: [...editForm.tags],
-            questionBankId: editForm.questionBankId,
-            submissions: editForm.submissions,
-            passRate: editForm.passRate,
-            lastUpdated: new Date().toLocaleString()
+            tags: editForm.tags  // 后端会处理tags数组
         };
 
-        // 调用API
-        // await updateQuestion(updatedQuestion);
+        // 更新题目基本信息
+        const response = await updateQuestion(updatedQuestion);
 
-        // 模拟API调用成功
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        console.log('更新题目:', updatedQuestion);
+        if (response.code === 0 || response.code === 200) {
+            // 更新题目与题库的关联
+            try {
+                const bankResult = await updateQuestionBankRelation(editForm.id, editForm.questionBankId);
+                if (!bankResult) {
+                    message.warning('题目更新成功，但更新题库关联失败');
+                }
+            } catch (error) {
+                console.error('更新题库关联失败:', error);
+                message.warning('题目更新成功，但更新题库关联失败');
+            }
 
-        // 更新本地数据
-        const index = questionList.value.findIndex(q => q.id === updatedQuestion.id);
-        if (index !== -1) {
-            questionList.value[index] = updatedQuestion;
+            message.success('题目更新成功！');
+            editModalVisible.value = false;
+            // 刷新题目列表
+            fetchQuestionList();
+        } else {
+            message.error(response.message || '更新题目失败');
         }
-
-        message.success('题目更新成功！');
-        editModalVisible.value = false;
-
     } catch (error) {
         console.error('编辑题目失败:', error);
         message.error('编辑题目失败，请重试');
@@ -945,21 +805,20 @@ const handleDelete = (question: Question) => {
             try {
                 message.loading('正在删除...', 0);
 
-                // 调用API删除
-                // await deleteQuestion(question.id);
+                const response = await deleteQuestion(question.id);
 
-                // 模拟API调用
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                console.log('删除题目:', question.id);
-
-                // 更新本地数据
-                questionList.value = questionList.value.filter(q => q.id !== question.id);
-
-                message.destroy();
-                message.success('题目删除成功！');
+                if (response.code === 0 || response.code === 200) {
+                    message.destroy();
+                    message.success('题目删除成功！');
+                    // 刷新题目列表
+                    fetchQuestionList();
+                } else {
+                    message.destroy();
+                    message.error(response.message || '删除题目失败');
+                }
             } catch (error) {
                 console.error('删除题目失败:', error);
+                message.destroy();
                 message.error('删除题目失败，请重试');
             }
         }
@@ -977,11 +836,11 @@ const handleCancelEdit = () => {
 };
 
 onMounted(() => {
-    getQuestionBanks();
-    getQuestions();
+    fetchQuestionBanks();
+    fetchQuestionList();
 });
 </script>
 
 <style scoped>
-@import "../../assets/styles/manager/QuestionsManager.css";
+@import "@/assets/styles/manager/QuestionsManager.css";
 </style>
