@@ -28,7 +28,7 @@ const router = useRouter();
 const props = defineProps({
     tableWidth: {
         type: Number,
-        default: '900px' // 默认宽度
+        default: '900px'
     }
 });
 interface Question {
@@ -84,7 +84,7 @@ const filteredData = computed(() => {
 const handleSearch = () => {
     // 可添加额外的搜索逻辑
 };
-const handleClickItem = (row) => {
+const handleClickItem = (row: Question) => {
     router.push("/question");
 }
 </script>
