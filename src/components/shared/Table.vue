@@ -6,7 +6,7 @@
                 @keyup.enter="handleSearch" />
         </div>
 
-        <el-table :data="filteredData" :style="{ width: tableWidth }" size="large">
+        <el-table :data="filteredData" :style="{ width: tableWidth }" size="large" @row-click="handleClickItem">
             <el-table-column prop="question" label="题目" width="490" />
             <el-table-column prop="difficulty" label="难度" sortable width="100" />
             <el-table-column prop="tags" label="标签" width="calc(tableWidth - 590px)">
@@ -24,6 +24,7 @@
 
 <script lang="ts" setup>
 import { ref, computed } from 'vue';
+const router = useRouter();
 const props = defineProps({
     tableWidth: {
         type: Number,
@@ -83,6 +84,9 @@ const filteredData = computed(() => {
 const handleSearch = () => {
     // 可添加额外的搜索逻辑
 };
+const handleClickItem = (row) => {
+    router.push("/question");
+}
 </script>
 
 <style scoped>

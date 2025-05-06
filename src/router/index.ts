@@ -75,6 +75,11 @@ const router = createRouter({
       name: 'category',
       component: () => import('@/views/frontend/Category.vue'),
     },
+    {
+      path: '/question',
+      name: 'question',
+      component: () => import('@/views/frontend/Question.vue'),
+    },
   ],
 })
 

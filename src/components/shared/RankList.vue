@@ -1,5 +1,5 @@
 <template>
-    <div class="hot-questions">
+    <div class="hot-questions" :style="{ width: width + 'px' }">
         <!-- 标题栏 -->
         <div class="header">
             <h3>{{ listTitle }}</h3>
@@ -32,17 +32,19 @@ import { Star } from '@element-plus/icons-vue'
 // 声明props
 const props = defineProps<{
     listTitle: string,
-    questions: Array<{ title: string, heat: number }>
+    questions: Array<{ title: string, heat: number }>,
+    width?: number
 }>()
 // 格式化数字
 const formatNumber = (num: number) => {
     return num.toLocaleString()
 }
+const width = ref(props.width || 280)
 </script>
 
 <style scoped>
 .hot-questions {
-    width: 280px;
+
     background: #fff;
     border-radius: 8px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
