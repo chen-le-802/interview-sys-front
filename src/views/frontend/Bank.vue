@@ -8,13 +8,13 @@
                 <div class="bank-name">Java热门面试题200道</div>
                 <div class="bank-desc">2025最新Java面试题，一网打尽Java热门面试题！涵盖Java基础、框架、高级特性</div>
                 <div class="options">
-                    <el-button type="primary" size="small" color="#1677ff" round>开始刷题</el-button>
-                    <el-button type="default" size="small" round>
+                    <el-button type="primary" size="default" color="#1677ff" round>开始刷题</el-button>
+                    <el-button type="default" size="default" round>
                         <el-icon style="margin-right: 5px;">
                             <DocumentChecked />
                         </el-icon>在线测试
                     </el-button>
-                    <el-button type="default" size="small" round>
+                    <el-button type="default" size="default" round>
                         <el-icon style="margin-right: 5px;">
                             <Share />
                         </el-icon>分享</el-button>

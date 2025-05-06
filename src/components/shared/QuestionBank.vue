@@ -25,11 +25,13 @@
         <div style="width: 1214px;">
             <BankList></BankList>
         </div>
-        <el-button type="primary" color="#3b62f6" style="display: block;margin:0px auto;">查看更多题库</el-button>
+        <el-button type="primary" color="#3b62f6" style="display: block;margin:0px auto;"
+            @click="gotoCategory">查看更多题库</el-button>
     </div>
 </template>
 
 <script lang="ts" setup>
+import router from '@/router'
 import { ref } from 'vue'
 
 // Mock数据
@@ -62,7 +64,10 @@ const handleHotClick = () => {
     activeCategory.value = '热门'
     console.log('查看热门题目')
 }
-
+const gotoCategory = () => {
+    console.log('查看更多题库')
+    router.push('/category')
+}
 
 </script>
 
