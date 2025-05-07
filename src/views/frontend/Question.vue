@@ -61,7 +61,7 @@
                             </div>
                         </div>
                     </div>
-                    <RankList :questions="questions" :list-title="'热门问题'" :width="250"></RankList>
+                    <RankList :questions="questions" :list-title="'热门题目榜'" :width="250"></RankList>
                 </div>
             </div>
         </div>
