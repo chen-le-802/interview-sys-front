@@ -38,7 +38,7 @@
                     </div>
                 </div>
             </div>
-            <a-button class="go-to-home">退出</a-button>
+            <a-button class="go-to-home" @click="$router.push('/')">退出</a-button>
         </div>
 
         <div class="right">
