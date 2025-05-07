@@ -58,11 +58,13 @@ const handleCategoryClick = (category: string) => {
 
 const handleStartPractice = () => {
     console.log('开始刷题')
+    router.push('/question')
 }
 
 const handleHotClick = () => {
     activeCategory.value = '热门'
     console.log('查看热门题目')
+    router.push('/category')
 }
 const gotoCategory = () => {
     console.log('查看更多题库')

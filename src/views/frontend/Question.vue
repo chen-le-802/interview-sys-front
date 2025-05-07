@@ -175,10 +175,11 @@ const formatNumber = (num: number) => {
     display: flex;
     align-items: flex-start;
     flex: 1;
-    overflow: auto;
+    height: 100%;
 }
 
 .question-box {
+    height: 100%;
     width: 100%;
     display: flex;
     overflow: auto;
