@@ -91,11 +91,7 @@ const questions = ref([
     { title: '什么是Java的多态特性?', heat: 36373 },
     { title: 'MySQL中的数据排...', heat: 33784 },
     { title: '什么是Java中的不可变类?', heat: 33551 },
-    { title: '说说Java中Has...', heat: 32892 },
-    { title: 'Java中的参数传递是按值还...', heat: 29074 },
-    { title: '详细描述一条S...', heat: 29044 },
-    { title: 'Java中Exception和Error有...', heat: 28783 },
-    { title: 'Java中有哪些集合.', heat: 27068 }
+
 ])
 // 问题详情数据
 const currentQuestion = ref<Question & { views: number; stars: number }>({
@@ -177,6 +173,7 @@ const formatNumber = (num: number) => {
 
 .main-content {
     display: flex;
+    align-items: flex-start;
     flex: 1;
     overflow: auto;
 }

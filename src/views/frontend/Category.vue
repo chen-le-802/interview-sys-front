@@ -50,6 +50,7 @@ const questions = ref([
 <style scoped>
 .containner {
     display: flex;
+    align-items: flex-start;
     width: 1200px;
     margin: 32px auto;
 

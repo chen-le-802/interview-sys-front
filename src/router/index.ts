@@ -33,6 +33,11 @@ const router = createRouter({
       component: () => import('@/views/frontend/Bank.vue'),
     },
     {
+      path: '/roadmap',
+      name: 'roadmap',
+      component: () => import('@/views/frontend/Roadmap.vue'),
+    },
+    {
       path: '/admin/home',
       name: 'admin-home',
       component: () => import('@/components/manager/Layout.vue'),
