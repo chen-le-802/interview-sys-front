@@ -49,8 +49,8 @@ const router = createRouter({
           component: () => import('@/views/manager/Dashboard.vue'),
         },
         {
-          path: 'question',
-          name: 'question',
+          path: 'questionManager',
+          name: 'questionManager',
           component: () => import('@/views/manager/QuestionsManager.vue'),
         },
         {

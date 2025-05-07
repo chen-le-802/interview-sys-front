@@ -27,8 +27,8 @@
 
 <script lang="ts" setup>
 import { ref, watch } from 'vue';
-import { useRoute} from 'vue-router';
-import { HomeOutlined, FileTextOutlined, FolderOutlined, UserOutlined} from '@ant-design/icons-vue';
+import { useRoute } from 'vue-router';
+import { HomeOutlined, FileTextOutlined, FolderOutlined, UserOutlined } from '@ant-design/icons-vue';
 import Header from './Header.vue';
 
 const route = useRoute();
@@ -36,7 +36,7 @@ const currentNav = ref(route.name as string);
 
 const navList = [
   { key: 'dashboard', label: '数据概览', icon: HomeOutlined },
-  { key: 'question', label: '题目管理', icon: FileTextOutlined },
+  { key: 'questionManager', label: '题目管理', icon: FileTextOutlined },
   { key: 'questionbank', label: '题库管理', icon: FolderOutlined },
   { key: 'user', label: '用户管理', icon: UserOutlined }
 ];

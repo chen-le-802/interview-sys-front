@@ -8,10 +8,12 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AAlert: typeof import('ant-design-vue/es')['Alert']
     AAvatar: typeof import('ant-design-vue/es')['Avatar']
     AButton: typeof import('ant-design-vue/es')['Button']
     ACard: typeof import('ant-design-vue/es')['Card']
     ACol: typeof import('ant-design-vue/es')['Col']
+    AComment: typeof import('ant-design-vue/es')['Comment']
     ADivider: typeof import('ant-design-vue/es')['Divider']
     ADropdown: typeof import('ant-design-vue/es')['Dropdown']
     AEmpty: typeof import('ant-design-vue/es')['Empty']
@@ -20,6 +22,8 @@ declare module 'vue' {
     AInput: typeof import('ant-design-vue/es')['Input']
     AInputPassword: typeof import('ant-design-vue/es')['InputPassword']
     AInputSearch: typeof import('ant-design-vue/es')['InputSearch']
+    AList: typeof import('ant-design-vue/es')['List']
+    AListItem: typeof import('ant-design-vue/es')['ListItem']
     AMenu: typeof import('ant-design-vue/es')['Menu']
     AMenuDivider: typeof import('ant-design-vue/es')['MenuDivider']
     AMenuItem: typeof import('ant-design-vue/es')['MenuItem']
@@ -41,6 +45,7 @@ declare module 'vue' {
     AUpload: typeof import('ant-design-vue/es')['Upload']
     BankIcon: typeof import('./components/BankIcon.vue')['default']
     BankList: typeof import('./components/shared/bankList.vue')['default']
+    Comments: typeof import('./components/shared/Comments.vue')['default']
     ElAlert: (typeof import('element-plus/es'))['ElAlert']
     ElAvatar: typeof import('element-plus/es')['ElAvatar']
     ElBacktop: typeof import('element-plus/es')['ElBacktop']

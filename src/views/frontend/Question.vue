@@ -42,7 +42,10 @@
                             </div>
                         </div>
                     </div>
-                    <div class="comment-box"></div>
+
+                    <Comments></Comments>
+                    <div style="width: 120px;height: 80px;"></div>
+
                 </div>
                 <div class="right">
                     <div class="context-box">
@@ -269,16 +272,11 @@ const formatNumber = (num: number) => {
     cursor: pointer;
 }
 
-.comment-box {
-    width: 100%;
-    height: 1000px;
-    background-color: #ffffff;
-    border-radius: 10px;
-}
 
 .right {
     display: flex;
     flex-wrap: wrap;
+    align-content: flex-start;
     width: 260px;
     height: 100%;
 }
