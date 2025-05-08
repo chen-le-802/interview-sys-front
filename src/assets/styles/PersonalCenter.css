@@ -126,6 +126,8 @@
     margin-bottom: 8px;
     margin-left: 1px;
     color: white;
+    height: 30px;
+    display: flex;
 }
 
 .username {
@@ -137,8 +139,7 @@
 
 .user-profile {
     color: #6b7280;
-    margin-left: 16px;
-    transform: translateY(-80%);
+    transform: translateX(-55%);
 }
 
 
