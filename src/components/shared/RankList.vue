@@ -3,7 +3,7 @@
         <!-- 标题栏 -->
         <div class="header">
             <h3>{{ listTitle }}</h3>
-            <div class="more">更多</div>
+            <div class="more" @click="showMore">更多</div>
         </div>
 
         <!-- 题目列表 -->
@@ -35,11 +35,17 @@ const props = defineProps<{
     questions: Array<{ title: string, heat: number }>,
     width?: number
 }>()
+const router = useRouter()
 // 格式化数字
 const formatNumber = (num: number) => {
     return num.toLocaleString()
 }
 const width = ref(props.width || 280)
+
+const showMore = () => {
+    console.log('showMore');
+    router.push('/rank-list')
+}
 </script>
 
 <style scoped>

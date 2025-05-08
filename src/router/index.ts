@@ -90,6 +90,16 @@ const router = createRouter({
       name: 'ai-interview',
       component: () => import('@/views/frontend/AiInterview.vue'),
     },
+    {
+      path: '/daily-list',
+      name: 'daily-list',
+      component: () => import('@/views/frontend/DailyList.vue'),
+    },
+    {
+      path: '/rank-list',
+      name: 'rank-list',
+      component: () => import('@/views/frontend/RankListView.vue'),
+    },
   ],
 })
 

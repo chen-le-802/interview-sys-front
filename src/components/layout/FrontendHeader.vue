@@ -51,7 +51,7 @@ const navItems = [
     { name: '主页', path: '/' },
     { name: '题库', path: '/banks' },
     { name: '刷题路线', path: '/roadmap' },
-    { name: '25届春招热题', path: '/hot' },
+    { name: '每日题单', path: '/daily-list' },
     { name: 'AI面试官', path: '/ai-interview' }
 ]
 
