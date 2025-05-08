@@ -4,7 +4,7 @@
         <div class="container">
             <a-card style="width: 286px;padding: 0;">
                 <a-button v-for="item in navItems" :key="item.key" type="text" class="nav-item"
-                    @click="handleNavClick(item.rankTheme)">
+                    :class="{ 'active': rankTheme === item.rankTheme }" @click="handleNavClick(item.rankTheme)">
                     <component :is="item.icon" />
                     <span>{{ item.text }}</span>
                 </a-button>
@@ -77,5 +77,11 @@ const handleNavClick = (theme: string) => {
     height: 40px;
     margin-bottom: 6px;
     gap: 15px;
+}
+
+.nav-item.active {
+    /* 添加激活状态的样式 */
+    font-weight: bold;
+    background-color: #f0f0f0;
 }
 </style>

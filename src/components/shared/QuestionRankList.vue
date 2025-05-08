@@ -31,16 +31,16 @@ const props = defineProps<{
     theme?: string;
 }>();
 
-const theme = computed(() => props.theme || 'user-rank');
+const theme = computed(() => props.theme || 'hot-questions');
 const rankingItemMargin = computed(() => {
     return theme.value === 'hot-questions' ? '0' : '20px 0 0 0';
 });
 
 const themeLabels: Record<string, string> = {
-    'hot-questions': '热门问题',
-    'user-rank': '用户排名',
-    'question-rank': '问题解答回答',
-    'invite-rank': '邀请人数',
+    'hot-questions': '热门题目',
+    'user-rank': '用户排行',
+    'question-rank': '刷题排行',
+    'invite-rank': '邀请排行',
 };
 
 // 根据 theme 显示不同的标签
