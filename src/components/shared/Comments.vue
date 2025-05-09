@@ -2,19 +2,26 @@
     <div class="discussion-container">
         <!-- 标题区域 -->
         <div class="discussion-header">
-            <h3>回答讨论（{{ data.length }}个）</h3>
+            <div class="discussion-title">
+                <div style="margin-right: 20px;cursor: pointer;" class="active">回答讨论（{{ data.length }}个）</div>
+                <div style="cursor: pointer;">我的回答</div>
+            </div>
             <!-- 登录提示 -->
 
-            <div class="add-comment">
+            <div v-if="!isLogin" class="login-add-comment">
                 <a-avatar :size="32" :src="avatarImg" />
-                <div class="add-comment-box">
-                    <div class="add-comment-input">
-                        <span v-if="!isLogin" class="blue-text" @click="handleLogin">点击登录</span>
-                        <span class="blue-text" v-else>点击评论</span>
-                        <span v-if="!isLogin">，快来和大家讨论吧~</span>
-                        <span v-else>，去分享我的见解</span>
+                <div class="login-add-comment-box">
+                    <div class="login-add-comment-input">
+                        <span class="blue-text" @click="handleLogin">点击登录</span>
+                        <span>，快来和大家讨论吧~</span>
                     </div>
                 </div>
+            </div>
+            <div v-else class="add-comment-box">
+                <div style="height: 350px;width: 100%;">
+                    <Editor></Editor>
+                </div>
+                <a-button type="primary" style="width: 120px;margin-top: 20px;">发布回答</a-button>
             </div>
 
 
@@ -84,8 +91,9 @@ import {
     MessageOutlined
 } from '@ant-design/icons-vue';
 import dayjs, { Dayjs } from 'dayjs';
+import { getItem } from '@/utils/storage';
 
-const isLogin = ref(false); // 登录状态
+const isLogin = (getItem('token') !== null); // 登录状态
 
 interface CommentItem {
     author: string;
@@ -141,7 +149,7 @@ const toggleExpand = (item: CommentItem) => {
 
 const handleLogin = () => {
     // 登录逻辑
-    isLogin.value = true;
+    isLogin.valueOf()
 };
 
 const getUserLevelClass = (level: string): string => {
@@ -163,14 +171,26 @@ const formatTime = (datetime: Dayjs): string => {
     cursor: pointer;
 }
 
+.active {
+    color: #2286ff;
+    border-bottom: #2286ff solid 2px;
+    font-weight: 500;
+}
+
 .discussion-container {
     background: #fff;
     padding: 24px;
     border-radius: 8px;
 }
 
-.discussion-header {
-    margin-bottom: 0px;
+
+.discussion-title {
+    height: 40px;
+    display: flex;
+    width: 100%;
+    font-size: 16px;
+    border-bottom: #edeeef solid 1px;
+    margin-bottom: 30px;
 }
 
 .user-info {
@@ -240,30 +260,36 @@ const formatTime = (datetime: Dayjs): string => {
     cursor: pointer;
 }
 
-.add-comment {
+.add-comment-box {
+
+    width: 100%;
+    margin: 20px auto;
+    /* margin-top: 20px; */
+}
+
+.login-add-comment {
     margin-top: 20px;
     display: flex;
     width: 90%;
-    height: 100px;
     background: #ffffff;
     border-radius: 4px;
     margin-left: 24px;
 }
 
-.add-comment-box {
+.login-add-comment-box {
     display: flex;
     flex: 1;
     justify-content: center;
     align-items: center;
     width: 100%;
-    height: 100%;
+    height: 100px;
     border-radius: 5px;
     box-shadow: #e9e7e7 0px 0px 5px 0px;
     margin-left: 15px;
 
 }
 
-.add-comment-box .add-comment-input {
+.login-add-comment-box .login-add-comment-input {
     display: flex;
     align-items: center;
     padding: 0 20px;

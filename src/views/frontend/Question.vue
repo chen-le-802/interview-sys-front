@@ -165,13 +165,13 @@ const formatNumber = (num: number) => {
     height: 100vh;
     background-color: #f5f5f5;
     overflow: hidden;
-    cursor: default;
+
 }
 
 .header {
     position: sticky;
     top: 0;
-    z-index: 100;
+
 }
 
 .main-content {

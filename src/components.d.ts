@@ -47,6 +47,7 @@ declare module 'vue' {
     BankIcon: typeof import('./components/BankIcon.vue')['default']
     BankList: typeof import('./components/shared/bankList.vue')['default']
     Comments: typeof import('./components/shared/Comments.vue')['default']
+    Editor: typeof import('./components/shared/Editor.vue')['default']
     ElAlert: (typeof import('element-plus/es'))['ElAlert']
     ElAvatar: typeof import('element-plus/es')['ElAvatar']
     ElBacktop: typeof import('element-plus/es')['ElBacktop']
