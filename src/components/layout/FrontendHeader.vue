@@ -50,7 +50,7 @@ import UserInfoDropDown from '@/components/UserInfoDropDown.vue'
 const navItems = [
     { name: '主页', path: '/' },
     { name: '题库', path: '/banks' },
-    { name: '刷题路线', path: '/roadmap' },
+    { name: '刷题路线', path: '/roadmaps' },
     { name: '每日题单', path: '/daily-list' },
     { name: 'AI面试官', path: '/ai-interview' }
 ]
