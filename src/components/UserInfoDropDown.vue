@@ -48,11 +48,17 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, ref } from 'vue'
+import { defineComponent, computed, ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowDown, User, Setting, SwitchButton, HomeFilled } from '@element-plus/icons-vue'
 import { userLogout } from '@/apis/authApi'
-import { clearAuth, getUserInfo, isAdmin as checkIsAdmin } from '@/utils/auth'
+import { 
+  clearAuth, 
+  getUserInfo, 
+  isAdmin as checkIsAdmin, 
+  verifyAuthStatus,
+  getUserAvatarWithTimestamp
+} from '@/utils/auth'
 
 export default defineComponent({
     name: 'LogoutComponent',
@@ -68,27 +74,90 @@ export default defineComponent({
         const route = useRoute()
 
         const loading = ref(false)
-
-        // 获取用户信息
-        const userInfo = computed(() => getUserInfo())
+        // 用于重新渲染组件
+        const refreshKey = ref(0)
+        const verifyInterval = ref<number | null>(null)
 
         // 是否登录
-        const isLoggedIn = computed(() => !!userInfo.value)
-
-        // 显示用户名，未登录显示“未登录”
-        const displayUserName = computed(() => {
-            return userInfo.value?.userName || '未登录'
+        const isLoggedIn = computed(() => {
+            // 强制组件重新计算
+            refreshKey.value;
+            return !!getUserInfo();
         })
 
+        // 显示用户名，未登录显示"未登录"
+        const displayUserName = computed(() => {
+            // 强制组件重新计算
+            refreshKey.value;
+            const userInfo = getUserInfo();
+            return userInfo?.userName || '未登录'
+        })
+
+        // 使用带时间戳的头像URL
         const userAvatar = computed(() => {
-            return userInfo.value?.userAvatar || '/src/assets/images/common/avatar.png'
+            // 强制组件重新计算
+            refreshKey.value;
+            return getUserAvatarWithTimestamp();
         })
 
         // 是否管理员
-        const isAdmin = computed(() => checkIsAdmin())
+        const isAdmin = computed(() => {
+            // 强制组件重新计算
+            refreshKey.value;
+            return checkIsAdmin();
+        })
 
         // 判断当前是否处于后台路由
         const isAdminRoute = computed(() => route.path.startsWith('/admin'))
+
+        // 设置定期验证
+        const setupAuthVerification = () => {
+            // 清除现有定时器
+            if (verifyInterval.value) {
+                clearInterval(verifyInterval.value);
+            }
+            
+            // 设置定期验证 (每5分钟验证一次)
+            verifyInterval.value = window.setInterval(async () => {
+                if (await verifyAuthStatus()) {
+                    // 成功验证，更新组件
+                    refreshKey.value++;
+                } else if (isLoggedIn.value) {
+                    // 验证失败但本地状态仍然是登录状态，需要重定向
+                    ElMessage.warning('登录已过期，请重新登录');
+                    router.push('/login');
+                }
+            }, 5 * 60 * 1000);
+        }
+
+        // 组件挂载时验证登录状态
+        onMounted(async () => {
+            // 立即验证一次
+            if (await verifyAuthStatus(true)) {
+                refreshKey.value++;
+            }
+            
+            // 设置定期验证
+            setupAuthVerification();
+            
+            // 监听窗口焦点事件，当用户重新回到页面时验证
+            window.addEventListener('focus', handleWindowFocus);
+        });
+
+        // 组件卸载时清除定时器和事件监听
+        onBeforeUnmount(() => {
+            if (verifyInterval.value) {
+                clearInterval(verifyInterval.value);
+            }
+            window.removeEventListener('focus', handleWindowFocus);
+        });
+
+        // 窗口获得焦点时验证
+        const handleWindowFocus = async () => {
+            if (await verifyAuthStatus()) {
+                refreshKey.value++;
+            }
+        };
 
         const handleCommand = async (command: string) => {
             switch (command) {
@@ -123,10 +192,13 @@ export default defineComponent({
                 try {
                     await userLogout()
                 } catch (err) {
-                    console.error('登出API调用失败，但继续清除本地状态', err)
+                    // 即使API调用失败，也清除本地状态
                 }
 
+                // 清除本地登录状态
                 clearAuth()
+                // 更新组件状态
+                refreshKey.value++;
 
                 setTimeout(() => {
                     ElMessage.success('退出成功')
@@ -134,12 +206,16 @@ export default defineComponent({
                 }, 100)
             } catch (error) {
                 if (error !== 'cancel') {
-                    console.error('登出失败:', error)
                     ElMessage.error('退出失败，请重试')
                 }
             } finally {
                 loading.value = false
             }
+        }
+
+        // 刷新组件
+        const refreshComponent = () => {
+            refreshKey.value++;
         }
 
         return {
@@ -150,7 +226,8 @@ export default defineComponent({
             isAdminRoute,
             handleCommand,
             handleLogout,
-            loading
+            loading,
+            refreshComponent
         }
     }
 })
