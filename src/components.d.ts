@@ -66,6 +66,7 @@ declare module 'vue' {
     ElTable: typeof import('element-plus/es')['ElTable']
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
     ElTag: typeof import('element-plus/es')['ElTag']
+    ElTooltip: typeof import('element-plus/es')['ElTooltip']
     Footer: typeof import('./components/layout/Footer.vue')['default']
     FrontendHeader: typeof import('./components/layout/FrontendHeader.vue')['default']
     Header: typeof import('./components/manager/Header.vue')['default']

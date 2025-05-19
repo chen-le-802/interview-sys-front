@@ -105,6 +105,11 @@ const router = createRouter({
       name: 'rank-list',
       component: () => import('@/views/frontend/RankListView.vue'),
     },
+    {
+      path:'/error-notebook',
+      name:'error-notebook',
+      component: () => import('@/views/frontend/ErrorNoteBook.vue'),
+    }
   ],
 })
 

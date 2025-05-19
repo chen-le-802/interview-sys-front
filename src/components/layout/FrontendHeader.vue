@@ -26,11 +26,18 @@
                     </template>
                 </el-input>
             </div>
-
+    
             <div class="message" @click="showNotifications">
                 <el-icon :size="18">
                     <Bell style="cursor: pointer;" />
                 </el-icon>
+            </div>
+            <div class="errorNoteBook" @click="gotoErrorNoteBook">
+                <el-tooltip content="错题本" placement="bottom" effect="light">
+                    <span class="errorNoteBook-icon">
+                        <BookOutlined />
+                    </span>
+                </el-tooltip>
             </div>
 
             <div class="user">
@@ -44,6 +51,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Bell, Search } from '@element-plus/icons-vue'
 import { useRouter, useRoute } from 'vue-router'
+import { BookOutlined } from '@ant-design/icons-vue'
 import UserInfoDropDown from '@/components/UserInfoDropDown.vue'
 
 // Mock数据
@@ -88,6 +96,10 @@ const handleSearch = () => {
 
 const showNotifications = () => {
     console.log('显示通知:', mockNotifications)
+}
+const gotoErrorNoteBook = () => {
+    // 跳转到错题本页面
+    router.push('/error-notebook')
 }
 
 </script>
@@ -140,6 +152,11 @@ header {
     width: 50px;
     height: 56px;
     margin: 0 10px;
+}
+.errorNoteBook {
+  cursor: pointer;
+    height: 56px;
+    margin-right:15px;
 }
 
 .user {
