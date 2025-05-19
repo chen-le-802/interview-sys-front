@@ -15,10 +15,11 @@
                     <div class="profile-header">
                         <div class="avatar-container">
                             <div class="avatar-wrapper" @click="triggerUpload">
-                                <img class="avatar-image" :src="getAvatarUrl" alt="头像">
-                                <div class="avatar-overlay">
+                                <img class="avatar-image" :src="getAvatarUrl" alt="头像"
+                                    :style="{ opacity: formData.file ? '0.8' : '1' }" @error="handleImageError" />
+                                <div class="avatar-overlay" :class="{ 'active': formData.file }">
                                     <CameraOutlined class="camera-icon" />
-                                    <div class="upload-text">更换头像</div>
+                                    <div class="upload-text">{{ formData.file ? '已选择新头像' : '更换头像' }}</div>
                                 </div>
                             </div>
                             <div class="user-info">
@@ -26,8 +27,9 @@
                                 <p class="user-profile">{{ userInfo.userProfile || '' }}</p>
                             </div>
                             <!-- 隐藏的上传组件 -->
-                            <a-upload ref="uploadRef" name="file" list-type="picture-card" class="hidden-uploader"
-                                :show-upload-list="false" :before-upload="beforeUpload" @change="handleAvatarChange">
+                            <a-upload ref="uploadRef" name="userAvatarFile" list-type="picture-card"
+                                class="hidden-uploader" :show-upload-list="false" :before-upload="beforeUpload"
+                                @change="handleAvatarChange">
                                 <div></div>
                             </a-upload>
                         </div>
@@ -131,7 +133,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, computed } from 'vue';
+import { ref, onMounted, reactive, computed, nextTick } from 'vue';
 import * as echarts from 'echarts';
 import 'echarts/theme/macarons';
 import { useRouter } from 'vue-router';
@@ -193,20 +195,32 @@ const heatmapRef = ref<HTMLElement | null>(null);
 const loading = ref(false);
 const uploadRef = ref();
 
+// 处理图片加载错误
+const handleImageError = (e: Event) => {
+    const target = e.target as HTMLImageElement;
+    target.src = '/src/assets/images/common/avatar.png';
+    target.onerror = null; // 防止循环触发
+};
+
 // 获取头像URL
 const getAvatarUrl = computed(() => {
+    // 如果有临时预览URL（用于新上传的图片），优先使用它
     if (formData.avatarUrl) {
         return formData.avatarUrl;
     }
+
+    // 如果有用户头像URL
     if (userInfo.userAvatar) {
-        // 确保头像URL是完整的
+        // 确保URL是绝对路径
         if (userInfo.userAvatar.startsWith('http')) {
             return userInfo.userAvatar;
         } else {
-            // 添加API前缀，使用相对路径
-            return `/api/avatar/${userInfo.id}`; // 获取头像的API接口
+            // 默认使用本地默认头像，避免加载失败
+            return '/src/assets/images/common/avatar.png';
         }
     }
+
+    // 默认头像
     return '/src/assets/images/common/avatar.png';
 });
 
@@ -282,7 +296,6 @@ const formData = reactive<FormData>({
 
 // 触发文件上传
 const triggerUpload = () => {
-    // 触发隐藏的上传组件点击
     const uploadElement = uploadRef.value?.$el?.querySelector('input[type=file]');
     if (uploadElement) {
         uploadElement.click();
@@ -373,7 +386,7 @@ const handlePasswordChange = async () => {
         };
 
         const response = await updateMyPassword(passwordData);
-        
+
         if (response.code === 0) {
             message.success('密码修改成功');
             resetPasswordForm();
@@ -385,69 +398,6 @@ const handlePasswordChange = async () => {
         message.error('密码修改失败，请稍后重试');
     } finally {
         passwordLoading.value = false;
-    }
-};
-
-// 保存用户信息
-const saveUserInfo = async () => {
-    loading.value = true;
-    try {
-        // 准备FormData对象用于文件上传
-        const formDataToSubmit = new FormData();
-        formDataToSubmit.append('userName', formData.userName);
-        formDataToSubmit.append('userProfile', formData.userProfile);
-
-        // 对于多个目标岗位，使用适当的格式提交
-        formData.jobPositions.forEach((position) => {
-            formDataToSubmit.append('jobPosition', position);
-        });
-
-        // 如果有新头像，添加到formData
-        if (formData.file) {
-            formDataToSubmit.append('userAvatarFile', formData.file);
-        }
-
-        const response = await updateMyInfo(formDataToSubmit);
-
-        if (response.code === 0) {
-            message.success('个人信息更新成功');
-            // 重新获取用户信息
-            await fetchUserInfo();
-        } else {
-            message.error(response.message || '更新失败');
-        }
-    } catch (error) {
-        console.error('更新用户信息失败', error);
-        message.error('更新用户信息失败');
-    } finally {
-        loading.value = false;
-    }
-};
-
-// 获取用户信息
-const fetchUserInfo = async () => {
-    try {
-        const res = await getCurrentUser();
-        if (res.code === 0 && res.data) {
-            const userData = res.data;
-            userInfo.id = userData.id;
-            userInfo.userName = userData.userName;
-            userInfo.userAccount = userData.userAccount || '';
-            userInfo.userAvatar = userData.userAvatar || '';
-            userInfo.userProfile = userData.userProfile || '';
-
-            // 处理jobPosition，可能是数组或字符串
-            if (userData.jobPosition) {
-                userInfo.jobPosition = userData.jobPosition;
-            } else {
-                userInfo.jobPosition = '';
-            }
-
-            initFormData();
-        }
-    } catch (error) {
-        console.error('获取用户信息失败', error);
-        message.error('获取用户信息失败');
     }
 };
 
@@ -464,17 +414,166 @@ const beforeUpload = (file: File) => {
         return false;
     }
 
+    message.success('图片已选择，点击保存更改以上传');
     // 不自动上传，返回false
     return false;
 };
 
 // 处理头像变更
 const handleAvatarChange = (info: UploadChangeParam<UploadFile<any>>) => {
-    // 获取原始File对象
-    if (info.file.originFileObj) {
-        // 创建一个临时的URL用于预览
-        formData.avatarUrl = URL.createObjectURL(info.file.originFileObj);
-        formData.file = info.file.originFileObj;
+    // 如果已经有预览URL，先释放它
+    if (formData.avatarUrl && formData.avatarUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(formData.avatarUrl);
+    }
+
+    // 处理不同的文件状态
+    if (info.file.status === 'error') {
+        message.error('文件上传失败');
+        return;
+    }
+
+    try {
+        let fileObj;
+        // 尝试多种方式获取文件对象
+        if (info.file.originFileObj) {
+            fileObj = info.file.originFileObj;
+        } else if (info.file instanceof File) {
+            fileObj = info.file;
+        } else if (info.file.uid && info.fileList) {
+            // 尝试从fileList中找到对应的文件
+            const foundFile = info.fileList.find(f => f.uid === info.file.uid);
+            if (foundFile && foundFile.originFileObj) {
+                fileObj = foundFile.originFileObj;
+            }
+        }
+
+        if (fileObj instanceof File) {
+            // 保存文件对象以供上传
+            formData.file = fileObj;
+
+            // 使用回退机制 - 先尝试使用Blob URL
+            try {
+                formData.avatarUrl = URL.createObjectURL(fileObj);
+            } catch (e) {
+                formData.avatarUrl = '';
+            }
+
+            // 通过设置临时类名标记已选择图片
+            nextTick(() => {
+            });
+        } else {
+            // 尝试直接从event中获取文件
+            const inputElement = uploadRef.value?.$el?.querySelector('input[type=file]');
+            if (inputElement && inputElement.files && inputElement.files.length > 0) {
+                const file = inputElement.files[0];
+                formData.file = file;
+
+                try {
+                    formData.avatarUrl = URL.createObjectURL(file);
+                } catch (e) {
+                    formData.avatarUrl = '';
+                }
+            } else {
+                message.error('无法获取上传文件，请重试');
+            }
+        }
+    } catch (error) {
+        message.error('处理文件预览时出错，请重试');
+    }
+};
+
+// 保存用户信息
+const saveUserInfo = async () => {
+    // 验证用户名不能为空
+    if (!formData.userName || formData.userName.trim() === '') {
+        message.error('用户名不能为空');
+        return;
+    }
+
+    loading.value = true;
+    try {
+        // 准备FormData对象用于文件上传
+        const formDataToSubmit = new FormData();
+        formDataToSubmit.append('userName', formData.userName);
+        formDataToSubmit.append('userProfile', formData.userProfile || '');
+
+        // 对于多个目标岗位，使用适当的格式提交
+        if (formData.jobPositions && formData.jobPositions.length > 0) {
+            formData.jobPositions.forEach((position) => {
+                formDataToSubmit.append('jobPosition', position);
+            });
+        }
+
+        // 如果有新头像，添加到formData
+        if (formData.file) {
+            formDataToSubmit.append('userAvatarFile', formData.file);
+        }
+
+        const response = await updateMyInfo(formDataToSubmit);
+
+        if (response.code === 0) {
+            message.success('个人信息更新成功');
+
+            // 清理资源
+            if (formData.avatarUrl && formData.avatarUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(formData.avatarUrl);
+            }
+            formData.avatarUrl = '';
+            formData.file = null;
+
+            // 延迟刷新，给服务器处理时间
+            setTimeout(async () => {
+                try {
+                    await fetchUserInfo();
+                    message.success('用户信息已更新');
+                } catch (error) {
+                    // 静默处理错误
+                }
+            }, 1000);
+        } else {
+            message.error(response.message || '更新失败');
+        }
+    } catch (error) {
+        message.error('更新用户信息失败，请稍后重试');
+    } finally {
+        loading.value = false;
+    }
+};
+
+// 获取用户信息
+const fetchUserInfo = async () => {
+    try {
+        const res = await getCurrentUser();
+
+        if (res.code === 0 && res.data) {
+            const userData = res.data;
+            userInfo.id = userData.id;
+            userInfo.userName = userData.userName;
+            userInfo.userAccount = userData.userAccount || '';
+
+            // 处理头像URL - 添加时间戳避免缓存问题
+            if (userData.userAvatar) {
+                const timestamp = new Date().getTime();
+                userInfo.userAvatar = userData.userAvatar.includes('?')
+                    ? `${userData.userAvatar}&t=${timestamp}`
+                    : `${userData.userAvatar}?t=${timestamp}`;
+            } else {
+                userInfo.userAvatar = '';
+            }
+
+            userInfo.userProfile = userData.userProfile || '';
+
+            // 处理jobPosition，可能是数组或字符串
+            if (userData.jobPosition) {
+                userInfo.jobPosition = userData.jobPosition;
+            } else {
+                userInfo.jobPosition = '';
+            }
+
+            initFormData();
+        }
+    } catch (error) {
+        message.error('获取用户信息失败');
     }
 };
 

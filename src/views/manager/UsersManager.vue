@@ -147,6 +147,7 @@ import { message, Modal } from 'ant-design-vue';
 import type { FormInstance } from 'ant-design-vue';
 import type { Rule } from 'ant-design-vue/es/form';
 import { getUsers, addUser, updateUser, deleteUser, blockUser, unblockUser, getUserById } from '@/apis/userApi';
+import type { BaseResponse } from '@/apis/userApi';
 
 // 用户类型
 interface User {
@@ -155,12 +156,18 @@ interface User {
     userName: string;
     userRole: string;
     userAvatar?: string;
+    userProfile?: string;
     status: string;
     createTime: string;
     updateTime: string;
     editTime: string;
     userPassword?: string;
     isDelete: number;
+}
+
+// 用户编辑表单类型
+interface UserEditFormState extends Omit<User, 'userPassword'> {
+    userPassword: string;
 }
 
 // 声明表单类型
@@ -179,6 +186,7 @@ interface TableColumn {
     dataIndex?: string;
     key: string;
     width?: number;
+    customRender?: (data: any) => any;
 }
 
 // 分页参数
@@ -188,13 +196,15 @@ interface Pagination {
     total: number;
 }
 
-// 查询参数
+// 查询参数接口
 interface QueryParams {
-    page: number;
-    size: number;
-    role?: string;
+    current: number;
+    pageSize: number;
+    sortField?: string;
+    sortOrder?: string;
+    userName?: string;
+    userRole?: string;
     status?: string;
-    keyword?: string;
 }
 
 // 筛选条件
@@ -228,17 +238,15 @@ const formState = reactive<UserFormState>({
     userPassword: '',
     confirmPassword: '',
     userRole: 'user',
-    userProfile: '',
     status: 'active'
 });
 
 // 编辑表单状态
-const editFormState = reactive<User>({
+const editFormState = reactive<UserEditFormState>({
     id: 0,
     userAccount: '',
     userName: '',
     userRole: 'user',
-    userProfile: '',
     status: 'active',
     createTime: '',
     updateTime: '',
@@ -308,11 +316,15 @@ const userColumns: TableColumn[] = [
     { title: '用户名', dataIndex: 'userName', key: 'userName' },
     { title: '角色', dataIndex: 'userRole', key: 'userRole' },
     {
-        title: '注册时间', dataIndex: 'createTime', key: 'createTime',
+        title: '注册时间',
+        dataIndex: 'createTime',
+        key: 'createTime',
         customRender: ({ text }: { text: string }) => formatDateTime(text)
     },
     {
-        title: '更新时间', dataIndex: 'updateTime', key: 'updateTime',
+        title: '更新时间',
+        dataIndex: 'updateTime',
+        key: 'updateTime',
         customRender: ({ text }: { text: string }) => formatDateTime(text)
     },
     { title: '状态', dataIndex: 'status', key: 'status' },
@@ -399,21 +411,25 @@ const getDefaultAvatar = (username: string) => {
 
 // 获取查询参数
 const getQueryParams = (): QueryParams => {
+    // 使用接口定义参数对象，确保类型兼容
     const params: QueryParams = {
-        page: pagination.current,
-        size: pagination.pageSize
+        current: Number(pagination.current),
+        pageSize: Number(pagination.pageSize),
+        sortField: 'updateTime',
+        sortOrder: 'descend'
     };
 
+    // 条件添加参数
+    if (searchQuery.value.trim()) {
+        params.userName = searchQuery.value.trim();
+    }
+
     if (userRole.value) {
-        params.role = userRole.value;
+        params.userRole = userRole.value;
     }
 
     if (userStatus.value) {
         params.status = userStatus.value;
-    }
-
-    if (searchQuery.value.trim()) {
-        params.keyword = searchQuery.value.trim();
     }
 
     return params;
@@ -429,30 +445,22 @@ const loadUserData = async () => {
 
         // 根据API返回格式进行适配
         if (response && response.data) {
-            // 确保每个用户对象都有所需的属性，防止渲染错误
-            const records = (response.data.records || []).map((user: any) => {
-                // 处理时间显示格式化
-                let editTimeFormatted = user.editTime;
-                let createTimeFormatted = user.createTime;
+            const records = (response.data.records || []).map((user: any) => ({
+                id: user.id || 0,
+                userAccount: user.userAccount || '',
+                userName: user.userName || '',
+                userRole: user.userRole || 'user',
+                userAvatar: user.userAvatar || '',
+                status: user.status || 'active',
+                createTime: user.createTime || '',
+                updateTime: user.updateTime || '',
+                editTime: user.editTime || '',
+                isDelete: user.isDelete || 0
+            }));
 
-                return {
-                    id: user.id || 0,
-                    userAccount: user.userAccount || '',
-                    userName: user.userName || '',
-                    userRole: user.userRole || 'user',
-                    userAvatar: user.userAvatar || '',
-                    userProfile: user.userProfile || '',
-                    status: user.status || 'active',
-                    createTime: createTimeFormatted || '',
-                    updateTime: user.updateTime || '',
-                    editTime: editTimeFormatted || '',
-                    isDelete: user.isDelete || 0
-                };
-            });
-
-            console.log('API返回的用户数据:', records); // 调试用
             userList.value = records;
-            pagination.total = response.data.total || 0;
+            pagination.total = Number(response.data.total || 0);
+            pagination.current = Number(response.data.current || 1);
         } else {
             userList.value = [];
             pagination.total = 0;
@@ -467,17 +475,10 @@ const loadUserData = async () => {
     }
 };
 
-// 处理表格分页变化
-const handleTableChange = (page: number, pageSize: number) => {
-    pagination.current = page;
-    pagination.pageSize = pageSize;
-    loadUserData();
-};
-
 // 处理搜索
 const handleSearch = () => {
     isSearching.value = true;
-    pagination.current = 1;
+    pagination.current = 1; // 重置到第一页
     loadUserData();
     setTimeout(() => {
         isSearching.value = false;
@@ -486,14 +487,32 @@ const handleSearch = () => {
 
 // 处理筛选条件变化
 const handleFilterChange = () => {
-    pagination.current = 1;
+    pagination.current = 1; // 重置到第一页
+    loadUserData();
+};
+
+// 处理表格分页变化
+const handleTableChange = (page: number, pageSize: number) => {
+    pagination.current = Number(page);
+    pagination.pageSize = Number(pageSize);
     loadUserData();
 };
 
 // 监听搜索输入变化
 watch(searchQuery, (newVal, oldVal) => {
-    if (newVal !== oldVal && !isSearching.value) {
-        handleSearch();
+    if (!isSearching.value) {
+        // 当搜索框被清空时也触发搜索
+        if (newVal === '' && oldVal !== '') {
+            handleSearch();
+        }
+        // 防抖处理
+        else if (newVal !== oldVal) {
+            const debounce = setTimeout(() => {
+                handleSearch();
+            }, 500);
+
+            return () => clearTimeout(debounce);
+        }
     }
 });
 
@@ -512,12 +531,12 @@ const showEditModal = async (user: User) => {
         editFormState.userAccount = userData.userAccount;
         editFormState.userName = userData.userName;
         editFormState.userRole = userData.userRole;
-        editFormState.userProfile = userData.userProfile || '';
         editFormState.status = userData.status;
         editFormState.createTime = userData.createTime || '';
         editFormState.updateTime = userData.updateTime || '';
         editFormState.editTime = userData.editTime || '';
         editFormState.userPassword = '';
+        editFormState.isDelete = userData.isDelete || 0;
 
         editModalVisible.value = true;
     } catch (error) {
@@ -566,14 +585,15 @@ const handleAddUser = async () => {
         await addFormRef.value?.validate();
         modalLoading.value = true;
 
-        await addUser({
+        const addUserData = {
             userAccount: formState.userAccount,
             userName: formState.userName,
             userPassword: formState.userPassword,
             userRole: formState.userRole,
-            userProfile: formState.userProfile,
             status: formState.status
-        });
+        };
+
+        await addUser(addUserData);
 
         message.success('用户添加成功');
         addModalVisible.value = false;
@@ -594,11 +614,10 @@ const handleEditUser = async () => {
         modalLoading.value = true;
 
         // 准备要更新的数据
-        const updateData: any = {
+        const updateData: Record<string, any> = {
             id: editFormState.id,
             userName: editFormState.userName,
             userRole: editFormState.userRole,
-            userProfile: editFormState.userProfile,
             status: editFormState.status
         };
 
@@ -644,14 +663,14 @@ const handleBlockUser = async (id: number) => {
     try {
         const response = await blockUser(id);
 
-        if (response && response.code === 0) {
-            message.success('用户已封禁');
+        // 处理API响应
+        const result = response as unknown as BaseResponse<any>;
 
+        if (result.code === 0) {
+            message.success('用户已封禁');
             await loadUserData();
         } else {
-            const errorMsg = (response && response.message) ? response.message : '封禁用户失败，请重试';
-            message.error(errorMsg);
-            console.error('封禁用户API错误响应:', response);
+            message.error(result.message || '封禁用户失败，请重试');
         }
     } catch (error) {
         console.error('封禁用户失败:', error);
@@ -667,14 +686,14 @@ const handleUnblockUser = async (id: number) => {
     try {
         const response = await unblockUser(id);
 
-        if (response && response.code === 0) {
-            message.success('用户已解封');
+        // 处理API响应
+        const result = response as unknown as BaseResponse<any>;
 
+        if (result.code === 0) {
+            message.success('用户已解封');
             await loadUserData();
         } else {
-            const errorMsg = (response && response.message) ? response.message : '解封用户失败，请重试';
-            message.error(errorMsg);
-            console.error('解封用户API错误响应:', response);
+            message.error(result.message || '解封用户失败，请重试');
         }
     } catch (error) {
         console.error('解封用户失败:', error);
@@ -691,12 +710,12 @@ const resetForm = () => {
         editFormRef.value?.resetFields();
     }
 
+    // 重置表单状态
     formState.userAccount = '';
     formState.userName = '';
     formState.userPassword = '';
     formState.confirmPassword = '';
     formState.userRole = 'user';
-    formState.userProfile = '';
     formState.status = 'active';
 };
 

@@ -41,7 +41,7 @@ export const updateMyPassword = (data: {
 
 // 删除用户
 export const deleteUser = (id: number) => {
-  return request.post('/api/user/delete', { id });
+  return request.post(`/api/user/delete?userId=${id}`);
 };
 
 // 获取用户详情（后台）
