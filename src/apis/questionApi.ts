@@ -6,11 +6,6 @@ interface BaseResponse<T = any> {
   message: string;
 }
 
-// 不分页获取题库列表（管理员端）
-export const getQuestionBankList = (): Promise<BaseResponse> => {
-  return request.post('/api/questionBank/list');
-};
-
 // 分页获取题目列表（管理员端）
 export const getQuestionList = (params: any): Promise<BaseResponse> => {
   return request.post('/api/question/list/page', params);
@@ -18,7 +13,12 @@ export const getQuestionList = (params: any): Promise<BaseResponse> => {
 
 // 分页获取题目列表（用户端）
 export const getQuestionListVO = (params: any): Promise<BaseResponse> => {
-  return request.post('/api/question/list/page/vo', params);
+  return request.get('/api/question/list/page/vo', { params });
+};
+
+// 分页获取我的题目列表
+export const getMyQuestionList = (params: any): Promise<BaseResponse> => {
+  return request.get('/api/question/my/list/page', { params });
 };
 
 // 添加题目
@@ -33,7 +33,9 @@ export const updateQuestion = (data: any): Promise<BaseResponse> => {
 
 // 删除题目
 export const deleteQuestion = (id: number): Promise<BaseResponse> => {
-  return request.post('/api/question/delete', { id });
+  return request.post('/api/question/delete', null, {
+    params: { id }
+  });
 };
 
 // 获取题目详情（管理员端）
@@ -48,4 +50,9 @@ export const getQuestionVOById = (id: number): Promise<BaseResponse> => {
   return request.get('/api/question/get/vo', {
     params: { id }
   });
+};
+
+// 题目答题接口
+export const answerQuestion = (data: { questionId: number; answer: string }): Promise<BaseResponse> => {
+  return request.post('/api/question/answer', data);
 };

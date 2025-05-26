@@ -58,18 +58,25 @@
                         <div v-for="bank in filteredBankList" :key="bank.id" class="bank-card">
                             <div class="bank-header">
                                 <div class="icon-box">
-                                    <BankIcon :name="bank.title" :iconName="bank.iconName" size="medium"
-                                        class="bank-icon-display" />
+                                    <img v-if="bank.picture" :src="bank.picture" :alt="bank.title"
+                                        class="bank-icon-display uploaded-icon" @error="handleImageError" />
+                                    <img v-else src="/src/assets/images/icon/default.png" :alt="bank.title"
+                                        class="bank-icon-display default-icon-img" />
                                 </div>
                                 <div class="bank-info">
                                     <h3>{{ bank.title }}</h3>
                                     <p class="question-count">{{ bank.questionCount || 0 }}题</p>
+                                    <div class="bank-status">
+                                        <span :class="getStatusClass(bank.isDelete)" class="status-tag">
+                                            {{ getStatusText(bank.isDelete) }}
+                                        </span>
+                                    </div>
                                 </div>
                                 <div class="bank-actions">
                                     <button class="action-container" type="button" @click="showEditModal(bank)">
                                         <EditOutlined class="edit-icon" />
                                     </button>
-                                    <button class="action-container" type="button" @click="handleDelete(bank)">
+                                    <button class="action-container" type="button" @click="handleSoftDelete(bank)">
                                         <DeleteOutlined class="delete-icon" />
                                     </button>
                                 </div>
@@ -87,10 +94,9 @@
 
                                 <!-- 平均难度和活跃度 -->
                                 <div class="bank-level">
-                                    <div :class="getDifficultyClass(bank.avgDifficulty || 0)">
+                                    <div :class="getDifficultyClass(bank.avgDifficulty || '')">
                                         <span class="difficulty-text">平均难度:</span>
-                                        <span class="difficulty-value">{{ getDifficultyText(bank.avgDifficulty || 0)
-                                            }}</span>
+                                        <span class="difficulty-value">{{ bank.avgDifficulty || '未知' }}</span>
                                     </div>
                                     <div :class="getActiveLevelClass(bank.activeLevel || '低')">
                                         <span class="active-text">活跃度:</span>
@@ -119,14 +125,15 @@
                 </a-form-item>
 
                 <a-form-item label="题库图标" name="picture">
-                    <a-select v-model:value="addForm.picture" placeholder="请选择题库图标">
-                        <a-select-option v-for="(path, name) in iconMap" :key="name" :value="name">
-                            {{ getIconDisplayName(name) }}
-                        </a-select-option>
-                    </a-select>
-                    <div class="icon-preview" v-if="addForm.picture">
-                        <BankIcon :iconName="addForm.picture" size="medium" class="preview-icon" />
-                        <span class="icon-name">{{ getIconDisplayName(addForm.picture) }}</span>
+                    <a-upload v-model:file-list="addForm.fileList" :before-upload="beforeUpload" :max-count="1"
+                        accept="image/*" list-type="picture-card" :show-upload-list="true">
+                        <div v-if="addForm.fileList && addForm.fileList.length < 1">
+                            <PlusOutlined />
+                            <div style="margin-top: 8px">上传图标</div>
+                        </div>
+                    </a-upload>
+                    <div class="upload-tip">
+                        <p>支持 JPG、PNG、GIF 格式，大小不超过 2MB</p>
                     </div>
                 </a-form-item>
 
@@ -150,14 +157,16 @@
                 </a-form-item>
 
                 <a-form-item label="题库图标" name="picture">
-                    <a-select v-model:value="editForm.picture" placeholder="请选择题库图标">
-                        <a-select-option v-for="(path, name) in iconMap" :key="name" :value="name">
-                            {{ getIconDisplayName(name) }}
-                        </a-select-option>
-                    </a-select>
-                    <div class="icon-preview" v-if="editForm.picture">
-                        <BankIcon :iconName="editForm.picture" size="medium" class="preview-icon" />
-                        <span class="icon-name">{{ getIconDisplayName(editForm.picture) }}</span>
+                    <a-upload v-model:file-list="editForm.fileList" :before-upload="beforeUpload" :max-count="1"
+                        accept="image/*" list-type="picture-card" :show-upload-list="true">
+                        <div v-if="editForm.fileList && editForm.fileList.length < 1">
+                            <PlusOutlined />
+                            <div style="margin-top: 8px">上传图标</div>
+                        </div>
+                    </a-upload>
+                    <div class="upload-tip">
+                        <p>支持 JPG、PNG、GIF 格式，大小不超过 2MB</p>
+                        <p>不上传则保持原图标不变</p>
                     </div>
                 </a-form-item>
 
@@ -169,7 +178,8 @@
                     <div class="statistics-info">
                         <p>题目数量: {{ editForm.questionCount || 0 }}</p>
                         <p>完成率: {{ editForm.completionRate || 0 }}%</p>
-                        <p>平均难度: {{ getDifficultyText(editForm.avgDifficulty || 0) }}</p>
+                        <p>平均难度: {{ editForm.avgDifficulty || '未知' }}</p>
+                        <p>状态: <span :class="getStatusClass(editForm.isDelete)">{{ getStatusText(editForm.isDelete) }}</span></p>
                         <p>最近更新: {{ formatDate(editForm.updateTime) }}</p>
                     </div>
                 </a-form-item>
@@ -184,9 +194,7 @@ import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons-vu
 import { message, Modal } from 'ant-design-vue';
 import type { Rule } from 'ant-design-vue/es/form';
 import type { FormInstance } from 'ant-design-vue';
-import BankIcon from '@/components/BankIcon.vue';
-import { getQuestionBankList, addQuestionBank, updateQuestionBank, deleteQuestionBank } from '@/apis/questionBankApi';
-import { getQuestionsByBankId } from '@/apis/questionBankQuestionApi';
+import { getQuestionBankList, addQuestionBank, updateQuestionBank, deleteQuestionBank, getQuestionBankAnalyzeList } from '@/apis/questionBankApi';
 
 // 数据接口定义
 interface QuestionBank {
@@ -194,7 +202,6 @@ interface QuestionBank {
     title: string;
     description?: string;
     picture?: string;
-    iconName?: string; // 前端使用
     createTime?: string;
     updateTime?: string;
     userId?: number;
@@ -202,91 +209,19 @@ interface QuestionBank {
     // 前端计算属性
     questionCount?: number;
     completionRate?: number;
-    avgDifficulty?: number;
+    avgDifficulty?: string;
     activeLevel?: string;
 }
 
-// 题目接口定义
-interface Question {
+// 题库统计信息接口
+interface QuestionBankAnalyze {
     id: number;
     title: string;
-    content?: string;
-    tags?: string;
-    tagList?: string[]; // 前端解析后的标签列表
-    difficulty?: string;
-    submissionQuantity?: number; // 提交数量
-    passQuantity?: number; // 通过数量
-    passRate?: string; // 通过率
-    userId?: number;
+    questionCount: number;
+    completeRate: string;
+    averageDifficulty: string;
+    activity: string;
 }
-
-// 图标映射
-const iconMap: Record<string, string> = {
-    'default': '/src/assets/images/icon/default.png',
-    'database': '/src/assets/images/icon/数据库.png',
-    'network': '/src/assets/images/icon/计算机网络.png',
-    'os': '/src/assets/images/icon/操作系统.png',
-    'java': '/src/assets/images/icon/java.png',
-    'distributed': '/src/assets/images/icon/分布式系统.png',
-    'algorithm': '/src/assets/images/icon/算法.png',
-    'o&m': '/src/assets/images/icon/系统运维.png',
-    'Android': '/src/assets/images/icon/Android.png',
-    'C++': '/src/assets/images/icon/C++.png',
-    'css': '/src/assets/images/icon/css.png',
-    'html': '/src/assets/images/icon/html.png',
-    'javascript': '/src/assets/images/icon/JavaScript.png',
-    'typescript': '/src/assets/images/icon/typescript.png',
-    'python': '/src/assets/images/icon/Python.png',
-    'react': '/src/assets/images/icon/React.png',
-    'vue': '/src/assets/images/icon/Vue.png',
-    'webpack': '/src/assets/images/icon/Webpack.png',
-    'spring': '/src/assets/images/icon/spring.png',
-    'springboot': '/src/assets/images/icon/SPRINGBOOT.png',
-    'springcloud': '/src/assets/images/icon/SPRINGCLOUD.png',
-    'mybatis': '/src/assets/images/icon/mybatis.png',
-    'mysql': '/src/assets/images/icon/MySQL.png',
-    'redis': '/src/assets/images/icon/Redis.png',
-    'docker': '/src/assets/images/icon/Docker.png',
-    'linux': '/src/assets/images/icon/linux.png',
-    'go': '/src/assets/images/icon/GO.png',
-    'elastic': '/src/assets/images/icon/Elastic.png',
-};
-
-// 图标显示名称
-const getIconDisplayName = (name: string): string => {
-    const displayNameMap: Record<string, string> = {
-        'default': '默认图标',
-        'database': '数据库',
-        'network': '计算机网络',
-        'os': '操作系统',
-        'java': 'Java',
-        'distributed': '分布式系统',
-        'algorithm': '算法',
-        'o&m': '系统运维',
-        'Android': 'Android',
-        'C++': 'C++',
-        'css': 'CSS',
-        'html': 'HTML',
-        'javascript': 'JavaScript',
-        'typescript': 'TypeScript',
-        'python': 'Python',
-        'react': 'React',
-        'vue': 'Vue',
-        'webpack': 'Webpack',
-        'spring': 'Spring',
-        'springboot': 'Spring Boot',
-        'springcloud': 'Spring Cloud',
-        'mybatis': 'MyBatis',
-        'mysql': 'MySQL',
-        'redis': 'Redis',
-        'docker': 'Docker',
-        'linux': 'Linux',
-        'go': 'Go',
-        'elastic': 'Elastic Search'
-    };
-
-    return displayNameMap[name] || name;
-};
 
 // 加载状态
 const loading = ref(false);
@@ -314,21 +249,25 @@ const editFormRef = ref<FormInstance>();
 // 新增题库表单
 const addForm = reactive({
     title: '',
-    picture: 'default',
-    description: ''
+    description: '',
+    fileList: [] as any[],
+    pictureFile: null as File | null
 });
 
 // 编辑题库表单
-const editForm = reactive<QuestionBank>({
+const editForm = reactive<QuestionBank & { fileList: any[], pictureFile: File | null }>({
     id: 0,
     title: '',
     picture: '',
     description: '',
     questionCount: 0,
     completionRate: 0,
-    avgDifficulty: 0,
+    avgDifficulty: '',
     activeLevel: '低',
-    updateTime: ''
+    updateTime: '',
+    isDelete: 0,
+    fileList: [],
+    pictureFile: null
 });
 
 // 表单验证规则
@@ -336,9 +275,6 @@ const bankFormRules: Record<string, Rule[]> = {
     title: [
         { required: true, message: '请输入题库名称', trigger: 'blur' },
         { min: 2, max: 50, message: '题库名称长度应在 2-50 个字符之间', trigger: 'blur' }
-    ],
-    picture: [
-        { required: true, message: '请选择题库图标', trigger: 'change' }
     ]
 };
 
@@ -348,20 +284,20 @@ const bankList = ref<QuestionBank[]>([]);
 // 筛选后的题库列表
 const filteredBankList = computed(() => {
     let result = [...bankList.value];
-    
+
     // 按标题搜索
     if (searchQuery.value.trim()) {
-        result = result.filter(bank => 
+        result = result.filter(bank =>
             bank.title.toLowerCase().includes(searchQuery.value.trim().toLowerCase())
         );
     }
-    
+
     // 按状态筛选
     if (bankStatus.value !== 'all') {
         const isDeleteValue = parseInt(bankStatus.value);
         result = result.filter(bank => bank.isDelete === isDeleteValue);
     }
-    
+
     return result;
 });
 
@@ -379,31 +315,31 @@ const getEmptyDescription = computed(() => {
     return '暂无题库数据';
 });
 
-// 获取难度文本
-const getDifficultyText = (value: number) => {
-    if (value < 3) return '简单';
-    if (value < 4) return '中等';
-    return '困难';
+// 获取状态文本
+const getStatusText = (isDelete?: number) => {
+    return isDelete === 0 ? '已启用' : '已停用';
 };
 
-// 将后端难度字符串转为数值
-const difficultyToNumber = (difficultyStr?: string): number => {
-    switch (difficultyStr?.toLowerCase()) {
-        case 'easy': return 1;
-        case 'medium': return 3;
-        case 'hard': return 5;
-        case '简单': return 1;
-        case '中等': return 3;
-        case '困难': return 5;
-        default: return 3; // 默认中等难度
+// 获取状态样式类
+const getStatusClass = (isDelete?: number) => {
+    return isDelete === 0 ? 'status-active' : 'status-inactive';
+};
+
+// 获取难度类名（根据字符串）
+const getDifficultyClass = (difficulty: string) => {
+    switch (difficulty?.toLowerCase()) {
+        case '简单':
+        case 'easy':
+            return 'difficulty-easy';
+        case '中等':
+        case 'medium':
+            return 'difficulty-medium';
+        case '困难':
+        case 'hard':
+            return 'difficulty-hard';
+        default:
+            return 'difficulty-unknown';
     }
-};
-
-// 获取难度类名
-const getDifficultyClass = (value: number) => {
-    if (value < 3) return 'difficulty-easy';
-    if (value < 4) return 'difficulty-medium';
-    return 'difficulty-hard';
 };
 
 // 获取活跃度类名
@@ -430,107 +366,51 @@ const formatDate = (dateString?: string): string => {
     }
 };
 
-// 计算题库的统计数据
-const calculateBankStats = async (bank: QuestionBank): Promise<QuestionBank> => {
-    try {
-        // 尝试先使用明确的参数格式调用接口
-        const response = await getQuestionsByBankId(bank.id, {
-            current: 1,
-            pageSize: 100,
-            sortField: 'createTime',
-            sortOrder: 'descend'
-        });
-        
-        if (response.code !== 0) {
-            console.error('获取题库题目失败:', response.message);
-            // 发生错误时，返回带有默认值的题库
-            return {
-                ...bank,
-                questionCount: 0,
-                completionRate: 0,
-                avgDifficulty: 0,
-                activeLevel: '低'
-            };
-        }
-        
-        // 确保 records 存在，如果不存在则使用空数组
-        const questions = (response.data && response.data.records) ? response.data.records : [];
-        const questionCount = questions.length;
-        
-        // 如果没有题目，返回默认值
-        if (questionCount === 0) {
-            return {
-                ...bank,
-                questionCount: 0,
-                completionRate: 0,
-                avgDifficulty: 0,
-                activeLevel: '低'
-            };
-        }
-        
-        // 计算平均难度
-        let totalDifficulty = 0;
-        let validDifficultyCount = 0;
-        
-        questions.forEach((question: Question) => {
-            if (question.difficulty) {
-                totalDifficulty += difficultyToNumber(question.difficulty);
-                validDifficultyCount++;
-            }
-        });
-        
-        const avgDifficulty = validDifficultyCount > 0 ? 
-            totalDifficulty / validDifficultyCount : 0;
-        
-        // 计算完成率 - 处理可能的数据问题
-        let totalCompletionRate = 0;
-        let validRateCount = 0;
-        
-        questions.forEach((question: Question) => {
-            if (question.passRate) {
-                try {
-                    // 尝试将 passRate 转换为数字
-                    const passRate = typeof question.passRate === 'string' ?
-                        parseFloat(question.passRate.replace('%', '')) : 
-                        question.passRate;
-                    
-                    if (!isNaN(passRate)) {
-                        totalCompletionRate += passRate;
-                        validRateCount++;
-                    }
-                } catch (e) {
-                    console.warn('解析通过率失败:', question.passRate);
-                }
-            }
-        });
-        
-        // 避免除以零，并确保结果是合理的百分比
-        const completionRate = validRateCount > 0 ? 
-            Math.min(100, Math.max(0, Math.round(totalCompletionRate / validRateCount))) : 0;
-        
-        // 计算活跃度 - 基于题目数量
-        let activeLevel = '低';
-        if (questionCount > 50) activeLevel = '高';
-        else if (questionCount > 20) activeLevel = '中';
-        
+// 合并题库基本信息和统计信息
+const mergeBankData = (basicBanks: QuestionBank[], analyzeBanks: QuestionBankAnalyze[]): QuestionBank[] => {
+    // 创建统计信息的映射表
+    const analyzeMap = new Map<number, QuestionBankAnalyze>();
+    analyzeBanks.forEach(analyze => {
+        analyzeMap.set(analyze.id, analyze);
+    });
+
+    // 合并数据
+    return basicBanks.map(bank => {
+        const analyze = analyzeMap.get(bank.id);
+
         return {
             ...bank,
-            questionCount,
-            completionRate,
-            avgDifficulty,
-            activeLevel
+            questionCount: analyze?.questionCount || 0,
+            completionRate: analyze?.completeRate ? parseFloat(analyze.completeRate.replace('%', '')) : 0,
+            avgDifficulty: analyze?.averageDifficulty || '未知',
+            activeLevel: analyze?.activity || '低'
         };
-    } catch (error) {
-        console.error('计算题库统计数据失败:', error);
-        // 出错时返回带有默认值的题库
-        return {
-            ...bank,
-            questionCount: 0,
-            completionRate: 0,
-            avgDifficulty: 0,
-            activeLevel: '低'
-        };
+    });
+};
+
+// 图片加载失败处理
+const handleImageError = (event: Event) => {
+    const img = event.target as HTMLImageElement;
+    // 图片加载失败时，显示默认图标
+    img.src = '/src/assets/images/icon/default.png';
+    img.onerror = null; // 防止无限循环
+};
+
+// 文件上传前的验证
+const beforeUpload = (file: File) => {
+    const isImage = file.type.startsWith('image/');
+    if (!isImage) {
+        message.error('只能上传图片文件！');
+        return false;
     }
+
+    const isLt2M = file.size / 1024 / 1024 < 2;
+    if (!isLt2M) {
+        message.error('图片大小不能超过 2MB！');
+        return false;
+    }
+
+    return false; // 阻止自动上传，手动控制
 };
 
 // 清除筛选条件
@@ -560,55 +440,34 @@ const getQuestionBanks = async () => {
         message.destroy();
         message.loading({ content: '题库列表加载中...', key: 'loadingMessage', duration: 0 });
 
-        // 使用不分页的 API - 不需要参数
-        const response = await getQuestionBankList();
+        // 并发获取基本信息和统计信息
+        const [basicResponse, analyzeResponse] = await Promise.all([
+            getQuestionBankList(),
+            getQuestionBankAnalyzeList()
+        ]);
 
-        if (response.code === 0) {
-            // 处理返回的数据
-            const banks: QuestionBank[] = response.data || [];
-            total.value = banks.length;
+        if (basicResponse.code === 0 && analyzeResponse.code === 0) {
+            const basicBanks: QuestionBank[] = basicResponse.data || [];
+            const analyzeBanks: QuestionBankAnalyze[] = analyzeResponse.data || [];
 
-            // 初始化基本属性
-            const initialBanks = banks.map((bank: QuestionBank) => ({
-                ...bank,
-                iconName: bank.picture || 'default',
-                questionCount: 0,
-                completionRate: 0,
-                avgDifficulty: 0,
-                activeLevel: '低',
-                createTime: typeof bank.createTime === 'string' ? bank.createTime : '',
-                updateTime: typeof bank.updateTime === 'string' ? bank.updateTime : ''
-            }));
+            total.value = basicBanks.length;
 
-            // 先显示初始列表
-            bankList.value = initialBanks;
+            // 合并基本信息和统计信息
+            const mergedBanks = mergeBankData(basicBanks, analyzeBanks);
+            bankList.value = mergedBanks;
 
-            // 异步计算每个题库的统计数据
             message.destroy('loadingMessage');
-            message.loading({ content: '正在计算题库统计数据...', key: 'statMessage', duration: 0 });
-
-            // 逐个计算每个题库的统计数据
-            const updatedBanks = [];
-            for (const bank of initialBanks) {
-                const updatedBank = await calculateBankStats(bank);
-                updatedBanks.push(updatedBank);
-            }
-
-            // 更新列表
-            bankList.value = updatedBanks;
-
-            message.destroy('statMessage');
             message.success('题库列表加载成功');
         } else {
             message.destroy('loadingMessage');
-            message.error(response.message || '获取题库列表失败');
+            const errorMsg = basicResponse.code !== 0 ? basicResponse.message : analyzeResponse.message;
+            message.error(errorMsg || '获取题库列表失败');
         }
 
         return Promise.resolve();
     } catch (error) {
         console.error('获取题库列表失败:', error);
         message.destroy('loadingMessage');
-        message.destroy('statMessage');
         message.error('获取题库列表失败，请重试');
         return Promise.reject(error);
     } finally {
@@ -620,8 +479,9 @@ const getQuestionBanks = async () => {
 
 const showAddModal = () => {
     addForm.title = '';
-    addForm.picture = 'default';
     addForm.description = '';
+    addForm.fileList = [];
+    addForm.pictureFile = null;
 
     addModalVisible.value = true;
 };
@@ -629,15 +489,56 @@ const showAddModal = () => {
 const showEditModal = (bank: QuestionBank) => {
     editForm.id = bank.id;
     editForm.title = bank.title;
-    editForm.picture = bank.picture || 'default';
+    editForm.picture = bank.picture || '';
     editForm.description = bank.description || '';
     editForm.questionCount = bank.questionCount || 0;
     editForm.completionRate = bank.completionRate || 0;
-    editForm.avgDifficulty = bank.avgDifficulty || 0;
+    editForm.avgDifficulty = bank.avgDifficulty || '未知';
     editForm.activeLevel = bank.activeLevel || '低';
     editForm.updateTime = bank.updateTime;
+    editForm.isDelete = bank.isDelete || 0;
+    editForm.fileList = [];
+    editForm.pictureFile = null;
 
     editModalVisible.value = true;
+};
+
+// 软删除题库
+const handleSoftDelete = (bank: QuestionBank) => {
+    const action = bank.isDelete === 0 ? '停用' : '启用';
+    
+    // 如果是已停用的题库，提示用户这是启用操作
+    const confirmContent = bank.isDelete === 0 
+        ? `确定要停用题库 "${bank.title}" 吗？停用后用户将无法访问此题库。`
+        : `题库 "${bank.title}" 当前已停用，确定要重新启用吗？`;
+    
+    Modal.confirm({
+        title: `确认${action}题库`,
+        content: confirmContent,
+        okText: '确认',
+        cancelText: '取消',
+        okType: bank.isDelete === 0 ? 'danger' : 'primary',
+        onOk: async () => {
+            try {
+                message.loading({ content: `正在${action}题库...`, key: 'softDeleteMessage', duration: 0 });
+                const response = await deleteQuestionBank(bank.id);
+
+                if (response.code === 0) {
+                    message.destroy('softDeleteMessage');
+                    message.success(`题库${action}成功！`);
+                    // 刷新列表以获取最新状态
+                    getQuestionBanks();
+                } else {
+                    message.destroy('softDeleteMessage');
+                    message.error(response.message || `${action}题库失败`);
+                }
+            } catch (error) {
+                console.error(`${action}题库失败:`, error);
+                message.destroy('softDeleteMessage');
+                message.error(`${action}题库失败，请重试`);
+            }
+        }
+    });
 };
 
 // 新增题库
@@ -647,16 +548,25 @@ const handleAddBank = async () => {
 
         addLoading.value = true;
 
-        const response = await addQuestionBank({
-            title: addForm.title,
-            picture: addForm.picture,
-            description: addForm.description
-        });
+        // 使用 FormData 来处理文件上传
+        const formData = new FormData();
+        formData.append('title', addForm.title);
+        formData.append('description', addForm.description);
+
+        // 如果有上传的图片文件，添加到 FormData 中
+        if (addForm.fileList && addForm.fileList.length > 0) {
+            const file = addForm.fileList[0].originFileObj || addForm.fileList[0];
+            formData.append('picture', file);
+        }
+
+        const response = await addQuestionBank(formData);
 
         if (response.code === 0) {
             message.success('题库添加成功！');
             addModalVisible.value = false;
             addFormRef.value?.resetFields();
+            // 重置文件列表
+            addForm.fileList = [];
             getQuestionBanks();
         } else {
             message.error(response.message || '添加题库失败');
@@ -676,12 +586,19 @@ const handleEditBank = async () => {
 
         editLoading.value = true;
 
-        const response = await updateQuestionBank({
-            id: editForm.id,
-            title: editForm.title,
-            picture: editForm.picture,
-            description: editForm.description
-        });
+        // 使用 FormData 来处理文件上传
+        const formData = new FormData();
+        formData.append('id', editForm.id.toString());
+        formData.append('title', editForm.title);
+        formData.append('description', editForm.description || '');
+
+        // 如果有上传的新图片文件，添加到 FormData 中
+        if (editForm.fileList && editForm.fileList.length > 0) {
+            const file = editForm.fileList[0].originFileObj || editForm.fileList[0];
+            formData.append('picture', file);
+        }
+
+        const response = await updateQuestionBank(formData);
 
         if (response.code === 0) {
             message.success('题库更新成功！');
@@ -698,44 +615,17 @@ const handleEditBank = async () => {
     }
 };
 
-// 删除题库
-const handleDelete = (bank: QuestionBank) => {
-    Modal.confirm({
-        title: '确认删除',
-        content: `确定要删除题库 "${bank.title}" 吗？该操作将删除题库下的所有题目，且不可恢复！`,
-        okText: '确认',
-        okType: 'danger',
-        cancelText: '取消',
-        onOk: async () => {
-            try {
-                message.loading({ content: '正在删除题库...', key: 'deleteMessage', duration: 0 });
-
-                const response = await deleteQuestionBank(bank.id);
-
-                if (response.code === 0) {
-                    message.destroy('deleteMessage');
-                    message.success('题库删除成功！');
-                    getQuestionBanks();
-                } else {
-                    message.destroy('deleteMessage');
-                    message.error(response.message || '删除题库失败');
-                }
-            } catch (error) {
-                console.error('删除题库失败:', error);
-                message.destroy('deleteMessage');
-                message.error('删除题库失败，请重试');
-            }
-        }
-    });
-};
-
 const handleCancelAdd = () => {
     addFormRef.value?.resetFields();
+    addForm.fileList = [];
+    addForm.pictureFile = null;
     addModalVisible.value = false;
 };
 
 const handleCancelEdit = () => {
     editFormRef.value?.resetFields();
+    editForm.fileList = [];
+    editForm.pictureFile = null;
     editModalVisible.value = false;
 };
 

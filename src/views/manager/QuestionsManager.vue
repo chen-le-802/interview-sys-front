@@ -12,9 +12,9 @@
                         <!-- 筛选选项 -->
                         <a-select v-model:value="difficulty" placeholder="难度" class="select-filter">
                             <a-select-option value="all">全部难度</a-select-option>
-                            <a-select-option value="easy">简单</a-select-option>
-                            <a-select-option value="medium">中等</a-select-option>
-                            <a-select-option value="hard">困难</a-select-option>
+                            <a-select-option value="简单">简单</a-select-option>
+                            <a-select-option value="中等">中等</a-select-option>
+                            <a-select-option value="困难">困难</a-select-option>
                         </a-select>
                         <a-select v-model:value="bank" placeholder="题库" class="select-filter">
                             <a-select-option value="all">全部题库</a-select-option>
@@ -63,7 +63,7 @@
                                     <td>
                                         <transition-group name="tag" class="tag-container">
                                             <span v-for="tag in question.tagList" :key="tag" class="tag">{{ tag
-                                                }}</span>
+                                            }}</span>
                                         </transition-group>
                                     </td>
                                     <td>{{ question.submissionQuantity || 0 }}</td>
@@ -266,7 +266,8 @@ import { message, Modal } from 'ant-design-vue';
 import type { Rule } from 'ant-design-vue/es/form';
 import type { FormInstance } from 'ant-design-vue';
 import { formatDateTime } from '@/utils/dateTimeFormat';
-import { addQuestion, updateQuestion, deleteQuestion, getQuestionBankList, getQuestionList } from '@/apis/questionApi';
+import { addQuestion, updateQuestion, deleteQuestion, getQuestionList } from '@/apis/questionApi';
+import { getQuestionBankList } from '@/apis/questionBankApi';
 import { addQuestionToBank, getQuestionBanksByQuestionId, updateQuestionBankRelation } from '@/apis/questionBankQuestionApi';
 
 // 题目接口
@@ -292,16 +293,6 @@ interface QuestionBank {
     title: string;
     description?: string;
     picture?: string;
-}
-
-// 题目与题库的关联
-interface QuestionBankQuestion {
-    id: number;
-    questionBankId: number;
-    questionId: number;
-    userId: number;
-    createTime: string;
-    updateTime: string;
 }
 
 // 标签列表
@@ -417,10 +408,8 @@ const getRequestParams = () => {
     const params = {
         current: currentPage.value,
         pageSize: pageSize.value,
-        title: searchQuery.value ? searchQuery.value : undefined,
-        difficulty: difficulty.value === 'all' ? undefined :
-            difficulty.value === 'easy' ? '简单' :
-                difficulty.value === 'medium' ? '中等' : '困难',
+        searchText: searchQuery.value || undefined,
+        difficulty: difficulty.value === 'all' ? undefined : difficulty.value,
         questionBankId: bank.value === 'all' ? undefined : bank.value
     };
     return params;
@@ -449,7 +438,7 @@ const getQuestionBankName = (questionBankId?: number) => {
 const fetchQuestionBanks = async () => {
     try {
         const response = await getQuestionBankList();
-        if (response.code === 0 || response.code === 200) {
+        if (response.code === 0) {
             questionBanks.value = response.data || [];
         } else {
             message.error(response.message || '获取题库列表失败');
@@ -469,13 +458,13 @@ const fetchQuestionList = async () => {
         const params = getRequestParams();
         const response = await getQuestionList(params);
 
-        if (response.code === 0 || response.code === 200) {
+        if (response.code === 0) {
             // 处理后端返回的数据
             const data = response.data;
             const questions = data.records || [];
             total.value = data.total || 0;
 
-            // 处理标签数据
+            // 处理标签数据并获取题库关联信息
             const processedQuestions = await Promise.all(questions.map(async (question: Question) => {
                 // 处理标签
                 if (question.tags && typeof question.tags === 'string') {
@@ -494,8 +483,8 @@ const fetchQuestionList = async () => {
                 // 查询题目关联的题库
                 try {
                     const bankResponse = await getQuestionBanksByQuestionId(question.id);
-                    if (bankResponse.code === 0 || bankResponse.code === 200) {
-                        const records = bankResponse.data.records || [];
+                    if (bankResponse.code === 0) {
+                        const records = bankResponse.data?.records || [];
                         if (records.length > 0) {
                             question.questionBankId = records[0].questionBankId;
                         }
@@ -635,17 +624,32 @@ const showAddModal = () => {
     addModalVisible.value = true;
 };
 
-const showEditModal = (question: Question) => {
+const showEditModal = async (question: Question) => {
     editForm.id = question.id;
     editForm.title = question.title;
     editForm.content = question.content || '';
     editForm.answer = question.answer || '';
     editForm.difficulty = question.difficulty;
     editForm.tags = [...(question.tagList || [])];
-    editForm.questionBankId = question.questionBankId;
     editForm.submissionQuantity = question.submissionQuantity || 0;
     editForm.passRate = question.passRate || '0%';
     editForm.updateTime = question.updateTime ? formatDateTime(question.updateTime) : '暂无记录';
+
+    // 获取题目关联的题库
+    try {
+        const bankResponse = await getQuestionBanksByQuestionId(question.id);
+        if (bankResponse.code === 0) {
+            const records = bankResponse.data?.records || [];
+            if (records.length > 0) {
+                editForm.questionBankId = records[0].questionBankId;
+            } else {
+                editForm.questionBankId = undefined;
+            }
+        }
+    } catch (error) {
+        console.error('获取题目题库关联失败:', error);
+        editForm.questionBankId = undefined;
+    }
 
     editModalVisible.value = true;
 };
@@ -688,7 +692,7 @@ const handleAddQuestion = async () => {
             }
         }
 
-        // 创建题目数据，不包含题库ID（题库关联通过单独的API处理）
+        // 创建题目数据
         const questionData = {
             title: addForm.title,
             content: addForm.content,
@@ -700,14 +704,14 @@ const handleAddQuestion = async () => {
         // 添加题目
         const response = await addQuestion(questionData);
 
-        if (response.code === 0 || response.code === 200) {
+        if (response.code === 0) {
             const questionId = response.data;
 
             // 添加成功后，建立题目与题库的关联
             if (questionId && addForm.questionBankId) {
                 try {
                     const bankResult = await addQuestionToBank(questionId, addForm.questionBankId);
-                    if (bankResult.code !== 0 && bankResult.code !== 200) {
+                    if (bankResult.code !== 0) {
                         message.warning('题目添加成功，但关联题库失败');
                     }
                 } catch (error) {
@@ -754,7 +758,7 @@ const handleEditQuestion = async () => {
             }
         }
 
-        // 更新题目数据，不包含题库ID（题库关联通过单独的API处理）
+        // 更新题目数据
         const updatedQuestion = {
             id: editForm.id,
             title: editForm.title,
@@ -767,7 +771,7 @@ const handleEditQuestion = async () => {
         // 更新题目基本信息
         const response = await updateQuestion(updatedQuestion);
 
-        if (response.code === 0 || response.code === 200) {
+        if (response.code === 0) {
             // 更新题目与题库的关联
             try {
                 const bankResult = await updateQuestionBankRelation(editForm.id, editForm.questionBankId);
@@ -807,7 +811,7 @@ const handleDelete = (question: Question) => {
 
                 const response = await deleteQuestion(question.id);
 
-                if (response.code === 0 || response.code === 200) {
+                if (response.code === 0) {
                     message.destroy();
                     message.success('题目删除成功！');
                     // 刷新题目列表
