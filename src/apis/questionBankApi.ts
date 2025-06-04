@@ -61,8 +61,15 @@ export const getQuestionBankPage = (params: QuestionBankQueryParams): Promise<Ba
 };
 
 // 分页获取题库VO列表（用户端）
-export const getQuestionBankVOPage = (params: QuestionBankQueryParams): Promise<BaseResponse<Page<QuestionBankVO>>> => {
-  return request.post('/api/questionBank/list/page/vo', params);
+export const getQuestionBankVOPage = (params: QuestionBankQueryParams = {}): Promise<BaseResponse<Page<QuestionBankVO>>> => {
+  // 设置默认参数
+  const defaultParams = {
+    current: 1,
+    pageSize: 20,
+    ...params
+  };
+  
+  return request.post('/api/questionBank/list/page/vo', defaultParams);
 };
 
 // 添加题库

@@ -1,15 +1,35 @@
 <template>
     <div class="container">
-
         <div class="search-container">
             <el-input v-model="searchTag" placeholder="输入标签进行搜索" clearable style="width: 300px;"
                 @keyup.enter="handleSearch" />
         </div>
 
-        <el-table :data="filteredData" :style="{ width: tableWidth }" size="large" @row-click="handleClickItem">
+        <el-table :data="paginatedData" :style="{ width: tableWidth + 'px' }" size="large" @row-click="handleClickItem"
+            v-loading="loading" element-loading-text="加载中...">
             <el-table-column prop="question" label="题目" width="490" />
-            <el-table-column prop="difficulty" label="难度" sortable width="100" />
-            <el-table-column prop="tags" label="标签" width="calc(tableWidth - 590px)">
+            <el-table-column label="难度" width="100">
+                <template #header>
+                    <div class="difficulty-header">
+                        <span>难度</span>
+                        <el-tooltip :content="difficultyTooltip" placement="top">
+                            <div class="sort-icon" :class="difficultySortClass" @click="handleDifficultySort">
+                                <el-icon>
+                                    <ArrowUp v-if="difficultySortStatus === 'asc'" />
+                                    <ArrowDown v-else-if="difficultySortStatus === 'desc'" />
+                                    <Sort v-else />
+                                </el-icon>
+                            </div>
+                        </el-tooltip>
+                    </div>
+                </template>
+                <template #default="{ row }">
+                    <el-tag :type="getDifficultyType(row.difficulty)" size="small">
+                        {{ row.difficulty }}
+                    </el-tag>
+                </template>
+            </el-table-column>
+            <el-table-column prop="tags" label="标签" :width="tableWidth - 590">
                 <template #default="{ row }">
                     <el-tag v-for="(tag, index) in row.tags" :key="index" size="small" class="tag-item">
                         {{ tag }}
@@ -18,75 +38,172 @@
             </el-table-column>
         </el-table>
 
-        <el-pagination background layout="prev, pager, next" :total="filteredData.length" class="pagination" />
+        <el-pagination background layout="prev, pager, next, total" :total="totalData" class="pagination"
+            :page-size="pageSize" :current-page="currentPage" @current-change="handlePageChange" />
     </div>
 </template>
 
 <script lang="ts" setup>
 import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { ArrowUp, ArrowDown, Sort } from '@element-plus/icons-vue';
+
 const router = useRouter();
+
+// Props
 const props = defineProps({
     tableWidth: {
         type: Number,
-        default: '900px'
+        default: 900
+    },
+    questions: {
+        type: Array as () => Question[],
+        default: () => []
+    },
+    loading: {
+        type: Boolean,
+        default: false
     }
 });
+
 interface Question {
+    id?: number;
     question: string;
     difficulty: string;
     tags: string[];
 }
 
-// 原始数据源
-const rawData: Question[] = [
-    {
-        question: '两数之和',
-        difficulty: '简单',
-        tags: ['数组', '哈希表']
-    },
-    {
-        question: '反转链表',
-        difficulty: '中等',
-        tags: ['链表', '递归']
-    },
-    {
-        question: '二叉树的中序遍历',
-        difficulty: '中等',
-        tags: ['栈', '树']
-    },
-    {
-        question: '最长回文子串',
-        difficulty: '困难',
-        tags: ['字符串', '动态规划']
-    },
-    {
-        question: '合并两个有序数组',
-        difficulty: '简单',
-        tags: ['数组', '双指针']
-    }
-];
-
+// 响应式数据
 const searchTag = ref('');
+const currentPage = ref(1);
+const pageSize = ref(10);
+const difficultySortStatus = ref<'none' | 'asc' | 'desc'>('none'); // 难度排序状态
 
-// 计算属性实现过滤逻辑
+// 难度权重映射
+const difficultyWeight = {
+    '简单': 1,
+    '中等': 2,
+    '困难': 3,
+    '未知': 4
+};
+
+// 难度提示文本
+const difficultyTooltip = computed(() => {
+    switch (difficultySortStatus.value) {
+        case 'none':
+            return '点击升序';
+        case 'asc':
+            return '点击降序';
+        case 'desc':
+            return '取消排序';
+        default:
+            return '点击升序';
+    }
+});
+
+// 难度排序图标样式
+const difficultySortClass = computed(() => {
+    return {
+        'sort-active': difficultySortStatus.value !== 'none',
+        'sort-asc': difficultySortStatus.value === 'asc',
+        'sort-desc': difficultySortStatus.value === 'desc'
+    };
+});
+
+// 搜索过滤后的数据
 const filteredData = computed(() => {
     const searchText = searchTag.value.trim().toLowerCase();
-    if (!searchText) return rawData;
+    if (!searchText) return props.questions;
 
-    return rawData.filter(item =>
+    return props.questions.filter(item =>
         item.tags.some(tag =>
             tag.toLowerCase().includes(searchText)
         )
     );
 });
 
-// 可选：处理回车搜索
-const handleSearch = () => {
-    // 可添加额外的搜索逻辑
+// 排序后的数据
+const sortedData = computed(() => {
+    if (difficultySortStatus.value === 'none') {
+        return filteredData.value;
+    }
+
+    return [...filteredData.value].sort((a, b) => {
+        const weightA = difficultyWeight[a.difficulty as keyof typeof difficultyWeight] || 999;
+        const weightB = difficultyWeight[b.difficulty as keyof typeof difficultyWeight] || 999;
+
+        if (difficultySortStatus.value === 'asc') {
+            return weightA - weightB; // 升序：简单->中等->困难
+        } else {
+            return weightB - weightA; // 降序：困难->中等->简单
+        }
+    });
+});
+
+// 分页后的数据
+const paginatedData = computed(() => {
+    const start = (currentPage.value - 1) * pageSize.value;
+    const end = start + pageSize.value;
+    return sortedData.value.slice(start, end);
+});
+
+// 总数据量（用于分页）
+const totalData = computed(() => sortedData.value.length);
+
+// 处理难度排序
+const handleDifficultySort = () => {
+    // 状态循环：none -> asc -> desc -> none
+    switch (difficultySortStatus.value) {
+        case 'none':
+            difficultySortStatus.value = 'asc';
+            break;
+        case 'asc':
+            difficultySortStatus.value = 'desc';
+            break;
+        case 'desc':
+            difficultySortStatus.value = 'none';
+            break;
+        default:
+            difficultySortStatus.value = 'none';
+    }
+
+    // 重置到第一页
+    currentPage.value = 1;
 };
+
+// 获取难度标签类型
+const getDifficultyType = (difficulty: string) => {
+    switch (difficulty) {
+        case '简单':
+            return 'success';
+        case '中等':
+            return 'warning';
+        case '困难':
+            return 'danger';
+        default:
+            return 'info';
+    }
+};
+
+// 处理搜索
+const handleSearch = () => {
+    currentPage.value = 1; // 搜索时重置到第一页
+    difficultySortStatus.value = 'none'; // 重置排序状态
+};
+
+// 处理页码变化
+const handlePageChange = (page: number) => {
+    currentPage.value = page;
+};
+
+// 处理行点击
 const handleClickItem = (row: Question) => {
-    router.push("/question");
-}
+    if (row.id) {
+        router.push(`/question/${row.id}`);
+    } else {
+        router.push("/question");
+    }
+};
 </script>
 
 <style scoped>
@@ -102,5 +219,39 @@ const handleClickItem = (row: Question) => {
 .pagination {
     margin-top: 20px;
     justify-content: flex-end;
+}
+
+.difficulty-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.sort-icon {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    color: #909399;
+}
+
+.sort-icon:hover {
+    background-color: #f5f7fa;
+    color: #409eff;
+}
+
+.sort-icon.sort-active {
+    color: #409eff;
+}
+
+.sort-icon.sort-asc {
+    color: #67c23a;
+}
+
+.sort-icon.sort-desc {
+    color: #e6a23c;
 }
 </style>

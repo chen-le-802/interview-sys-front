@@ -61,8 +61,10 @@ declare module 'vue' {
     ElFormItem: (typeof import('element-plus/es'))['ElFormItem']
     ElIcon: typeof import('element-plus/es')['ElIcon']
     ElInput: typeof import('element-plus/es')['ElInput']
+    ElOption: typeof import('element-plus/es')['ElOption']
     ElPagination: typeof import('element-plus/es')['ElPagination']
     ElScrollbar: typeof import('element-plus/es')['ElScrollbar']
+    ElSelect: typeof import('element-plus/es')['ElSelect']
     ElTable: typeof import('element-plus/es')['ElTable']
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
     ElTag: typeof import('element-plus/es')['ElTag']
@@ -71,6 +73,7 @@ declare module 'vue' {
     Footer: typeof import('./components/layout/Footer.vue')['default']
     FrontendHeader: typeof import('./components/layout/FrontendHeader.vue')['default']
     Header: typeof import('./components/manager/Header.vue')['default']
+    HomeTable: typeof import('./components/shared/HomeTable.vue')['default']
     HomeViewHeader: (typeof import('./components/layout/HomeViewHeader.vue'))['default']
     Layout: typeof import('./components/manager/Layout.vue')['default']
     Logout: typeof import('./components/UserInfoDropDown.vue')['default']
@@ -84,5 +87,8 @@ declare module 'vue' {
     Table: typeof import('./components/shared/Table.vue')['default']
     UserInfoDropDown: typeof import('./components/UserInfoDropDown.vue')['default']
     UserRankList: typeof import('./components/shared/UserRankList.vue')['default']
+  }
+  export interface ComponentCustomProperties {
+    vLoading: typeof import('element-plus/es')['ElLoadingDirective']
   }
 }

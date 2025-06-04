@@ -7,8 +7,7 @@
         </div>
 
         <div style="display: flex;width:1200px;margin: 0 auto;justify-content: space-between;margin-top: 30px;">
-
-            <Table></Table>
+            <HomeTable :table-width="900" />
             <div>
                 <RankList :questions="questions" :listTitle="'热门题目榜'"></RankList>
                 <UserRankList></UserRankList>
@@ -42,7 +41,7 @@ import { ref } from 'vue'
 import { CaretTop } from '@element-plus/icons-vue'
 import FrontendHeader from '@/components/layout/FrontendHeader.vue'
 import QuestionBank from '@/components/shared/QuestionBank.vue'
-import Table from '@/components/shared/Table.vue'
+import HomeTable from '@/components/shared/HomeTable.vue'
 import RankList from '@/components/shared/RankList.vue'
 import UserRankList from '@/components/shared/UserRankList.vue'
 import Footer from '@/components/layout/Footer.vue'

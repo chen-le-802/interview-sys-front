@@ -22,7 +22,11 @@
         </div>
     </div>
     <div class="table-box">
-        <Table :tableWidth=1200></Table>
+        <Table 
+            :tableWidth="1200" 
+            :questions="questions"
+            :loading="loading"
+        />
     </div>
 </template>
 
@@ -30,13 +34,17 @@
 import { ref, onMounted, watch } from 'vue';
 import { DocumentChecked, Share } from '@element-plus/icons-vue';
 import { getQuestionBankVOById, type QuestionBankVO } from '@/apis/questionBankApi';
+import { getQuestionListVO } from '@/apis/questionApi';
 import { ElMessage } from 'element-plus';
+import Table from '@/components/shared/Table.vue';
 
 const props = defineProps<{
   bankId: string;
 }>();
 
 const questionBank = ref<Partial<QuestionBankVO>>({});
+const questions = ref<any[]>([]);
+const loading = ref(false);
 
 const fetchQuestionBankDetail = async () => {
     if (!props.bankId) {
@@ -56,14 +64,56 @@ const fetchQuestionBankDetail = async () => {
     }
 };
 
+// 获取题库中的题目列表
+const fetchQuestions = async () => {
+    if (!props.bankId) {
+        return;
+    }
+    
+    loading.value = true;
+    try {
+        const params = {
+            questionBankId: props.bankId,
+            current: 1,
+            pageSize: 20
+        };
+        
+        const response = await getQuestionListVO(params);
+        
+        if (response.code === 0) {
+            const questionList = response.data?.records || [];
+            
+            // 转换数据格式
+            questions.value = questionList.map((item: any) => ({
+                id: item.id,
+                question: item.title || item.content || '未知题目',
+                difficulty: item.difficulty || '未知',
+                tags: Array.isArray(item.tagList) ? item.tagList : 
+                      typeof item.tags === 'string' ? item.tags.split(',').filter(Boolean) : 
+                      []
+            }));
+        } else {
+            console.error('获取题目列表失败:', response);
+            questions.value = [];
+        }
+    } catch (error) {
+        console.error('获取题目列表异常:', error);
+        questions.value = [];
+    } finally {
+        loading.value = false;
+    }
+};
+
 watch(() => props.bankId, () => {
     if (props.bankId) {
         fetchQuestionBankDetail();
+        fetchQuestions();
     }
 }, { immediate: true });
 
 onMounted(() => {
     fetchQuestionBankDetail();
+    fetchQuestions();
 });
 </script>
 

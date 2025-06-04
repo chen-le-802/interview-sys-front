@@ -48,9 +48,7 @@ const loadQuestionBanks = async () => {
       params.searchText = props.selectedCategory
     }
 
-    console.log('请求参数:', params)
     const response = await getQuestionBankVOPage(params)
-    console.log('API响应:', response)
     
     if (response.code === 0 && response.data) {
       questionList.value = response.data.records || []
