@@ -13,12 +13,12 @@ export const getQuestionList = (params: any): Promise<BaseResponse> => {
 
 // 分页获取题目列表（用户端）
 export const getQuestionListVO = (params: any): Promise<BaseResponse> => {
-  return request.get('/api/question/list/page/vo', { params });
+  return request.post('/api/question/list/page/vo', params);
 };
 
 // 分页获取我的题目列表
 export const getMyQuestionList = (params: any): Promise<BaseResponse> => {
-  return request.get('/api/question/my/list/page', { params });
+  return request.post('/api/question/my/list/page', params);
 };
 
 // 添加题目

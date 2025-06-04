@@ -1,9 +1,12 @@
 <template>
     <div class="title-box">
-        <div class="bank-logo"></div>
+        <div 
+            class="bank-logo" 
+            :style="questionBank.picture ? `background-image: url(${questionBank.picture})` : ''"
+        ></div>
         <div class="bank-info">
-            <div class="bank-name">Java热门面试题200道</div>
-            <div class="bank-desc">2025最新Java面试题，一网打尽Java热门面试题！涵盖Java基础、框架、高级特性</div>
+            <div class="bank-name">{{ questionBank.title || '这里是题库标题' }}</div>
+            <div class="bank-desc">{{ questionBank.description || '这里是题库描述' }}</div>
             <div class="options">
                 <el-button type="primary" size="default" color="#1677ff" round>开始刷题</el-button>
                 <el-button type="default" size="default" round>
@@ -17,17 +20,53 @@
                     </el-icon>分享</el-button>
             </div>
         </div>
-
     </div>
     <div class="table-box">
         <Table :tableWidth=1200></Table>
     </div>
-
-
 </template>
+
 <script setup lang="ts">
+import { ref, onMounted, watch } from 'vue';
 import { DocumentChecked, Share } from '@element-plus/icons-vue';
+import { getQuestionBankVOById, type QuestionBankVO } from '@/apis/questionBankApi';
+import { ElMessage } from 'element-plus';
+
+const props = defineProps<{
+  bankId: string;
+}>();
+
+const questionBank = ref<Partial<QuestionBankVO>>({});
+
+const fetchQuestionBankDetail = async () => {
+    if (!props.bankId) {
+        return;
+    }
+
+    try {
+        const response = await getQuestionBankVOById(props.bankId);
+        
+        if (response.code === 0) {
+            questionBank.value = response.data;
+        } else {
+            ElMessage.error(`获取题库详情失败: ${response.message}`);
+        }
+    } catch (error) {
+        ElMessage.error('网络请求失败，请稍后重试');
+    }
+};
+
+watch(() => props.bankId, () => {
+    if (props.bankId) {
+        fetchQuestionBankDetail();
+    }
+}, { immediate: true });
+
+onMounted(() => {
+    fetchQuestionBankDetail();
+});
 </script>
+
 <style lang="css" scoped>
 .title-box {
     display: flex;
@@ -44,8 +83,9 @@ import { DocumentChecked, Share } from '@element-plus/icons-vue';
     width: 100px;
     height: 100px;
     background-color: antiquewhite;
-    background: url(../../assets/images/frontend/bank-logo.webp);
+    background: url(../../assets/images/icon/default.png);
     background-size: contain;
+    background-repeat: no-repeat;
 }
 
 .title-box .bank-info {

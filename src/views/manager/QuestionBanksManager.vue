@@ -73,11 +73,15 @@
                                     </div>
                                 </div>
                                 <div class="bank-actions">
-                                    <button class="action-container" type="button" @click="showEditModal(bank)">
+                                    <button class="action-container" type="button" @click="showEditModal(bank)"
+                                        :title="'编辑题库'">
                                         <EditOutlined class="edit-icon" />
                                     </button>
-                                    <button class="action-container" type="button" @click="handleSoftDelete(bank)">
-                                        <DeleteOutlined class="delete-icon" />
+                                    <button class="action-container" type="button" @click="handleSoftDelete(bank)"
+                                        :title="bank.isDelete === 0 ? '停用题库' : '启用题库'">
+                                        <!-- 根据题库状态显示不同图标 -->
+                                        <DeleteOutlined v-if="bank.isDelete === 0" class="delete-icon" />
+                                        <ReloadOutlined v-else class="reload-icon" />
                                     </button>
                                 </div>
                             </div>
@@ -179,7 +183,9 @@
                         <p>题目数量: {{ editForm.questionCount || 0 }}</p>
                         <p>完成率: {{ editForm.completionRate || 0 }}%</p>
                         <p>平均难度: {{ editForm.avgDifficulty || '未知' }}</p>
-                        <p>状态: <span :class="getStatusClass(editForm.isDelete)">{{ getStatusText(editForm.isDelete) }}</span></p>
+                        <p>状态: <span :class="getStatusClass(editForm.isDelete)">{{ getStatusText(editForm.isDelete)
+                                }}</span>
+                        </p>
                         <p>最近更新: {{ formatDate(editForm.updateTime) }}</p>
                     </div>
                 </a-form-item>
@@ -190,7 +196,7 @@
 
 <script lang="ts" setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue';
-import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue';
+import { EditOutlined, DeleteOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue';
 import { message, Modal } from 'ant-design-vue';
 import type { Rule } from 'ant-design-vue/es/form';
 import type { FormInstance } from 'ant-design-vue';
@@ -206,7 +212,6 @@ interface QuestionBank {
     updateTime?: string;
     userId?: number;
     isDelete?: number;
-    // 前端计算属性
     questionCount?: number;
     completionRate?: number;
     avgDifficulty?: string;
@@ -506,18 +511,19 @@ const showEditModal = (bank: QuestionBank) => {
 // 软删除题库
 const handleSoftDelete = (bank: QuestionBank) => {
     const action = bank.isDelete === 0 ? '停用' : '启用';
-    
-    // 如果是已停用的题库，提示用户这是启用操作
-    const confirmContent = bank.isDelete === 0 
+    const actionColor = bank.isDelete === 0 ? 'danger' : 'primary';
+
+    // 根据当前状态显示不同的确认信息
+    const confirmContent = bank.isDelete === 0
         ? `确定要停用题库 "${bank.title}" 吗？停用后用户将无法访问此题库。`
-        : `题库 "${bank.title}" 当前已停用，确定要重新启用吗？`;
-    
+        : `题库 "${bank.title}" 当前已停用，确定要重新启用吗？启用后用户可以正常访问此题库。`;
+
     Modal.confirm({
         title: `确认${action}题库`,
         content: confirmContent,
         okText: '确认',
         cancelText: '取消',
-        okType: bank.isDelete === 0 ? 'danger' : 'primary',
+        okType: actionColor,
         onOk: async () => {
             try {
                 message.loading({ content: `正在${action}题库...`, key: 'softDeleteMessage', duration: 0 });

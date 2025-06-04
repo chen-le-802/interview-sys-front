@@ -937,3 +937,19 @@
 .bank-status {
     margin-top: auto;
 }
+
+
+.reload-icon {
+    color: #52c41a;
+    font-size: 16px;
+}
+
+.action-container[title*="启用"]:hover {
+    background-color: #d9f7be;
+    border-color: #95de64;
+}
+
+.action-container[title*="停用"]:hover {
+    background-color: #fff2e8;
+    border-color: #ffbb96;
+}

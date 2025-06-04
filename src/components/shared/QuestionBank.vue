@@ -15,15 +15,16 @@
             <el-divider direction="vertical" style="margin: 0 10px;"></el-divider>
             <div class="nav-right">
                 <ul>
-                    <li v-for="(category, index) in categories" :key="index" @click="handleCategoryClick(category)"
+                    <li v-for="(category, index) in categories" :key="index" 
+                        @click="handleCategoryClick(category)"
                         :class="{ active: activeCategory === category }">
-                        {{ category || placeholder }}
+                        {{ category }}
                     </li>
                 </ul>
             </div>
         </div>
         <div style="width: 1214px;">
-            <BankList></BankList>
+            <BankList :selectedCategory="selectedCategory"></BankList>
         </div>
         <el-button type="primary" color="#3b62f6" style="display: block;margin:0px auto;"
             @click="gotoCategory">查看更多题库</el-button>
@@ -32,28 +33,38 @@
 
 <script lang="ts" setup>
 import router from '@/router'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import BankList from '@/components/shared/bankList.vue'
 
-// Mock数据
-const categories = ref([
-    '热门', '后端', '计算机网络', '操作系统',
-    '数据库', '前端', '算法', '全部', '面试经验',
-    '面试技巧', '面试心得', '面试题库', '面试模板'
+// 固定的分类列表 TODO 待后端完成题库分类逻辑实现
+const categories = ref<string[]>([
+    '热门', '后端', '前端', '数据库', 
+    '算法', '操作系统', '计算机网络', 'Java', 
+    'SpringBoot', 'SpringCloud', 'MySQL', 'Redis',
+    'Vue', 'React', 'JavaScript', 'Python',
+    '面试经验', '面试技巧', '设计模式', '微服务',
+    '分布式', '消息队列', '缓存', '全部'
 ])
 
-
-
-// 交互状态
 const activeCategory = ref('热门')
-const placeholder = '分类'
 
+// 计算属性：传递给BankList的选中分类
+const selectedCategory = computed(() => {
+    if (activeCategory.value === '热门') {
+        return 'hot'
+    } else if (activeCategory.value === '全部') {
+        return 'all'
+    } else {
+        return activeCategory.value
+    }
+})
 
 // 事件处理
 const handleCategoryClick = (category: string) => {
     if (!category) return
+    
     activeCategory.value = category
-    console.log('当前分类：', category)
-
+    console.log('当前分类：', category, '映射为:', selectedCategory.value)
 }
 
 const handleStartPractice = () => {
@@ -66,6 +77,7 @@ const handleHotClick = () => {
     console.log('查看热门题目')
     router.push('/category')
 }
+
 const gotoCategory = () => {
     console.log('查看更多题库')
     router.push('/category')
@@ -95,7 +107,6 @@ const gotoCategory = () => {
     flex: 1;
     justify-content: space-around;
     align-items: center;
-
 }
 
 .nav-right {
@@ -119,10 +130,23 @@ const gotoCategory = () => {
     float: left;
     margin: 8px 5px;
     border-radius: 130px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
 .nav-right ul li:hover {
-    cursor: pointer;
+    background-color: #e6f0ff;
+    transform: translateY(-2px);
+}
+
+.nav-right ul li.active {
+    background-color: #3760f7;
+    color: white;
+}
+
+.nav-right ul li.active:hover {
+    background-color: #2952d6;
 }
 
 .bank-nav .nav-left .bank-start {
@@ -134,6 +158,11 @@ const gotoCategory = () => {
     background-size: cover;
     margin-bottom: 5px;
     cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.bank-nav .nav-left .bank-start:hover {
+    transform: scale(1.1);
 }
 
 .bank-nav .nav-left .bank-hot {
@@ -144,13 +173,10 @@ const gotoCategory = () => {
     background-size: contain;
     margin-bottom: 5px;
     cursor: pointer;
+    transition: transform 0.3s ease;
 }
 
-
-
-/* 仅新增active样式 */
-.nav-right ul li.active {
-    background-color: #3760f7;
-    color: white;
+.bank-nav .nav-left .bank-hot:hover {
+    transform: scale(1.1);
 }
 </style>
