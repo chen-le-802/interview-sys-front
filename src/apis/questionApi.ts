@@ -6,19 +6,37 @@ interface BaseResponse<T = any> {
   message: string;
 }
 
+// 题目查询参数接口
+interface QuestionQueryParams {
+  answer?: string;
+  content?: string;
+  current?: number;
+  difficulty?: string;
+  id?: number;
+  notId?: number;
+  pageSize?: number;
+  questionBankId?: number | string;
+  searchText?: string;
+  sortField?: string;
+  sortOrder?: string;
+  tags?: string[];
+  title?: string;
+  userId?: number;
+}
+
 // 分页获取题目列表（管理员端）
-export const getQuestionList = (params: any): Promise<BaseResponse> => {
+export const getQuestionList = (params: QuestionQueryParams): Promise<BaseResponse> => {
   return request.post('/api/question/list/page', params);
 };
 
 // 分页获取题目列表（用户端）
-export const getQuestionListVO = (params: any): Promise<BaseResponse> => {
-  return request.get('/api/question/list/page/vo', { params });
+export const getQuestionListVO = (params: QuestionQueryParams): Promise<BaseResponse> => {
+  return request.post('/api/question/list/page/vo', params);
 };
 
 // 分页获取我的题目列表
-export const getMyQuestionList = (params: any): Promise<BaseResponse> => {
-  return request.get('/api/question/my/list/page', { params });
+export const getMyQuestionList = (params: QuestionQueryParams): Promise<BaseResponse> => {
+  return request.post('/api/question/my/list/page', params);
 };
 
 // 添加题目

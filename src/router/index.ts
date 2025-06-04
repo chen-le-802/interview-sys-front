@@ -28,7 +28,7 @@ const router = createRouter({
       component: () => import('@/views/frontend/Banks.vue'),
     },
     {
-      path: '/bank',
+      path: '/bank/:id',
       name: 'bank',
       component: () => import('@/views/frontend/Bank.vue'),
     },
@@ -74,11 +74,6 @@ const router = createRouter({
       path: '/personal',
       name: 'personal',
       component: () => import('@/views/PersonalCenter.vue'),
-    },
-    {
-      path: '/bank',
-      name: 'bank',
-      component: () => import('@/views/frontend/Bank.vue'),
     },
     {
       path: '/category',
