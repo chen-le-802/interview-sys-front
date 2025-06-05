@@ -7,21 +7,21 @@ interface BaseResponse<T = any> {
 }
 
 // 题目查询参数接口
-interface QuestionQueryParams {
+export interface QuestionQueryParams {
   answer?: string;
   content?: string;
   current?: number;
   difficulty?: string;
-  id?: number;
-  notId?: number;
+  id?: string;
+  notId?: string;
   pageSize?: number;
-  questionBankId?: number | string;
+  questionBankId?: string;
   searchText?: string;
   sortField?: string;
   sortOrder?: string;
   tags?: string[];
   title?: string;
-  userId?: number;
+  userId?: string;
 }
 
 // 分页获取题目列表（管理员端）
@@ -30,7 +30,8 @@ export const getQuestionList = (params: QuestionQueryParams): Promise<BaseRespon
 };
 
 // 分页获取题目列表（用户端）
-export const getQuestionListVO = (params: QuestionQueryParams): Promise<BaseResponse> => {
+export const getQuestionListVO = (params: QuestionQueryParams): 
+Promise<BaseResponse<{ records: any[]; total: number; size: number; current: number; pages: number }>> => {
   return request.post('/api/question/list/page/vo', params);
 };
 
@@ -50,27 +51,27 @@ export const updateQuestion = (data: any): Promise<BaseResponse> => {
 };
 
 // 删除题目
-export const deleteQuestion = (id: number): Promise<BaseResponse> => {
+export const deleteQuestion = (id: string): Promise<BaseResponse> => {
   return request.post('/api/question/delete', null, {
     params: { id }
   });
 };
 
 // 获取题目详情（管理员端）
-export const getQuestionById = (id: number): Promise<BaseResponse> => {
+export const getQuestionById = (id: string): Promise<BaseResponse> => {
   return request.get('/api/question/get', {
     params: { id }
   });
 };
 
 // 获取题目详情（用户端）
-export const getQuestionVOById = (id: number): Promise<BaseResponse> => {
+export const getQuestionVOById = (id: string): Promise<BaseResponse> => {
   return request.get('/api/question/get/vo', {
     params: { id }
   });
 };
 
 // 题目答题接口
-export const answerQuestion = (data: { questionId: number; answer: string }): Promise<BaseResponse> => {
+export const answerQuestion = (data: { questionId: string; answer: string }): Promise<BaseResponse> => {
   return request.post('/api/question/answer', data);
 };

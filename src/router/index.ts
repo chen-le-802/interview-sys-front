@@ -88,7 +88,7 @@ const router = createRouter({
     {
       path: '/ai-interview',
       name: 'ai-interview',
-      component: () => import('@/views/frontend/AiInterview.vue'),
+      component: () => import('@/views/frontend/AIInterview.vue'),
     },
     {
       path: '/daily-list',
