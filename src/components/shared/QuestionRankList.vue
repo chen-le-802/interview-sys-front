@@ -32,13 +32,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 import { FireFilled } from '@ant-design/icons-vue';
-import { useRouter } from 'vue-router';
 import defaultAvatar from '../../assets/images/common/avatar.png'; // 默认头像路径
-
-const router = useRouter();
-
 
 // 从父组件传入
 const props = defineProps<{
@@ -63,7 +59,20 @@ const themeLabel = computed(() => {
 });
 
 // Mock 数据 - 不同主题的数据
-const rankingData = {
+type RankingItem = {
+    id: number;
+    title: string;
+    heat: string;
+    rank: number;
+    type: string;
+    signature?: string;
+    avatar?: string;
+};
+type RankingData = {
+    [key: string]: RankingItem[];
+};
+
+const rankingData: RankingData = {
     'hot-questions': [
         { id: 1, title: '你认为Java的优势是什么?', heat: '5.3w', rank: 1, type: 'question' },
         { id: 2, title: 'Java中什么是序列化?', heat: '4.3w', rank: 2, type: 'question' },
