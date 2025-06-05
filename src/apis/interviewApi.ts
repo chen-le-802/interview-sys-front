@@ -9,16 +9,17 @@ export interface BaseResponse<T = any> {
 
 // 面试相关类型定义
 export interface InterviewVO {
-  id: number
+  id: string
   name: string
-  userId: number
+  userId: string
   createTime: string
   userReplyList: string[]
   aireplyList: string[]
+  jobPosition: string[]
 }
 
 export interface UserVO {
-  id: number
+  id: string
   userAccount: string
   userAvatar: string
   userName: string
@@ -27,7 +28,7 @@ export interface UserVO {
 }
 
 export interface LoginUserVO {
-  id: number
+  id: string
   userAccount: string
   userAvatar: string
   userName: string
