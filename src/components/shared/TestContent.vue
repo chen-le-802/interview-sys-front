@@ -1,10 +1,19 @@
 <template>
     <div class="containner">
         <div class="content" v-for="(question, index) in questions" :key="index">
-            <div class="title">{{ question.title }}</div>
+            <div class="title">
+                {{ question.title }}
+                <!-- 错题本图标（仅当已提交且答错时显示） -->
+                <a-tooltip v-if="submitted && !isCorrect(index)" title="加入错题本">
+                    <book-outlined 
+                        class="wrong-book-icon" 
+                        @click="addToWrongBook(index)"
+                    />
+                </a-tooltip>
+            </div>
             
             <!-- 使用Ant Design单选框 -->
-            <a-radio-group v-model:value="answers[index]" :disabled="submitted" >
+            <a-radio-group v-model:value="answers[index]" :disabled="submitted">
                 <div v-for="(option, optionIndex) in question.options" :key="optionIndex"
                     :class="['item', {
                         'correct-option': submitted && option.charAt(0) === question.correctAnswer,
@@ -54,11 +63,34 @@
         <a-button type="primary" @click="submitAnswers" style="margin-top: 20px;">
             {{ submitted ? '重新答题' : '提交答案' }}
         </a-button>
+
+        <!-- 错题本选择模态框 -->
+        <a-modal 
+            v-model:visible="wrongBookModalVisible" 
+            title="选择错题本" 
+            @ok="confirmAddToWrongBook"
+            @cancel="wrongBookModalVisible = false"
+        >
+            <div style="margin-bottom: 16px;">
+                <a-radio-group v-model:value="selectedBookId">
+                    <a-radio 
+                        v-for="book in availableBooks" 
+                        :key="book.id" 
+                        :value="book.id"
+                        style="display: block; margin-bottom: 8px;"
+                    >
+                        {{ book.name }}
+                    </a-radio>
+                </a-radio-group>
+            </div>
+        </a-modal>
     </div>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { BookOutlined } from '@ant-design/icons-vue';
+import { message } from 'ant-design-vue';
 
 // 定义题目数据结构
 interface Question {
@@ -69,6 +101,23 @@ interface Question {
     knowledgePoint: string;
     relatedQuestion: string;
 }
+
+// 定义错题本数据结构
+interface Book {
+    id: number;
+    name: string;
+    type: string;
+    count: number;
+}
+
+// 模拟从API获取的错题本数据
+const availableBooks = computed(() => {
+    return [
+        { id: 1, name: '前端错题', type: 'front', count: 42 },
+        { id: 2, name: '后端错题', type: 'back', count: 28 },
+        { id: 3, name: '运维错题', type: 'ops', count: 15 }
+    ];
+});
 
 // 带解析的题目数据
 const questions = ref<Question[]>([
@@ -133,6 +182,11 @@ const answers = ref<Record<number, string>>({});
 // 标记是否已提交
 const submitted = ref(false);
 
+// 错题本相关状态
+const wrongBookModalVisible = ref(false);
+const selectedBookId = ref(1); // 默认选择第一个错题本
+const currentQuestionIndex = ref(-1); // 当前要加入错题本的题目索引
+
 // 检查当前题目是否正确
 const isCorrect = (index: number) => {
     return answers.value[index] === questions.value[index].correctAnswer;
@@ -149,6 +203,38 @@ const submitAnswers = () => {
         submitted.value = true;
     }
 };
+
+// 点击错题本图标
+const addToWrongBook = (index: number) => {
+    if (!isCorrect(index)) {
+        currentQuestionIndex.value = index;
+        wrongBookModalVisible.value = true;
+    }
+};
+
+// 确认加入错题本
+const confirmAddToWrongBook = () => {
+    if (!selectedBookId.value) {
+        message.warning('请选择一个错题本');
+        return;
+    }
+
+    const question = questions.value[currentQuestionIndex.value];
+    const selectedBook = availableBooks.value.find(b => b.id === selectedBookId.value);
+    
+    if (selectedBook) {
+        // 调用API将题目添加到错题本
+        message.success(`已加入错题本: ${selectedBook.name}`);
+        
+        // 模拟添加到错题本
+        console.log('添加到错题本:', {
+            bookId: selectedBookId.value,
+            question: question
+        });
+    }
+    
+    wrongBookModalVisible.value = false;
+};
 </script>
 
 <style scoped>
@@ -156,7 +242,6 @@ const submitAnswers = () => {
     width:100%;
     padding: 20px;
     padding-top: 0px;
-   
 }
 
 .containner .content{
@@ -164,7 +249,6 @@ const submitAnswers = () => {
     width:100%;
     border-bottom:#F0F0F0 1px dotted ;
     padding-bottom: 20px;
-   
 }
 
 .containner .content .title {
@@ -172,6 +256,19 @@ const submitAnswers = () => {
     color: #333;
     font-weight: 600;
     margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+}
+
+.wrong-book-icon {
+    margin-left: 12px;
+    color: #ff4d4f;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.wrong-book-icon:hover {
+    color: #ff7875;
 }
 
 .containner .content .item {
@@ -256,7 +353,6 @@ const submitAnswers = () => {
 
 .knowledge-point{
     margin-top: 12px;
-  
 }
 .related-question {
     margin-top: 12px;
