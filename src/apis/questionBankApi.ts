@@ -11,29 +11,29 @@ interface QuestionBankQueryParams {
   current?: number;
   pageSize?: number;
   description?: string;
-  id?: number;
-  notId?: number;
+  id?: string;
+  notId?: string;
   searchText?: string;
   sortField?: string;
   sortOrder?: string;
   title?: string;
-  userId?: number;
+  userId?: string;
 }
 
 // 题库VO接口
 export interface QuestionBankVO {
-  id: number | string;
+  id: string;
   title: string;
   description: string;
   picture: string;
   createTime: string;
   updateTime: string;
   user: {
-    id: number;
+    id: string;
     userName: string;
     userAvatar: string;
   };
-  userId: number;
+  userId: string;
 }
 
 // 分页结果接口
@@ -91,19 +91,19 @@ export const updateQuestionBank = (formData: FormData): Promise<BaseResponse> =>
 };
 
 // 删除题库
-export const deleteQuestionBank = (id: number): Promise<BaseResponse> => {
+export const deleteQuestionBank = (id: string): Promise<BaseResponse> => {
   return request.post(`/api/questionBank/delete?id=${id}`);
 };
 
 // 获取题库详情（管理员端）
-export const getQuestionBankById = (id: number): Promise<BaseResponse> => {
+export const getQuestionBankById = (id: string): Promise<BaseResponse> => {
   return request.get('/api/questionBank/get', {
     params: { id }
   });
 };
 
 // 获取题库VO详情
-export const getQuestionBankVOById = (id: string | number): Promise<BaseResponse<QuestionBankVO>> => {
+export const getQuestionBankVOById = (id: string): Promise<BaseResponse<QuestionBankVO>> => {
   return request.get('/api/questionBank/get/vo', {
     params: { id }
   });
