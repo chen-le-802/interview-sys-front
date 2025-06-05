@@ -7,7 +7,7 @@ interface BaseResponse<T = any> {
 }
 
 // 题目查询参数接口
-interface QuestionQueryParams {
+export interface QuestionQueryParams {
   answer?: string;
   content?: string;
   current?: number;
@@ -30,7 +30,8 @@ export const getQuestionList = (params: QuestionQueryParams): Promise<BaseRespon
 };
 
 // 分页获取题目列表（用户端）
-export const getQuestionListVO = (params: QuestionQueryParams): Promise<BaseResponse> => {
+export const getQuestionListVO = (params: QuestionQueryParams): 
+Promise<BaseResponse<{ records: any[]; total: number; size: number; current: number; pages: number }>> => {
   return request.post('/api/question/list/page/vo', params);
 };
 

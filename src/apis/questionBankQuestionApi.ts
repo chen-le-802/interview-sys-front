@@ -6,6 +6,28 @@ interface BaseResponse<T = any> {
   message: string;
 }
 
+// 分页结果接口
+interface Page<T> {
+  records: T[];
+  total: number;
+  size: number;
+  current: number;
+  pages: number;
+}
+
+// 题库题目关联查询参数
+interface QuestionBankQuestionQueryParams {
+  current?: number;
+  pageSize?: number;
+  id?: string;
+  notId?: string;
+  questionBankId?: string;
+  questionId?: string;
+  sortField?: string;
+  sortOrder?: string;
+  userId?: string;
+}
+
 // 添加题目到题库
 export const addQuestionToBank = (questionId: string, questionBankId: string): Promise<BaseResponse> => {
   return request.post('/api/questionBankQuestion/add', {
@@ -25,6 +47,18 @@ export const getQuestionBanksByQuestionId = (questionId: string, params: any = {
     current: 1,
     pageSize: 100,
     questionId,
+    ...params
+  };
+  
+  return request.post('/api/questionBankQuestion/list/page', requestParams);
+};
+
+// 获取题库下的题目关联列表
+export const getQuestionsByBankId = (questionBankId: string, params: Partial<QuestionBankQuestionQueryParams> = {}): Promise<BaseResponse<Page<any>>> => {
+  const requestParams: QuestionBankQuestionQueryParams = {
+    current: 1,
+    pageSize: 100,
+    questionBankId,
     ...params
   };
   
