@@ -24,6 +24,7 @@ declare module 'vue' {
     AInputSearch: typeof import('ant-design-vue/es')['InputSearch']
     AList: typeof import('ant-design-vue/es')['List']
     AListItem: typeof import('ant-design-vue/es')['ListItem']
+    AListItemMeta: typeof import('ant-design-vue/es')['ListItemMeta']
     AllComents: typeof import('./components/shared/AllComents.vue')['default']
     AllComments: typeof import('./components/shared/AllComments.vue')['default']
     AMenu: typeof import('ant-design-vue/es')['Menu']

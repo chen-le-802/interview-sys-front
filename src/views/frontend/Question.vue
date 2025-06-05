@@ -45,7 +45,22 @@
 
                     <Comments></Comments>
                     <div style="width: 120px;height: 80px;"></div>
-
+      
+    <el-backtop :bottom="90" :right="40" target=".question-box">
+        <div style="
+            height: 100%;
+            width: 100%;
+            background-color: var(--el-bg-color-overlay);
+            box-shadow: var(--el-box-shadow-lighter);
+            text-align: center;
+            line-height: 40px;
+            color: #1989fa;
+          ">
+            <el-icon>
+                <CaretTop />
+            </el-icon>
+        </div>
+    </el-backtop>
                 </div>
                 <div class="right">
                     <div class="context-box">
@@ -68,7 +83,9 @@
                 </div>
             </div>
         </div>
+        
     </div>
+     
 </template>
 
 <script setup lang="ts">
@@ -79,6 +96,8 @@ import {
     Star
 } from '@element-plus/icons-vue'
 import { DoubleLeftOutlined, DoubleRightOutlined } from '@ant-design/icons-vue';
+import {CaretTop} from '@element-plus/icons-vue'
+
 interface Question {
     id: number
     title: string
@@ -177,6 +196,7 @@ const formatNumber = (num: number) => {
     width: 100%;
     display: flex;
     overflow: auto;
+    position: relative;
 }
 
 .question-content {

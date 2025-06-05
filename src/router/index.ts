@@ -109,6 +109,12 @@ const router = createRouter({
       path:'/exam',
       name:'exam',
       component: () => import('@/views/frontend/Exam.vue'),
+    },
+    {
+      path:'/notifications',
+      name:'notifications',
+      component: () => import('@/views/frontend/Notifications.vue'),
+      
     }
   ],
   // 添加滚动行为配置

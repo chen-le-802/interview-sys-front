@@ -15,7 +15,7 @@
                 <a-button type="primary" style="width: 120px;margin-top: 20px;" @click="submitComments">发布回答</a-button>
             </div>
  <!-- 回答列表 -->
-        <a-list item-layout="vertical" :data-source="data">
+        <a-list item-layout="vertical" :data-source="data" :locale="{ emptyText: '暂无数据' }">
             <template #renderItem="{ item }">
                 <a-list-item>
                     <a-comment :author="item.author" :avatar="item.avatar">
@@ -76,7 +76,7 @@ import {
 import dayjs, { Dayjs } from 'dayjs';
 import { getItem, getUserAvatar, getUserName,getUserID } from '@/utils/storage';
 import router from '@/router';
-import {message} from 'ant-design-vue';
+import {Empty, message} from 'ant-design-vue';
 
 const isLogin = (getItem('token') !== null); // 登录状态
 const editorRef = ref(); // 编辑器引用

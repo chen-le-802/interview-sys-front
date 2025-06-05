@@ -22,9 +22,10 @@
     </div>
 
     <!-- 回答列表 -->
-    <a-list item-layout="vertical" :data-source="data">
+    <a-list item-layout="vertical" :data-source="data" :locale="{ emptyText: '暂无数据' }">
+        
         <template #renderItem="{ item }">
-            <a-list-item :key="item.id">
+            <a-list-item :key="item.id" >
                 <a-comment :author="item.author" :avatar="item.avatar">
                     <!-- 用户信息区域 -->
                     <template #author>
@@ -279,4 +280,5 @@ const formatTime = (datetime: Dayjs): string => {
     background-color: #f6f6f6;
     border-radius: 10px;
 }
+
 </style>

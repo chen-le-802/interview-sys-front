@@ -27,7 +27,7 @@
                 </el-input>
             </div>
     
-            <div class="message" @click="showNotifications">
+            <div class="message" @click="gotoNotifycations">
                 <el-icon :size="18">
                     <Bell style="cursor: pointer;" />
                 </el-icon>
@@ -94,8 +94,8 @@ const handleSearch = () => {
     }
 }
 
-const showNotifications = () => {
-    console.log('显示通知:', mockNotifications)
+const gotoNotifycations = () => {
+    router.push('/notifications')
 }
 const gotoErrorNoteBook = () => {
     // 跳转到错题本页面

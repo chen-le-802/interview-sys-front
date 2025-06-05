@@ -66,7 +66,7 @@ const handleNavClick = (theme: string) => {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    margin-top: 24px;
+    margin-top: 30px;
 }
 
 .nav-item {
