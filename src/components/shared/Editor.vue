@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 // 1.1 引入Vditor 构造函数
 import Vditor from 'vditor'
 // 1.2 引入样式
@@ -7,6 +7,7 @@ import { ref, onMounted } from 'vue';
 
 // 2. 获取DOM引用
 const vditor = ref()
+const contentValue = ref('');
 
 // 3. 在组件初始化时，就创建Vditor对象，并引用
 onMounted(() => {
@@ -21,7 +22,24 @@ onMounted(() => {
     })
 
 })
+// 暴露获取内容的方法
+const getContent = () => {
+    return contentValue.value || vditor.value?.getValue?.() || '';
+};
 
+// 暴露设置内容的方法（用于清空）
+const setContent = (value: string) => {
+    if (vditor.value) {
+        vditor.value.setValue(value);
+    }
+    contentValue.value = value;
+};
+
+// 暴露方法给父组件
+defineExpose({
+    getContent,
+    setContent
+});
 </script>
 
 <template>

@@ -9,12 +9,12 @@
             <div class="bank-desc">{{ questionBank.description || '这里是题库描述' }}</div>
             <div class="options">
                 <el-button type="primary" size="default" color="#1677ff" round>开始刷题</el-button>
-                <el-button type="default" size="default" round>
+                <el-button type="default" size="default" round @click="gotoExam">
                     <el-icon style="margin-right: 5px;">
                         <DocumentChecked />
                     </el-icon>在线测试
                 </el-button>
-                <el-button type="default" size="default" round>
+                <el-button type="default" size="default" round>w
                     <el-icon style="margin-right: 5px;">
                         <Share />
                     </el-icon>分享</el-button>
@@ -37,6 +37,7 @@ import { getQuestionBankVOById, type QuestionBankVO } from '@/apis/questionBankA
 import { getQuestionListVO } from '@/apis/questionApi';
 import { ElMessage } from 'element-plus';
 import Table from '@/components/shared/Table.vue';
+import router from '@/router';
 
 const props = defineProps<{
   bankId: string;
@@ -115,6 +116,9 @@ onMounted(() => {
     fetchQuestionBankDetail();
     fetchQuestions();
 });
+const gotoExam=()=>{
+    router.push('/exam');
+}
 </script>
 
 <style lang="css" scoped>

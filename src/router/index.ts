@@ -104,6 +104,11 @@ const router = createRouter({
       path:'/error-notebook',
       name:'error-notebook',
       component: () => import('@/views/frontend/ErrorNoteBook.vue'),
+    },
+     {
+      path:'/exam',
+      name:'exam',
+      component: () => import('@/views/frontend/Exam.vue'),
     }
   ],
 })

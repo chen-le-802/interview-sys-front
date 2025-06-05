@@ -2,49 +2,39 @@
     <div class="question-answer-box">
         <div class="nav">
             <ul>
-                <li class="nav-active">推荐答案</li>
-                <li> 测试一下</li>
+                <li
+                    :class="{ 'nav-active': current === 'answer' }"
+                    @click="current = 'answer'"
+                >推荐答案</li>
+                <li
+                    :class="{ 'nav-active': current === 'test' }"
+                    @click="current = 'test'"
+                >测试一下</li>
             </ul>
-            <div class="hide-answer">
+            <div v-if="current === 'answer'" class="hide-answer">
                 <el-icon role="button" @click="toggleAnswer" @keyup.enter="toggleAnswer" tabindex="0"
                     style="cursor: pointer;">
                     <View v-if="!showAnswer"></View>
                     <Hide v-else></Hide>
                 </el-icon>
-                {{ showAnswer ? '显示答案' : '隐藏答案' }}
+                {{ showAnswer ? '隐藏答案' : '显示答案' }}
             </div>
         </div>
-        <div class="answer-content">
-            这是答案
-        </div>
-        <div class="answer-footer">
-            <div class="options">
-                <div class="option-item">
-                    <LikeOutlined />
-                    108
-                </div>
-                <div class="option-item">
-                    <SoundOutlined />
-                    催更
-
-                </div>
-                <div class="option-item">
-                    <EditOutlined />
-                    反馈
-                </div>
-            </div>
-
-        </div>
+        <AnswerContent v-if="current === 'answer'"></AnswerContent>
+        <TestContent v-if="current==='test'"></TestContent>
     </div>
 </template>
 <script setup lang="ts">
+import { ref } from 'vue';
 import { View, Hide } from '@element-plus/icons-vue';
-import { LikeOutlined, SoundOutlined, EditOutlined } from '@ant-design/icons-vue'
+// import { LikeOutlined, SoundOutlined, EditOutlined } from '@ant-design/icons-vue'
 const showAnswer = ref(true);
 const toggleAnswer = () => {
     showAnswer.value = !showAnswer.value;
 };
+const current = ref('answer'); 
 </script>
+
 <style lang="css" scoped>
 .nav-active {
     border-bottom: 2px solid #1677ff;
@@ -60,7 +50,6 @@ const toggleAnswer = () => {
     background-color: #ffffff;
     border-radius: 10px;
     margin-bottom: 20px;
-
 }
 
 .question-answer-box .nav {
@@ -94,37 +83,5 @@ const toggleAnswer = () => {
     margin-right: 10px;
 }
 
-.answer-content {
-    padding: 25px;
-    flex: 1;
-}
 
-.answer-footer {
-    display: flex;
-    align-items: center;
-    width: 90%;
-    border-top: #f5f5f5 solid 1.5px;
-    height: 70px;
-    margin: 10px auto;
-    margin-bottom: 0px;
-    color: #c1c1c1;
-    font-size: 13px;
-}
-
-.answer-footer .options {
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    width: 100%;
-}
-
-.options .option-item {
-
-    cursor: pointer;
-}
-
-.options .option-item:hover {
-    color: #1677ff;
-
-}
 </style>

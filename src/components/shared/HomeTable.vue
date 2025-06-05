@@ -148,7 +148,7 @@ onMounted(() => {
 
 <style scoped>
 .home-table-container {
-    width: 100%;
+  
 }
 
 .question-bank-selector {
