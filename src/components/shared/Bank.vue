@@ -22,98 +22,103 @@
         </div>
     </div>
     <div class="table-box">
-        <Table 
-            :tableWidth="1200" 
-            :questions="questions"
-            :loading="loading"
-        />
+        <Table :tableWidth="1200" :questions="questions" :loading="loading" />
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
 import { DocumentChecked, Share } from '@element-plus/icons-vue';
-import { getQuestionBankVOById, type QuestionBankVO } from '@/apis/questionBankApi';
-import { getQuestionListVO } from '@/apis/questionApi';
 import { ElMessage } from 'element-plus';
+import { getQuestionBankVOById, type QuestionBankVO, type QuestionVO} from '@/apis/questionBankApi';
 import Table from '@/components/shared/Table.vue';
 
 const props = defineProps<{
-  bankId: string;
+    bankId: string;
 }>();
 
 const questionBank = ref<Partial<QuestionBankVO>>({});
-const questions = ref<any[]>([]);
+
+// 存放映射后的题目数据，传给 Table 组件
+const questions = ref<
+    {
+        id: string;
+        question: string;
+        difficulty: string;
+        tags: string[];
+    }[]
+>([]);
+
 const loading = ref(false);
 
 const fetchQuestionBankDetail = async () => {
     if (!props.bankId) {
+        questions.value = [];
+        questionBank.value = {};
         return;
     }
 
-    try {
-        const response = await getQuestionBankVOById(props.bankId);
-        
-        if (response.code === 0) {
-            questionBank.value = response.data;
-        } else {
-            ElMessage.error(`获取题库详情失败: ${response.message}`);
-        }
-    } catch (error) {
-        ElMessage.error('网络请求失败，请稍后重试');
-    }
-};
-
-// 获取题库中的题目列表
-const fetchQuestions = async () => {
-    if (!props.bankId) {
-        return;
-    }
-    
     loading.value = true;
     try {
-        const params = {
-            questionBankId: props.bankId,
-            current: 1,
-            pageSize: 20
-        };
-        
-        const response = await getQuestionListVO(params);
-        
-        if (response.code === 0) {
-            const questionList = response.data?.records || [];
-            
-            // 转换数据格式
-            questions.value = questionList.map((item: any) => ({
-                id: item.id,
-                question: item.title || item.content || '未知题目',
-                difficulty: item.difficulty || '未知',
-                tags: Array.isArray(item.tagList) ? item.tagList : 
-                      typeof item.tags === 'string' ? item.tags.split(',').filter(Boolean) : 
-                      []
-            }));
+        const response = await getQuestionBankVOById(props.bankId);
+        if (response.code === 0 && response.data) {
+            questionBank.value = response.data;
+
+            // 取出后端返回的 questions 数组
+            const voQuestions: QuestionVO[] = response.data.questions || [];
+
+            // 把 QuestionVO 数组映射成 Table 组件需要的格式
+            questions.value = voQuestions.map((q) => {
+                // 解析 tagList / tags
+                let tagArray: string[] = [];
+                if (Array.isArray(q.tagList)) {
+                    tagArray = q.tagList;
+                } else if (typeof q.tags === 'string') {
+                    tagArray = q.tags
+                        .replace(/[\[\]"]/g, '')
+                        .split(',')
+                        .map((t) => t.trim())
+                        .filter((t) => !!t);
+                }
+
+                return {
+                    id: q.id,
+                    question: q.title || q.content || '（无题目标题）',
+                    difficulty: q.difficulty || '未知',
+                    tags: tagArray
+                };
+            });
         } else {
-            console.error('获取题目列表失败:', response);
+            ElMessage.error(`获取题库详情失败: ${response.message}`);
             questions.value = [];
         }
-    } catch (error) {
-        console.error('获取题目列表异常:', error);
+    } catch (err) {
+        console.error('获取题库详情异常:', err);
+        ElMessage.error('网络请求失败，请稍后重试');
         questions.value = [];
     } finally {
         loading.value = false;
     }
 };
 
-watch(() => props.bankId, () => {
-    if (props.bankId) {
-        fetchQuestionBankDetail();
-        fetchQuestions();
-    }
-}, { immediate: true });
+// 监听当 bankId 改变时，重新拉取“题库详情+题目列表”
+watch(
+    () => props.bankId,
+    (newId) => {
+        if (newId) {
+            fetchQuestionBankDetail();
+        } else {
+            questionBank.value = {};
+            questions.value = [];
+        }
+    },
+    { immediate: true }
+);
 
 onMounted(() => {
-    fetchQuestionBankDetail();
-    fetchQuestions();
+    if (props.bankId) {
+        fetchQuestionBankDetail();
+    }
 });
 </script>
 
@@ -126,7 +131,7 @@ onMounted(() => {
     margin: 32px auto;
     background-color: #fff;
     border-radius: 8px;
-    padding: 24px
+    padding: 24px;
 }
 
 .title-box .bank-logo {

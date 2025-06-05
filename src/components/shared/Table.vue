@@ -67,7 +67,7 @@ const props = defineProps({
 });
 
 interface Question {
-    id?: number;
+    id?: string;
     question: string;
     difficulty: string;
     tags: string[];
@@ -77,14 +77,14 @@ interface Question {
 const searchTag = ref('');
 const currentPage = ref(1);
 const pageSize = ref(10);
-const difficultySortStatus = ref<'none' | 'asc' | 'desc'>('none'); // 难度排序状态
+const difficultySortStatus = ref<'none' | 'asc' | 'desc'>('none');
 
 // 难度权重映射
-const difficultyWeight = {
-    '简单': 1,
-    '中等': 2,
-    '困难': 3,
-    '未知': 4
+const difficultyWeight: Record<string, number> = {
+    简单: 1,
+    中等: 2,
+    困难: 3,
+    未知: 4
 };
 
 // 难度提示文本
@@ -96,9 +96,8 @@ const difficultyTooltip = computed(() => {
             return '点击降序';
         case 'desc':
             return '取消排序';
-        default:
-            return '点击升序';
     }
+    return '点击升序';
 });
 
 // 难度排序图标样式
@@ -110,32 +109,27 @@ const difficultySortClass = computed(() => {
     };
 });
 
-// 搜索过滤后的数据
+// 按标签过滤
 const filteredData = computed(() => {
-    const searchText = searchTag.value.trim().toLowerCase();
-    if (!searchText) return props.questions;
-
-    return props.questions.filter(item =>
-        item.tags.some(tag =>
-            tag.toLowerCase().includes(searchText)
-        )
+    const txt = searchTag.value.trim().toLowerCase();
+    if (!txt) return props.questions;
+    return props.questions.filter((item) =>
+        item.tags.some((tag) => tag.toLowerCase().includes(txt))
     );
 });
 
-// 排序后的数据
+// 按难度排序
 const sortedData = computed(() => {
     if (difficultySortStatus.value === 'none') {
         return filteredData.value;
     }
-
     return [...filteredData.value].sort((a, b) => {
-        const weightA = difficultyWeight[a.difficulty as keyof typeof difficultyWeight] || 999;
-        const weightB = difficultyWeight[b.difficulty as keyof typeof difficultyWeight] || 999;
-
+        const wA = difficultyWeight[a.difficulty] || 999;
+        const wB = difficultyWeight[b.difficulty] || 999;
         if (difficultySortStatus.value === 'asc') {
-            return weightA - weightB; // 升序：简单->中等->困难
+            return wA - wB;
         } else {
-            return weightB - weightA; // 降序：困难->中等->简单
+            return wB - wA;
         }
     });
 });
@@ -147,12 +141,11 @@ const paginatedData = computed(() => {
     return sortedData.value.slice(start, end);
 });
 
-// 总数据量（用于分页）
+// 总数据量
 const totalData = computed(() => sortedData.value.length);
 
-// 处理难度排序
+// 切换难度排序状态：none -> asc -> desc -> none
 const handleDifficultySort = () => {
-    // 状态循环：none -> asc -> desc -> none
     switch (difficultySortStatus.value) {
         case 'none':
             difficultySortStatus.value = 'asc';
@@ -163,15 +156,31 @@ const handleDifficultySort = () => {
         case 'desc':
             difficultySortStatus.value = 'none';
             break;
-        default:
-            difficultySortStatus.value = 'none';
     }
-
-    // 重置到第一页
     currentPage.value = 1;
 };
 
-// 获取难度标签类型
+// 搜索时重置到第一页
+const handleSearch = () => {
+    currentPage.value = 1;
+    difficultySortStatus.value = 'none';
+};
+
+// 分页页码变化
+const handlePageChange = (page: number) => {
+    currentPage.value = page;
+};
+
+// 点击行跳转
+const handleClickItem = (row: Question) => {
+    if (row.id) {
+        router.push(`/question/${row.id}`);
+    } else {
+        router.push('/question');
+    }
+};
+
+// 根据难度返回 tag 类型
 const getDifficultyType = (difficulty: string) => {
     switch (difficulty) {
         case '简单':
@@ -182,26 +191,6 @@ const getDifficultyType = (difficulty: string) => {
             return 'danger';
         default:
             return 'info';
-    }
-};
-
-// 处理搜索
-const handleSearch = () => {
-    currentPage.value = 1; // 搜索时重置到第一页
-    difficultySortStatus.value = 'none'; // 重置排序状态
-};
-
-// 处理页码变化
-const handlePageChange = (page: number) => {
-    currentPage.value = page;
-};
-
-// 处理行点击
-const handleClickItem = (row: Question) => {
-    if (row.id) {
-        router.push(`/question/${row.id}`);
-    } else {
-        router.push("/question");
     }
 };
 </script>
@@ -271,7 +260,7 @@ const handleClickItem = (row: Question) => {
 }
 
 :deep(.el-table__body .el-table__row .el-table__cell:nth-child(2) .cell) {
-    justify-content: center;
     display: flex;
+    justify-content: center;
 }
 </style>
