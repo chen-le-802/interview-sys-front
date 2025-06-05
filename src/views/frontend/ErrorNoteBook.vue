@@ -9,20 +9,23 @@
                     @search="onSearchBook"
                 />
                 <div class="book-nav">
-                    <div 
-                        v-for="book in books" 
+                    <div
+                        v-for="book in books"
                         :key="book.id"
                         class="item"
                         :class="{ active: activeBookId === book.id }"
                         @click="selectBook(book.id)"
                     >
-                        <BookFilled :class="['icon', book.type]" />{{ book.name }}
+                        <BookFilled :style="{ color: book.color || '#3760f7' }" class="icon" />
+                        {{ book.name }}
                     </div>
                     <div class="add-book" @click="showAddBookModal = true">
                         <PlusCircleOutlined class="icon add" />添加错题本
                     </div>
                 </div>
-                <div class="goback" @click="goback"><RollbackOutlined class="icon" />退出错题本</div>
+                <div class="goback" @click="goback">
+                    <RollbackOutlined class="icon" />退出错题本
+                </div>
             </div>
         </div>
         <div class="right">
@@ -37,17 +40,17 @@
                                 @pressEnter="onQuestionSearch"
                                 allow-clear
                             />
-                            <a-button 
-                                type="primary" 
-                                class="question-search-btn" 
+                            <a-button
+                                type="primary"
+                                class="question-search-btn"
                                 @click="onQuestionSearch"
                                 :icon="h(SearchOutlined)"
                             />
                         </div>
                     </div>
                     <div class="error-cards-container">
-                        <ErrorCard 
-                            v-for="error in filteredErrors" 
+                        <ErrorCard
+                            v-for="error in filteredErrors"
                             :key="error.id"
                             :error="error"
                             @click="selectError(error)"
@@ -61,11 +64,10 @@
                         <div class="logo"></div>
                         <p class="title-text">为您找到相关的题目：</p>
                     </div>
-                    
                     <div class="question-list">
-                        <div 
-                            v-for="(item, index) in relatedQuestions" 
-                            :key="index" 
+                        <div
+                            v-for="(item, index) in relatedQuestions"
+                            :key="item.id"
                             class="question-item"
                             @click="selectRelatedQuestion(item)"
                         >
@@ -79,24 +81,20 @@
                 </div>
             </div>
         </div>
-
         <!-- 添加错题本模态框 -->
-        <a-modal 
-            v-model:visible="showAddBookModal" 
-            title="添加错题本" 
+        <a-modal
+            v-model:visible="showAddBookModal"
+            title="添加错题本"
             @ok="handleAddBook"
             @cancel="showAddBookModal = false"
         >
-            <a-input v-model:value="newBookName" placeholder="请输入错题本名称" />
-            <a-select 
-                v-model:value="newBookType" 
-                style="width: 100%; margin-top: 10px;"
-                placeholder="选择分类"
-            >
-                <a-select-option value="front">前端</a-select-option>
-                <a-select-option value="back">后端</a-select-option>
-                <a-select-option value="ops">运维</a-select-option>
-            </a-select>
+            <a-input v-model:value="newBookName" placeholder="请输入错题本名称" style="margin-bottom: 16px;" />
+            <div style="margin-bottom: 8px;">选择图标颜色：</div>
+            <a-radio-group v-model:value="newBookColor">
+                <a-radio v-for="color in bookColors" :key="color" :value="color">
+                    <BookFilled :style="{ color, marginRight: '6px' }" />
+                </a-radio>
+            </a-radio-group>
         </a-modal>
     </div>
 </template>
@@ -104,32 +102,56 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { 
-    BookFilled, 
-    PlusCircleOutlined, 
+import {
+    BookFilled,
+    PlusCircleOutlined,
     RollbackOutlined,
-    SearchOutlined 
+    SearchOutlined
 } from '@ant-design/icons-vue';
 import { h } from 'vue';
 
-
 const router = useRouter();
 
-// 导航数据
-const books = ref([
-    { id: 1, name: '前端错题', type: 'front', count: 42 },
-    { id: 2, name: '后端错题', type: 'back', count: 28 },
-    { id: 3, name: '运维错题', type: 'ops', count: 15 }
-]);
+interface Book {
+    id: number;
+    name: string;
+    type?: string;
+    count: number;
+    color?: string;
+}
+interface ErrorItem {
+    id: number;
+    bookId: number;
+    title: string;
+    content: string;
+    tags: string[];
+    date: string;
+    difficulty: string;
+    status: string;
+}
+interface RelatedQuestion {
+    id: number;
+    title: string;
+    heat: number;
+    tags: string[];
+}
 
-const activeBookId = ref(1);
+const books = ref<Book[]>([
+    { id: 1, name: '前端错题', type: 'front', count: 42, color: '#DE868F' },
+    { id: 2, name: '后端错题', type: 'back', count: 28, color: '#FCCA00' },
+    { id: 3, name: '运维错题', type: 'ops', count: 15, color: '#6C6C6C' }
+]);
+const activeBookId = ref<number>(1);
 const searchBook = ref('');
 const showAddBookModal = ref(false);
 const newBookName = ref('');
-const newBookType = ref('front');
+const newBookColor = ref('#DE868F');
+const bookColors = [
+    '#65A1DC', '#FCD13C', '#50BF5B', '#EF6973', '#BABBCF',
+    '#35C9DD', '#EE9762', '#3FD2A6', '#E573B4'
+];
 
-// 错题数据
-const errors = ref([
+const errors = ref<ErrorItem[]>([
     {
         id: 1,
         bookId: 1,
@@ -162,84 +184,66 @@ const errors = ref([
     }
 ]);
 
-// 搜索相关
 const questionSearch = ref('');
-const selectedError = ref(null);
+const selectedError = ref<ErrorItem | null>(null);
 
-// 相关题目
-const relatedQuestions = ref([
+const relatedQuestions = ref<RelatedQuestion[]>([
     { id: 101, title: '如何优化前端性能？', heat: 1200, tags: ['前端', '性能'] },
     { id: 102, title: 'Vue3的响应式原理是什么？', heat: 800, tags: ['Vue3', '响应式'] },
     { id: 103, title: 'React Hooks使用注意事项', heat: 750, tags: ['React', 'Hooks'] },
     { id: 104, title: 'Spring事务传播机制详解', heat: 600, tags: ['Spring', '事务'] }
 ]);
 
-// 计算属性
-const filteredErrors = computed(() => {
-    return errors.value.filter(error => {
-        const matchesBook = activeBookId.value ? error.bookId === activeBookId.value : true;
-        const matchesSearch = questionSearch.value 
-            ? error.title.includes(questionSearch.value) || 
-              error.content.includes(questionSearch.value) ||
-              error.tags.some(tag => tag.includes(questionSearch.value))
-            : true;
-        return matchesBook && matchesSearch;
-    });
-});
+const filteredErrors = computed(() =>
+    errors.value.filter(error =>
+        (!activeBookId.value || error.bookId === activeBookId.value) &&
+        (!questionSearch.value ||
+            error.title.includes(questionSearch.value) ||
+            error.content.includes(questionSearch.value) ||
+            error.tags.some(tag => tag.includes(questionSearch.value))
+        )
+    )
+);
 
-// 方法
-const goback = () => {
-    router.back();
-};
-
-const selectBook = (bookId:any) => {
+const goback = () => router.back();
+const selectBook = (bookId: number) => {
     activeBookId.value = bookId;
     questionSearch.value = '';
 };
-
 const onSearchBook = () => {
-    // 实际项目中这里可以调用API搜索错题本
+    // TODO: 调用API搜索错题本
     console.log('搜索错题本:', searchBook.value);
 };
-
 const onQuestionSearch = () => {
-    // 实际项目中这里可以调用API搜索错题
+    // TODO: 调用API搜索错题
     console.log('搜索错题:', questionSearch.value);
 };
-
-const selectError = (error:any) => {
-    
+const selectError = (error: ErrorItem) => {
+    selectedError.value = error;
+    // TODO: 可扩展
 };
-
-const selectRelatedQuestion = (question:any) => {
+const selectRelatedQuestion = (question: RelatedQuestion) => {
     console.log('选中相关题目:', question);
-    // 可以在这里实现跳转到题目详情或其他操作
+    // TODO: 跳转或其他操作
 };
-
-const updateRelatedQuestions = (error:any) => {
-    //这里实现根据选中的错题更新相关题目
-};
-
 const handleAddBook = () => {
     if (!newBookName.value.trim()) return;
-    
-    const newBook = {
+    books.value.push({
         id: books.value.length + 1,
         name: newBookName.value,
-        type: newBookType.value,
+        color: newBookColor.value,
         count: 0
-    };
-    
-    books.value.push(newBook);
+    });
     newBookName.value = '';
+    newBookColor.value = '#DE868F';
     showAddBookModal.value = false;
 };
 
-// 监听选中的错题本变化
 watch(activeBookId, () => {
     selectedError.value = null;
 });
 </script>
+
 
 <style scoped>
 .container {
@@ -284,6 +288,7 @@ watch(activeBookId, () => {
     align-self: flex-start;
     width: 100%;
     height: 80px;
+    margin-bottom: 20px;
 }
 
 .search-box {
