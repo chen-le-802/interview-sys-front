@@ -8,7 +8,7 @@
             <div class="bank-name">{{ questionBank.title || '这里是题库标题' }}</div>
             <div class="bank-desc">{{ questionBank.description || '这里是题库描述' }}</div>
             <div class="options">
-                <el-button type="primary" size="default" color="#1677ff" round>开始刷题</el-button>
+                <el-button type="primary" size="default" color="#1677ff" round @click="gotoQuestion()">开始刷题</el-button>
                 <el-button type="default" size="default" round @click="gotoExam">
                     <el-icon style="margin-right: 5px;">
                         <DocumentChecked />
@@ -124,6 +124,13 @@ onMounted(() => {
 const gotoExam=()=>{
     router.push('/exam');
 }
+const gotoQuestion = () => {
+    if (!props.bankId) {
+        ElMessage.warning('请先选择题库');
+        return;
+    }
+    router.push(`/question`);
+};
 </script>
 
 <style lang="css" scoped>

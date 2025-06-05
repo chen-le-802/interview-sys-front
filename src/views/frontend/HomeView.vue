@@ -9,9 +9,9 @@
         <div style="display: flex;width:1200px;margin: 0 auto;justify-content: space-between;margin-top: 30px;">
             <HomeTable :table-width="900" />
             <div>
-                <RankList :questions="questions" :listTitle="'热门题目榜'"></RankList>
+                <RankList  :listTitle="'热门题目榜'"></RankList>
                 <UserRankList></UserRankList>
-                <RankList :questions="lable" :listTitle="'热门标签'"></RankList>
+                <RankList :listTitle="'热门标签'"></RankList>
 
             </div>
         </div>
@@ -46,26 +46,7 @@ import RankList from '@/components/shared/RankList.vue'
 import UserRankList from '@/components/shared/UserRankList.vue'
 import Footer from '@/components/layout/Footer.vue'
 
-// Mock数据
-const questions = ref([
-    { title: '你认为Java的优势是什么?', heat: 52140 },
-    { title: 'Java中的序列化和反序列化...', heat: 47358 },
-    { title: '什么是Java的多态特性?', heat: 36373 },
-    { title: 'MySQL中的数据排序是怎么...', heat: 33784 },
-    { title: '什么是Java中的不可变类?', heat: 33551 },
-    { title: '说说Java中HashMap的原...', heat: 32892 },
-    { title: 'Java中的参数传递是按值还...', heat: 29074 },
-    { title: '详细描述一条SQL语句在...', heat: 29044 },
-    { title: 'Java中Exception和Error有...', heat: 28783 },
-    { title: 'Java中有哪些集合类?请简..', heat: 27068 }
-])
 
-const lable = ref([
-    { title: 'Java', heat: 52140 },
-    { title: 'MySQL', heat: 47358 },
-    { title: '面试', heat: 36373 },
-    { title: '面试题', heat: 33784 }
-])
 </script>
 
 

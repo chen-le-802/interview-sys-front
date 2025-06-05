@@ -88,7 +88,7 @@ const router = createRouter({
     {
       path: '/ai-interview',
       name: 'ai-interview',
-      component: () => import('@/views/frontend/AIInterview.vue'),
+      component: () => import('@/views/frontend/AiInterview.vue'),
     },
     {
       path: '/daily-list',
@@ -105,12 +105,17 @@ const router = createRouter({
       name:'error-notebook',
       component: () => import('@/views/frontend/ErrorNoteBook.vue'),
     },
-     {
+    {
       path:'/exam',
       name:'exam',
       component: () => import('@/views/frontend/Exam.vue'),
     }
   ],
+  // 添加滚动行为配置
+  scrollBehavior(to, from, savedPosition) {
+    // 始终滚动到顶部
+    return { top: 0 }
+  }
 })
 
 // 全局前置守卫

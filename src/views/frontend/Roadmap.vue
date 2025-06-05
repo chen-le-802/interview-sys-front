@@ -35,7 +35,7 @@
             <div class="content">这里是官方后台还没编写的内容</div>
         </div>
         <div class="right">
-            <RankList :questions="questions" :list-title="'热门题目榜'"></RankList>
+            <RankList  :list-title="'热门题目榜'"></RankList>
         </div>
     </div>
     <Footer></Footer>
@@ -43,19 +43,8 @@
 </template>
 <script setup lang="ts">
 import {StarFilled} from '@ant-design/icons-vue'
-const questions = ref([
-            { title: '你认为Java的优势是什么?', heat: 52140 },
-            { title: 'Java中的序列化和反序列化...', heat: 47358 },
-            { title: '什么是Java的多态特性?', heat: 36373 },
-            { title: 'MySQL中的数据排序是怎么...', heat: 33784 },
-            { title: '什么是Java中的不可变类?', heat: 33551 },
-            { title: '说说Java中HashMap的原...', heat: 32892 },
-            { title: 'Java中的参数传递是按值还...', heat: 29074 },
-            { title: '详细描述一条SQL语句在...', heat: 29044 },
-            { title: 'Java中Exception和Error有...', heat: 28783 },
-            { title: 'Java中有哪些集合类?请简..', heat: 27068 }
-        ])
-        </script>
+
+</script>
 <style scoped lang="css">
 .w{
     width:1200px;

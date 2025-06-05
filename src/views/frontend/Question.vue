@@ -64,7 +64,7 @@
                             </div>
                         </div>
                     </div>
-                    <RankList :questions="questions" :list-title="'热门题目榜'" :width="250"></RankList>
+                    <RankList :list-title="'热门题目榜'" :width="250"></RankList>
                 </div>
             </div>
         </div>
@@ -87,15 +87,6 @@ interface Question {
     views: number
     stars: number
 }
-
-const questions = ref([
-    { title: '你认为Java的优势是什么?', heat: 52140 },
-    { title: 'Java中的序列化和反...', heat: 47358 },
-    { title: '什么是Java的多态特性?', heat: 36373 },
-    { title: 'MySQL中的数据排...', heat: 33784 },
-    { title: '什么是Java中的不可变类?', heat: 33551 },
-
-])
 // 问题详情数据
 const currentQuestion = ref<Question & { views: number; stars: number }>({
     id: 416,
