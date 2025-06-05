@@ -7,24 +7,34 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
+# 运行时生成文件
+node_modules/
 .DS_Store
-dist
-dist-ssr
-coverage
+dist/
+dist-ssr/
+coverage/
 *.local
 
+# 测试相关
 /cypress/videos/
 /cypress/screenshots/
 
-# Editor directories and files
+# IDE 配置文件
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
+# 构建生成文件
 *.tsbuildinfo
+
+# 元数据文件（强化版配置）
+[_.]metadata.json
+[_.]metadata.*
+*[-_]metadata.*
+*.metadata*
+metadata.*
