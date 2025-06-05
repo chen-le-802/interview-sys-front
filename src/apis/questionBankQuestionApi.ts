@@ -7,7 +7,7 @@ interface BaseResponse<T = any> {
 }
 
 // 添加题目到题库
-export const addQuestionToBank = (questionId: number, questionBankId: number): Promise<BaseResponse> => {
+export const addQuestionToBank = (questionId: string, questionBankId: string): Promise<BaseResponse> => {
   return request.post('/api/questionBankQuestion/add', {
     questionId,
     questionBankId
@@ -15,12 +15,12 @@ export const addQuestionToBank = (questionId: number, questionBankId: number): P
 };
 
 // 从题库中移除题目
-export const removeQuestionFromBank = (id: number): Promise<BaseResponse> => {
+export const removeQuestionFromBank = (id: string): Promise<BaseResponse> => {
   return request.post('/api/questionBankQuestion/delete', { id });
 };
 
 // 获取题目关联的题库列表（分页）
-export const getQuestionBanksByQuestionId = (questionId: number, params: any = {}): Promise<BaseResponse> => {
+export const getQuestionBanksByQuestionId = (questionId: string, params: any = {}): Promise<BaseResponse> => {
   const requestParams = {
     current: 1,
     pageSize: 100,
@@ -32,7 +32,7 @@ export const getQuestionBanksByQuestionId = (questionId: number, params: any = {
 };
 
 // 获取题库中的题目数量
-export const getQuestionCountByBankId = (questionBankId: number): Promise<BaseResponse> => {
+export const getQuestionCountByBankId = (questionBankId: string): Promise<BaseResponse> => {
   return request.get('/api/questionBankQuestion/get/count', {
     params: { 
       questionBankId 
@@ -41,7 +41,7 @@ export const getQuestionCountByBankId = (questionBankId: number): Promise<BaseRe
 };
 
 // 获取题库题目关联详情
-export const getQuestionBankQuestionVO = (id: number): Promise<BaseResponse> => {
+export const getQuestionBankQuestionVO = (id: string): Promise<BaseResponse> => {
   return request.get('/api/questionBankQuestion/get/vo', {
     params: { id }
   });
@@ -49,15 +49,15 @@ export const getQuestionBankQuestionVO = (id: number): Promise<BaseResponse> => 
 
 // 更新题库题目关联
 export const updateQuestionBankQuestion = (data: {
-  id: number;
-  questionBankId?: number;
-  questionId?: number;
+  id: string;
+  questionBankId?: string;
+  questionId?: string;
 }): Promise<BaseResponse> => {
   return request.post('/api/questionBankQuestion/update', data);
 };
 
 // 更新题目的题库关联（业务逻辑封装）
-export const updateQuestionBankRelation = async (questionId: number, newQuestionBankId: number): Promise<boolean> => {
+export const updateQuestionBankRelation = async (questionId: string, newQuestionBankId: string): Promise<boolean> => {
   try {
     // 1. 查询题目当前关联的题库
     const response = await getQuestionBanksByQuestionId(questionId);
@@ -99,7 +99,7 @@ export const updateQuestionBankRelation = async (questionId: number, newQuestion
 };
 
 // 批量添加题目到题库
-export const batchAddQuestionsToBank = async (questionIds: number[], questionBankId: number): Promise<boolean> => {
+export const batchAddQuestionsToBank = async (questionIds: string[], questionBankId: string): Promise<boolean> => {
   try {
     const promises = questionIds.map(questionId => 
       addQuestionToBank(questionId, questionBankId)
@@ -114,7 +114,7 @@ export const batchAddQuestionsToBank = async (questionIds: number[], questionBan
 };
 
 // 批量从题库移除题目
-export const batchRemoveQuestionsFromBank = async (relationIds: number[]): Promise<boolean> => {
+export const batchRemoveQuestionsFromBank = async (relationIds: string[]): Promise<boolean> => {
   try {
     const promises = relationIds.map(id => removeQuestionFromBank(id));
     const results = await Promise.all(promises);

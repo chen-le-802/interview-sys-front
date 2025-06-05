@@ -7,8 +7,8 @@
 
         <el-table :data="paginatedData" :style="{ width: tableWidth + 'px' }" size="large" @row-click="handleClickItem"
             v-loading="loading" element-loading-text="加载中...">
-            <el-table-column prop="question" label="题目" width="490" />
-            <el-table-column label="难度" width="100">
+            <el-table-column prop="question" label="题目" width="460" />
+            <el-table-column label="难度" width="130">
                 <template #header>
                     <div class="difficulty-header">
                         <span>难度</span>
@@ -226,32 +226,52 @@ const handleClickItem = (row: Question) => {
     align-items: center;
     justify-content: center;
     gap: 5px;
+    cursor: pointer;
+    padding: 8px 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    color: #606266;
+    min-height: 20px;
+    user-select: none;
+}
+
+.difficulty-header:hover {
+    background-color: #f5f7fa;
+    color: #409eff;
+}
+
+.difficulty-header.sort-active {
+    color: #409eff;
+}
+
+.difficulty-header.sort-asc {
+    color: #67c23a;
+}
+
+.difficulty-header.sort-desc {
+    color: #e6a23c;
 }
 
 .sort-icon {
     display: flex;
     align-items: center;
-    cursor: pointer;
-    padding: 2px;
-    border-radius: 4px;
     transition: all 0.2s ease;
-    color: #909399;
 }
 
-.sort-icon:hover {
-    background-color: #f5f7fa;
-    color: #409eff;
+:deep(.el-table__header .el-table__cell) {
+    color: #606266 !important;
 }
 
-.sort-icon.sort-active {
-    color: #409eff;
+:deep(.el-table__header .el-table__cell .cell) {
+    color: #606266 !important;
 }
 
-.sort-icon.sort-asc {
-    color: #67c23a;
+:deep(.el-table__body .el-table__row .el-table__cell:nth-child(2)) {
+    text-align: center;
 }
 
-.sort-icon.sort-desc {
-    color: #e6a23c;
+:deep(.el-table__body .el-table__row .el-table__cell:nth-child(2) .cell) {
+    justify-content: center;
+    display: flex;
 }
 </style>
