@@ -30,8 +30,7 @@ export const getQuestionList = (params: QuestionQueryParams): Promise<BaseRespon
 };
 
 // 分页获取题目列表（用户端）
-export const getQuestionListVO = (params: QuestionQueryParams): 
-Promise<BaseResponse<{ records: any[]; total: number; size: number; current: number; pages: number }>> => {
+export const getQuestionListVO = (params: QuestionQueryParams): Promise<BaseResponse> => {
   return request.post('/api/question/list/page/vo', params);
 };
 
@@ -41,17 +40,17 @@ export const getMyQuestionList = (params: QuestionQueryParams): Promise<BaseResp
 };
 
 // 添加题目
-export const addQuestion = (data: any): Promise<BaseResponse> => {
+export const addQuestion = (data: any): Promise<BaseResponse<string>> => {
   return request.post('/api/question/add', data);
 };
 
 // 更新题目
-export const updateQuestion = (data: any): Promise<BaseResponse> => {
+export const updateQuestion = (data: any): Promise<BaseResponse<string>> => {
   return request.post('/api/question/update', data);
 };
 
 // 删除题目
-export const deleteQuestion = (id: string): Promise<BaseResponse> => {
+export const deleteQuestion = (id: string): Promise<BaseResponse<string>> => {
   return request.post('/api/question/delete', null, {
     params: { id }
   });
@@ -72,6 +71,39 @@ export const getQuestionVOById = (id: string): Promise<BaseResponse> => {
 };
 
 // 题目答题接口
-export const answerQuestion = (data: { questionId: string; answer: string }): Promise<BaseResponse> => {
+export const answerQuestion = (data: { questionId: string; answer: string }): Promise<BaseResponse<string>> => {
   return request.post('/api/question/answer', data);
+};
+
+// 获取相邻题目（根据题库或条件）
+export const getAdjacentQuestions = (params: {
+  currentId: string;
+  questionBankId?: string;
+}): Promise<BaseResponse> => {
+  // 这里需要根据实际API实现，可能需要调用列表接口然后找相邻的
+  // 暂时返回模拟数据的结构
+  return getQuestionListVO({
+    questionBankId: params.questionBankId,
+    pageSize: 100 // 获取更多数据来找相邻题目
+  }).then(response => {
+    // 处理逻辑找到相邻题目
+    const questions = response.data?.records || [];
+    const currentIndex = questions.findIndex((q: any) => q.id === params.currentId);
+    
+    const result = {
+      previous: currentIndex > 0 ? {
+        id: questions[currentIndex - 1].id,
+        title: questions[currentIndex - 1].title
+      } : undefined,
+      next: currentIndex < questions.length - 1 ? {
+        id: questions[currentIndex + 1].id,
+        title: questions[currentIndex + 1].title
+      } : undefined
+    };
+    
+    return {
+      ...response,
+      data: result
+    };
+  });
 };
