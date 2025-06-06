@@ -81,7 +81,7 @@ const router = createRouter({
       component: () => import('@/views/frontend/Category.vue'),
     },
     {
-      path: '/question',
+      path: '/question/:id',
       name: 'question',
       component: () => import('@/views/frontend/Question.vue'),
     },

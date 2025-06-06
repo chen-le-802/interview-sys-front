@@ -54,7 +54,11 @@
               <transition-group name="list" tag="tbody" v-if="paginatedQuestionList.length > 0">
                 <tr v-for="question in paginatedQuestionList" :key="question.id">
                   <td>{{ question.id }}</td>
-                  <td>{{ question.title }}</td>
+                  <td>
+                    <div class="question-title" :title="question.title">
+                      {{ question.title }}
+                    </div>
+                  </td>
                   <td>
                     <span :class="difficultyClass(question.difficulty)" class="difficulty-tag">
                       {{ question.difficulty }}
@@ -119,12 +123,12 @@
           <a-input v-model:value="addForm.title" placeholder="请输入题目标题" />
         </a-form-item>
 
-        <a-form-item label="题目内容" name="content">
-          <a-textarea v-model:value="addForm.content" placeholder="请输入题目内容" :rows="6" />
+        <a-form-item label="题目目录" name="content">
+          <a-textarea v-model:value="addForm.content" placeholder="请输入题目目录（支持Markdown格式）" :rows="3" />
         </a-form-item>
 
         <a-form-item label="参考答案" name="answer">
-          <a-textarea v-model:value="addForm.answer" placeholder="请输入参考答案" :rows="4" />
+          <a-textarea v-model:value="addForm.answer" placeholder="请输入参考答案（支持Markdown格式）" :rows="4" />
         </a-form-item>
 
         <a-form-item label="难度" name="difficulty">
@@ -166,12 +170,12 @@
           <a-input v-model:value="editForm.title" placeholder="请输入题目标题" />
         </a-form-item>
 
-        <a-form-item label="题目内容" name="content">
-          <a-textarea v-model:value="editForm.content" placeholder="请输入题目内容" :rows="6" />
+        <a-form-item label="题目目录" name="content">
+          <a-textarea v-model:value="editForm.content" placeholder="请输入题目目录（支持Markdown格式）" :rows="3" />
         </a-form-item>
 
         <a-form-item label="参考答案" name="answer">
-          <a-textarea v-model:value="editForm.answer" placeholder="请输入参考答案" :rows="4" />
+          <a-textarea v-model:value="editForm.answer" placeholder="请输入参考答案（支持Markdown格式）" :rows="4" />
         </a-form-item>
 
         <a-form-item label="难度" name="difficulty">
@@ -201,7 +205,7 @@
     </a-modal>
 
     <!-- 预览题目 -->
-    <a-modal v-model:visible="previewModalVisible" title="题目预览" width="800px" :footer="null" :maskClosable="true"
+    <a-modal v-model:visible="previewModalVisible" title="题目预览" width="900px" :footer="null" :maskClosable="true"
       :destroyOnClose="true">
       <transition name="fade" mode="out-in">
         <div class="preview-container" v-if="previewQuestion">
@@ -229,16 +233,14 @@
           </div>
 
           <div class="preview-content">
-            <h4>题目内容</h4>
-            <div class="content-box">
-              {{ previewQuestion.content || '暂无内容' }}
+            <h4>题目目录</h4>
+            <div class="content-box markdown-content" v-html="renderMarkdown(previewQuestion.content || '暂无内容')">
             </div>
           </div>
 
           <div class="preview-answer">
             <h4>参考答案</h4>
-            <div class="content-box">
-              {{ previewQuestion.answer || '暂无答案' }}
+            <div class="content-box markdown-content" v-html="renderMarkdown(previewQuestion.answer || '暂无答案')">
             </div>
           </div>
 
@@ -282,6 +284,7 @@ import { formatDateTime } from '@/utils/dateTimeFormat';
 import { addQuestion, updateQuestion, deleteQuestion, getQuestionList } from '@/apis/questionApi';
 import { getQuestionBankList } from '@/apis/questionBankApi';
 import { addQuestionToBank, getQuestionBanksByQuestionId, updateQuestionBankRelation } from '@/apis/questionBankQuestionApi';
+import { marked } from 'marked';
 
 // 题目接口
 interface Question {
@@ -415,8 +418,8 @@ const addFormRules: Record<string, Rule[]> = {
     { min: 2, max: 100, message: '标题长度应在 2-100 个字符之间', trigger: 'blur' }
   ],
   content: [
-    { required: true, message: '请输入题目内容', trigger: 'blur' },
-    { min: 10, message: '题目内容至少 10 个字符', trigger: 'blur' }
+    { required: true, message: '请输入题目目录', trigger: 'blur' },
+    { min: 5, message: '题目目录至少 5 个字符', trigger: 'blur' }
   ],
   answer: [{ required: true, message: '请输入参考答案', trigger: 'blur' }],
   difficulty: [{ required: true, message: '请选择难度', trigger: 'change' }],
@@ -427,6 +430,25 @@ const addFormRules: Record<string, Rule[]> = {
 };
 
 const editFormRules = addFormRules;
+
+// Markdown渲染函数
+const renderMarkdown = (content: string): string => {
+  if (!content) return '暂无内容';
+  
+  try {
+    // 配置marked选项
+    marked.setOptions({
+      breaks: true, // 支持换行
+      gfm: true, // 支持GitHub风格的Markdown
+    });
+    
+    return marked(content);
+  } catch (error) {
+    console.error('Markdown渲染失败:', error);
+    // 如果渲染失败，返回原始文本
+    return content.replace(/\n/g, '<br>');
+  }
+};
 
 // 获取请求参数
 const getRequestParams = () => {
@@ -493,7 +515,7 @@ const fetchQuestionList = async () => {
       const rawQuestions: any[] = data.records || [];
       total.value = data.total || 0;
 
-      // 对“主列表”里的每一道题，都把它先做一次“标签处理 + 题库关联处理”
+      // 对"主列表"里的每一道题，都把它先做一次"标签处理 + 题库关联处理"
       const processed = await Promise.all(
         rawQuestions.map(async (q: any) => {
           // 1. 把 q.id 转为字符串，避免 Number 精度问题
@@ -513,7 +535,7 @@ const fetchQuestionList = async () => {
             userId: q.userId ? String(q.userId) : undefined
           };
 
-          // 2. “标签解析”
+          // 2. "标签解析"
           if (q.tags && typeof q.tags === 'string') {
             try {
               const arr = JSON.parse(q.tags);
@@ -690,7 +712,7 @@ const handleAddQuestion = async () => {
       }
     }
 
-    // 先提交“新题目”到后端，拿到自动生成的 questionId（Long → 转为 String）
+    // 先提交"新题目"到后端，拿到自动生成的 questionId（Long → 转为 String）
     const questionData: any = {
       title: addForm.title,
       content: addForm.content,
