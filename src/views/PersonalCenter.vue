@@ -38,19 +38,32 @@
                         <div class="stats-row">
                             <div class="stat-item">
                                 <p class="stat-label">解题总数</p>
-                                <p class="stat-value">1,248</p>
+                                <p class="stat-value">{{ totalSolved }}</p>
                             </div>
                             <div class="stat-item">
                                 <p class="stat-label">连续刷题天数</p>
-                                <p class="stat-value">46</p>
+                                <p class="stat-value">{{ continuousDays }} 天</p>
                             </div>
                             <div class="stat-item">
-                                <p class="stat-label">排名</p>
-                                <p class="stat-value stat-rank">#28</p>
+                                <p class="stat-label">今日状态</p>
+                                <p class="stat-value">
+                                    <!-- 显示今日刷题状态，不提供手动操作 -->
+                                    <span v-if="hasCompletedToday" class="completed">已刷题</span>
+                                    <span v-else class="not-completed">未刷题</span>
+                                </p>
                             </div>
                         </div>
                         <div class="activity-section">
                             <h3 class="section-subtitle">刷题记录</h3>
+
+                            <!-- 选择年份 -->
+                            <a-select v-model:value="selectedYear" style="width: 120px; margin-bottom: 12px;"
+                                @change="onYearChange">
+                                <a-select-option v-for="year in yearOptions" :key="year" :value="year">
+                                    {{ year }}
+                                </a-select-option>
+                            </a-select>
+
                             <div ref="heatmapRef" class="heatmap-container"></div>
                         </div>
                     </div>
@@ -141,7 +154,7 @@ import Header from '@/components/layout/FrontendHeader.vue';
 import { RollbackOutlined, CameraOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { getCurrentUser } from '@/apis/authApi';
-import { updateMyInfo, updateMyPassword } from '@/apis/userApi';
+import { updateMyInfo, updateMyPassword, getUserSignInRecord, userSignIn } from '@/apis/userApi';
 import type { UploadChangeParam, UploadFile } from 'ant-design-vue/es/upload/interface';
 
 // 类型定义
@@ -191,9 +204,255 @@ const jobPositionOptions: JobPositionOption[] = [
     { label: '其他', value: 'other' }
 ];
 
+// ========== 签到功能相关状态 ==========
+// 年份可选范围
+const yearOptions = [2023, 2024, 2025];
+const selectedYear = ref<number>(new Date().getFullYear()); // 默认当前年
+
+// 用于存储后端返回的"当年第 N 天已刷题"索引列表
+const signedDays = ref<number[]>([]);
+
+// 计算出"今日是否已刷题"状态
+const hasCompletedToday = ref<boolean>(false);
+
+// 计算"连续刷题天数"，根据 signedDays 和 当前日期算出
+const continuousDays = ref<number>(0);
+
+// 解题总数 - 使用mock数据，后续对接真实API TODO
+const totalSolved = ref<number>(1248 + Math.floor(Math.random() * 100)); // 模拟1248-1348之间的数字
+
+// ECharts 实例与容器
 const heatmapRef = ref<HTMLElement | null>(null);
+let heatmapChart: echarts.ECharts | null = null;
+
 const loading = ref(false);
 const uploadRef = ref();
+
+// 工具函数：把"第几天"转换为 "yyyy-MM-dd" 字符串
+function dayIndexToDateStr(year: number, dayIndex: number): string {
+    // new Date(year, 0, dayIndex) 就是当年第 dayIndex 天
+    const dt = new Date(year, 0, dayIndex);
+    const yyyy = dt.getFullYear();
+    const MM = String(dt.getMonth() + 1).padStart(2, '0');
+    const dd = String(dt.getDate()).padStart(2, '0');
+    return `${yyyy}-${MM}-${dd}`;
+}
+
+function buildHeatmapData(year: number, dayIndices: number[]): [string, number][] {
+    const data: [string, number][] = [];
+    const signedSet = new Set(dayIndices);
+
+    // 获取当年的总天数
+    const totalDays = new Date(year, 11, 31).getDate() === 31 ?
+        (new Date(year, 1, 29).getDate() === 29 ? 366 : 365) : 365; // 判断是否为闰年
+
+    // 为整年的每一天都生成数据点
+    for (let dayOfYear = 1; dayOfYear <= totalDays; dayOfYear++) {
+        const dateStr = dayIndexToDateStr(year, dayOfYear);
+        const value = signedSet.has(dayOfYear) ? 1 : 0; // 有刷题记录为1，否则为0
+        data.push([dateStr, value]);
+    }
+
+    return data;
+}
+
+function calcContinuousDays(year: number, dayIndices: number[]): number {
+    if (dayIndices.length === 0) {
+        return 0;
+    }
+
+    // 先对数组排序
+    const sorted = [...dayIndices].sort((a, b) => a - b);
+
+    // 判断是否查看的是当前年份
+    const today = new Date();
+    const todayYear = today.getFullYear();
+    if (year !== todayYear) {
+        // 往年，只算历史最长连续
+        let maxStreak = 0;
+        let temp = 1;
+        for (let i = 1; i < sorted.length; i++) {
+            if (sorted[i] - sorted[i - 1] === 1) {
+                temp++;
+            } else {
+                maxStreak = Math.max(maxStreak, temp);
+                temp = 1;
+            }
+        }
+        maxStreak = Math.max(maxStreak, temp);
+        return maxStreak;
+    }
+
+    // 先算出"今天是当年第几天"
+    const startOfYear = new Date(year, 0, 1);
+    const diff = today.getTime() - startOfYear.getTime();
+    const todayIndex = Math.floor(diff / (1000 * 60 * 60 * 24)) + 1; // 1-based
+
+    // 构造一个 Set 方便 O(1) 查找
+    const set = new Set(sorted);
+
+    // 判断"今日是否已刷题"
+    hasCompletedToday.value = set.has(todayIndex);
+
+    // 如果今天已刷题，就从 todayIndex 倒推；否则从 todayIndex-1 倒推
+    let checkIdx = hasCompletedToday.value ? todayIndex : todayIndex - 1;
+    let streak = 0;
+
+    while (checkIdx > 0 && set.has(checkIdx)) {
+        streak++;
+        checkIdx--;
+    }
+    return streak;
+}
+
+// 渲染/更新 Heatmap 的主方法
+
+async function renderHeatmap() {
+    try {
+        // 1. 当年第 N 天的索引数组
+        let apiSignedDays: number[] = [];
+
+        try {
+            const res = await getUserSignInRecord(selectedYear.value);
+            if (res.code === 0) {
+                apiSignedDays = res.data || [];
+            } else {
+                console.warn('获取刷题记录失败:', res.message);
+            }
+        } catch (error) {
+            console.warn('API调用失败，使用mock数据:', error);
+        }
+
+        // 如果API返回空数据，使用mock数据展示样例
+        if (apiSignedDays.length === 0) {
+            // Mock数据：模拟一些刷题记录
+            const mockDays: number[] = [];
+            const today = new Date();
+            const currentDayOfYear = Math.floor((today.getTime() - new Date(selectedYear.value, 0, 1).getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+            // 模拟最近30天有一些刷题记录
+            for (let i = Math.max(1, currentDayOfYear - 30); i <= currentDayOfYear; i += 2) {
+                if (Math.random() > 0.3) { // 70%概率有刷题记录
+                    mockDays.push(i);
+                }
+            }
+
+            // 添加一些早期的记录
+            const earlyDays = [5, 12, 18, 25, 32, 45, 58, 67, 89, 103, 125, 146, 167, 189, 210];
+            mockDays.push(...earlyDays);
+
+            signedDays.value = mockDays.sort((a, b) => a - b);
+
+            // 显示提示信息
+            if (selectedYear.value === today.getFullYear()) {
+                message.info('当前显示模拟数据，等待后端接口对接');
+            }
+        } else {
+            signedDays.value = apiSignedDays;
+        }
+
+        // 2. 计算"连续刷题天数"
+        continuousDays.value = calcContinuousDays(selectedYear.value, signedDays.value);
+
+        // 3. 准备 ECharts Heatmap 所需数据
+        const heatmapData = buildHeatmapData(selectedYear.value, signedDays.value);
+
+        // 4. 初始化或清空已有实例
+        if (!heatmapChart) {
+            heatmapChart = echarts.init(heatmapRef.value!);
+        }
+        heatmapChart.clear();
+
+        // 5. 如果没有任何记录，则在图表中央显示"暂无刷题记录"
+        if (heatmapData.length === 0) {
+            heatmapChart.setOption({
+                graphic: [
+                    {
+                        type: 'text',
+                        left: 'center',
+                        top: 'middle',
+                        style: {
+                            text: '暂无刷题记录',
+                            fontSize: 14,
+                            fill: '#999'
+                        }
+                    }
+                ]
+            });
+            return;
+        }
+
+        // 6. 设置 Heatmap 的配置项
+        heatmapChart.setOption({
+            animation: false,
+            tooltip: {
+                position: 'top',
+                formatter: (params: any) => {
+                    const [dateStr] = params.data as [string, number];
+                    return `${dateStr}：已完成刷题`;
+                }
+            },
+            visualMap: {
+                show: false,
+                min: 0,
+                max: 1,
+                inRange: {
+                    color: [ '#f7f8f9', '#6598f7' ]
+                }
+            },
+            calendar: {
+                top: 50,
+                left: 30,
+                right: 30,
+                cellSize: ['auto', 13],
+                range: `${selectedYear.value}`, // 整年
+                itemStyle: {
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                },
+                yearLabel: { show: false }
+            },
+            series: {
+                type: 'heatmap',
+                coordinateSystem: 'calendar',
+                data: heatmapData
+            }
+        });
+
+        // 7. 给每个格子绑定点击事件，提示
+        heatmapChart.off('click');
+        heatmapChart.on('click', (params: any) => {
+            if (params.componentType === 'series' && params.data) {
+            }
+        });
+    } catch (error) {
+        console.error(error);
+        message.error('渲染刷题日历时出错');
+    }
+}
+
+// ========== 切换年份时重新拉取并渲染 ==========
+
+async function onYearChange(value: any) {
+    let year: number;
+
+    if (typeof value === 'number') {
+        year = value;
+    } else if (typeof value === 'string') {
+        year = parseInt(value, 10);
+    } else if (value && typeof value === 'object' && 'value' in value) {
+        // 处理 LabeledValue 类型
+        year = typeof value.value === 'number' ? value.value : parseInt(value.value, 10);
+    } else {
+        console.warn('无法解析年份值:', value);
+        return;
+    }
+
+    if (!isNaN(year)) {
+        selectedYear.value = year;
+        await renderHeatmap();
+    }
+}
 
 // 处理图片加载错误
 const handleImageError = (e: Event) => {
@@ -588,76 +847,7 @@ onMounted(async () => {
     await fetchUserInfo();
 
     // 初始化热力图
-    if (heatmapRef.value) {
-        const heatmapChart = echarts.init(heatmapRef.value);
-        const fixedDate = new Date('2024-01-01');
-        const data: [string, number][] = [];
-
-        // 热力图数据模式
-        const activityPattern = [
-            [0, 1, 0, 1, 2, 3, 0, 1, 0, 2, 1, 3, 0, 1, 2, 0, 3, 1, 0, 2, 1, 0, 3, 2, 1, 0, 2, 3, 1, 0, 2], // 1月
-            [1, 2, 0, 3, 1, 0, 2, 1, 3, 0, 2, 1, 0, 3, 1, 2, 0, 1, 3, 2, 0, 1, 2, 3, 0, 1, 2, 0], // 2月
-            [2, 3, 1, 0, 2, 1, 3, 0, 1, 2, 0, 3, 1, 2, 0, 1, 3, 2, 0, 1, 2, 3, 0, 1, 2, 0, 3, 1, 2, 0, 1], // 3月
-            [3, 0, 1, 2, 0, 3, 1, 2, 0, 1, 3, 2, 0, 1, 2, 3, 0, 1, 2, 0, 3, 1, 2, 0, 1, 3, 2, 0, 1, 2], // 4月
-            [0, 2, 3, 1, 0, 2, 1, 3, 0, 1, 2, 0, 3, 1, 2, 0, 1, 3, 2, 0, 1, 2, 3, 0, 1, 2, 0, 3, 1, 2, 0], // 5月
-            [1, 0, 2, 3, 1, 0, 2, 1, 3, 0, 2, 1, 0, 3, 1, 2, 0, 1, 3, 2, 0, 1, 2, 3, 0, 1, 2, 0, 1, 3], // 6月
-            [2, 1, 0, 3, 2, 1, 0, 2, 3, 1, 0, 2, 1, 3, 0, 2, 1, 0, 3, 2, 1, 0, 2, 3, 1, 0, 2, 1, 3, 0, 2], // 7月
-            [3, 2, 1, 0, 3, 2, 1, 0, 2, 3, 1, 0, 2, 1, 3, 0, 2, 1, 0, 3, 2, 1, 0, 2, 3, 1, 0, 2, 1, 3, 0], // 8月
-            [0, 3, 2, 1, 0, 3, 2, 1, 0, 2, 3, 1, 0, 2, 1, 3, 0, 2, 1, 0, 3, 2, 1, 0, 2, 3, 1, 0, 2, 1], // 9月
-            [1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 2, 3, 1, 0, 2, 1, 3, 0, 2, 1, 0, 3, 2, 1, 0, 2, 3, 1, 0, 2, 1], // 10月
-            [2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 2, 3, 1, 0, 2, 1, 3, 0, 2, 1, 0, 3, 2, 1, 0, 2, 3, 1, 0], // 11月
-            [3, 2, 1, 0, 3, 2, 1, 0, 3, 2, 1, 0, 2, 3, 1, 0, 2, 1, 3, 0, 2, 1, 0, 2, 3, 1, 0, 2, 1, 3, 0], // 12月
-        ];
-
-        for (let month = 0; month < 12; month++) {
-            const monthData = activityPattern[month];
-            for (let day = 0; day < monthData.length; day++) {
-                const currentDate = new Date(fixedDate);
-                currentDate.setMonth(month);
-                currentDate.setDate(day + 1);
-                const value = monthData[day] * 3; // 将0-3的活动等级转换为0-9的显示值
-                data.push([
-                    echarts.format.formatTime('yyyy-MM-dd', currentDate),
-                    value
-                ]);
-            }
-        }
-
-        heatmapChart.setOption({
-            animation: false,
-            tooltip: {
-                position: 'top',
-                formatter: function (params: any) {
-                    return `${params.data[0]}: ${params.data[1]} 题`;
-                }
-            },
-            visualMap: {
-                show: false,
-                min: 0,
-                max: 9,
-                inRange: {
-                    color: ['#ebedf0', '#e2e8fd', '#bcc7fa', '#93a3f5', '#6474e5']
-                }
-            },
-            calendar: {
-                top: 50,
-                left: 30,
-                right: 30,
-                cellSize: ['auto', 13],
-                range: '2024',
-                itemStyle: {
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                },
-                yearLabel: { show: false }
-            },
-            series: {
-                type: 'heatmap',
-                coordinateSystem: 'calendar',
-                data: data
-            }
-        });
-    }
+    await renderHeatmap();
 });
 </script>
 

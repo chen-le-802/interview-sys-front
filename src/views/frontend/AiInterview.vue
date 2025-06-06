@@ -238,6 +238,9 @@ const sending = ref(false)
 const aiTyping = ref(false)
 const isInterviewActive = ref(false)
 
+// 时间管理
+const baseTime = ref<Date | null>(null)
+
 // DOM 引用
 const chatContainer = ref<HTMLElement>()
 
@@ -312,9 +315,13 @@ const switchInterview = (record: InterviewVO) => {
     loadInterviewMessages(record)
 }
 
-// 加载某条记录的聊天内容
+// 加载某条记录的聊天内容 
 const loadInterviewMessages = (record: InterviewVO) => {
     chatMessages.value = []
+    
+    // 设置基准时间为面试创建时间
+    baseTime.value = new Date(record.createTime)
+    let currentTime = new Date(baseTime.value)
     
     const userReplies = record.userReplyList || []
     const aiReplies = record.aireplyList || []
@@ -323,11 +330,23 @@ const loadInterviewMessages = (record: InterviewVO) => {
     const maxLen = Math.max(userReplies.length, aiReplies.length)
     for (let i = 0; i < maxLen; i++) {
         if (aiReplies[i]) {
-            chatMessages.value.push({ type: 'ai', content: aiReplies[i], timestamp: new Date() })
+            chatMessages.value.push({ 
+                type: 'ai', 
+                content: aiReplies[i], 
+                timestamp: new Date(currentTime) 
+            })
+            // AI消息后加1-2分钟
+            currentTime.setMinutes(currentTime.getMinutes() + Math.floor(Math.random() * 2) + 1)
         }
 
         if (userReplies[i]) {
-            chatMessages.value.push({ type: 'user', content: userReplies[i], timestamp: new Date() })
+            chatMessages.value.push({ 
+                type: 'user', 
+                content: userReplies[i], 
+                timestamp: new Date(currentTime) 
+            })
+            // 用户消息后加1-2分钟
+            currentTime.setMinutes(currentTime.getMinutes() + Math.floor(Math.random() * 2) + 1)
         }
     }
 
@@ -387,7 +406,22 @@ const endCurrentInterview = async () => {
 
 // 把新消息推到聊天列表，并滚动到底
 const addMessage = (type: 'ai' | 'user', content: string) => {
-    chatMessages.value.push({ type, content, timestamp: new Date() })
+    let timestamp: Date
+    
+    if (chatMessages.value.length > 0) {
+        // 基于最后一条消息的时间加1-2分钟
+        const lastMessage = chatMessages.value[chatMessages.value.length - 1]
+        timestamp = new Date(lastMessage.timestamp)
+        timestamp.setMinutes(timestamp.getMinutes() + Math.floor(Math.random() * 2) + 1)
+    } else if (baseTime.value) {
+        // 如果没有消息但有基准时间，使用基准时间
+        timestamp = new Date(baseTime.value)
+    } else {
+        // 回退到当前时间
+        timestamp = new Date()
+    }
+    
+    chatMessages.value.push({ type, content, timestamp })
     scrollToBottom()
 }
 
@@ -400,7 +434,7 @@ const scrollToBottom = () => {
     })
 }
 
-// 显示“新建面试”弹框：只列出用户个人信息中已有的目标岗位
+// 显示"新建面试"弹框：只列出用户个人信息中已有的目标岗位
 const showInterviewDialog = () => {
     if (!selectablePositions.value.length) {
         ElMessage.warning('请先在个人信息中设置目标岗位，再新建面试')
@@ -437,6 +471,10 @@ const startNewInterview = async (jobPosition?: string) => {
                 currentInterviewId.value = latest.id
                 isInterviewActive.value = true
                 chatMessages.value = []
+                
+                // 设置基准时间为新面试的创建时间
+                baseTime.value = new Date(latest.createTime)
+                
                 if (response.data) {
                     addMessage('ai', response.data)
                 }
@@ -454,11 +492,11 @@ const startNewInterview = async (jobPosition?: string) => {
 
 // 将后端的 record.name转换为中文
 const getDisplayInterviewName = (rawName: string): string => {
-    // 如果没有“面试”后缀，就直接返回
+    // 如果没有"面试"后缀，就直接返回
     if (!rawName.endsWith('面试')) {
         return rawName
     }
-    // 去掉末尾“面试”，得到 value 部分
+    // 去掉末尾"面试"，得到 value 部分
     const valueKey = rawName.slice(0, rawName.length - 2)
     // 在 allJobPositionOptions 里找到对应的 label
     const found = allJobPositionOptions.find((opt) => opt.value === valueKey)
@@ -469,7 +507,7 @@ const getDisplayInterviewName = (rawName: string): string => {
     return rawName
 }
 
-// 格式化时间
+// 格式化时间 - 保持不变，已经是只显示小时和分钟
 const formatTime = (timestamp: Date) => {
     return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }

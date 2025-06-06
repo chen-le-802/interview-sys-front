@@ -155,7 +155,6 @@
     transform: translateX(-55%);
 }
 
-
 /* 个人资料内容 */
 .profile-content {
     margin-top: 48px;
@@ -193,6 +192,15 @@
     color: #4f46e5;
 }
 
+/* 今日状态样式 */
+.stat-value .completed {
+    color: #52c41a;
+}
+
+.stat-value .not-completed {
+    color: #999;
+}
+
 /* 活动记录区块 */
 .activity-section {
     margin-top: 16px;
@@ -205,9 +213,32 @@
     text-align: left;
 }
 
+/* 热力图容器样式 */
 .heatmap-container {
-    height: 192px;
     width: 100%;
+    height: 240px;
+    margin-top: 12px;
+}
+
+/* 年份选择器样式 */
+.activity-section .ant-select {
+    margin-bottom: 12px;
+    text-align: left;
+}
+
+.activity-section .ant-select .ant-select-selector {
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+}
+
+.activity-section .ant-select .ant-select-selector:hover {
+    border-color: #6366f1;
+}
+
+.activity-section .ant-select .ant-select-selector:focus,
+.activity-section .ant-select.ant-select-focused .ant-select-selector {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
 }
 
 /* 信息表单卡片 */
@@ -340,4 +371,64 @@
 /* 目标岗位选择框样式 */
 .custom-select-full {
     width: 100%;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .content-wrapper {
+        max-width: 100%;
+        padding: 0 16px;
+    }
+    
+    .back-button {
+        left: 16px;
+        top: 120px;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .form-full-width {
+        grid-column: span 1;
+    }
+    
+    .stats-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .heatmap-container {
+        height: 200px;
+    }
+    
+    .avatar-container {
+        left: 16px;
+    }
+    
+    .avatar-wrapper {
+        width: 100px;
+        height: 100px;
+    }
+}
+
+/* 小屏幕优化 */
+@media (max-width: 480px) {
+    .main-content {
+        padding: 16px;
+    }
+    
+    .profile-content {
+        padding: 0 16px 16px;
+    }
+    
+    .info-form-card,
+    .security-card {
+        padding: 16px;
+    }
+    
+    .heatmap-container {
+        height: 180px;
+    }
 }

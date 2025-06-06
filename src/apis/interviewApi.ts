@@ -15,7 +15,6 @@ export interface InterviewVO {
   createTime: string
   userReplyList: string[]
   aireplyList: string[]
-  jobPosition: string[]
 }
 
 export interface UserVO {
