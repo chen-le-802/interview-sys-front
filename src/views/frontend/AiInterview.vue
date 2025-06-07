@@ -83,8 +83,29 @@
             <!-- 固定头部 -->
             <div class="header-container">
                 <div class="header-box">
-                    <a-button type="text" style="background-color: #e6f4ff; color: #1677FF">面试记录</a-button>
-                    <a-button type="text" style="background-color: #f5f5f5">评估报告</a-button>
+                    <a-button 
+                        type="text" 
+                        :style="{
+                            backgroundColor: currentPage === 'interview' ? '#e6f4ff' : '#f5f5f5',
+                            color: currentPage === 'interview' ? '#1677FF' : '#333',
+                            fontWeight: currentPage === 'interview' ? 'bold' : 'normal'
+                        }"
+                        @click="changeCurrentPage('interview')"
+                    >
+                        面试记录
+                    </a-button>
+                    <a-button 
+                        type="text" 
+                        :style="{
+                            backgroundColor: currentPage === 'report' ? '#e6f4ff' : '#f5f5f5',
+                            color: currentPage === 'report' ? '#1677FF' : '#333',
+                            fontWeight: currentPage === 'report' ? 'bold' : 'normal'
+                        }"
+                        @click="changeCurrentPage('report')"
+                    >
+                        评估报告
+                    </a-button>
+                    
                 </div>
 
                 <!-- 面试状态提示 -->
@@ -101,9 +122,9 @@
                     <a-button danger @click="endCurrentInterview" :loading="endingInterview">结束面试</a-button>
                 </div>
             </div>
-
+            
             <!-- 聊天内容区域 -->
-            <div class="chat-container">
+            <div class="chat-container" v-if="currentPage==='interview'">
                 <div class="chat-content" ref="chatContainer">
                     <div v-if="chatMessages.length === 0" class="empty-chat" @click="showInterviewDialog">
                         <div class="empty-icon">💬</div>
@@ -134,7 +155,7 @@
             </div>
 
             <!-- 固定输入框 -->
-            <div class="footer-container">
+            <div class="footer-container" v-if="currentPage==='interview'">
                 <div class="chat-input-box">
                     <div class="input-container">
                         <textarea v-model="inputMessage" placeholder="请输入你的回答..." rows="3" class="message-input"
@@ -147,6 +168,7 @@
                     <div class="input-tip" v-if="isInterviewActive">💡按 Ctrl + Enter 快速发送</div>
                 </div>
             </div>
+            <InterviewReport v-if="currentPage === 'report'" :interviewId="currentInterviewId" />
         </div>
     </div>
 
@@ -214,7 +236,6 @@ const allJobPositionOptions: JobPositionOption[] = [
 ]
 
 const router = useRouter()
-
 // 响应式数据
 const interviewRecords = ref<InterviewVO[]>([])
 const currentInterviewId = ref<string | null>(null)
@@ -237,12 +258,18 @@ const endingInterview = ref(false)
 const sending = ref(false)
 const aiTyping = ref(false)
 const isInterviewActive = ref(false)
+const currentPage = ref('interview') // 当前页面，默认为面试页面;
 
 // 时间管理
 const baseTime = ref<Date | null>(null)
 
 // DOM 引用
 const chatContainer = ref<HTMLElement>()
+
+// 改变当前页面
+const changeCurrentPage = (page: 'interview' | 'report') => {
+    currentPage.value = page
+}
 
 // 计算属性：当前面试
 const currentInterview = computed(() =>
