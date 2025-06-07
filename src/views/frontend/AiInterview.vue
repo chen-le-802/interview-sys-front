@@ -392,7 +392,23 @@ const endCurrentInterview = async () => {
         if (response.code === 0) {
             isInterviewActive.value = false
             ElMessage.success('面试已结束')
+            
+            // 结束面试后，重新加载面试记录
             await loadInterviewRecords()
+            
+            // 如果有新的记录，自动切换到最新的记录查看
+            if (interviewRecords.value.length > 0) {
+                const latest = interviewRecords.value.sort((a, b) => 
+                    new Date(b.createTime).getTime() - new Date(a.createTime).getTime()
+                )[0]
+                
+                // 切换到刚结束的面试记录
+                switchInterview(latest)
+            } else {
+                // 如果还是没有记录，清空当前状态
+                currentInterviewId.value = null
+                chatMessages.value = []
+            }
         } else {
             ElMessage.error(response.message || '结束面试失败')
         }
@@ -463,27 +479,25 @@ const startNewInterview = async (jobPosition?: string) => {
         isInterviewActive.value = false
         const response: BaseResponse<string> = await interviewApi.startInterview(jobPosition)
         if (response.code === 0) {
-            // 重新拉一次列表
-            await loadInterviewRecords()
-            // 取最新一条记录设为当前会话
-            if (interviewRecords.value.length) {
-                const latest = interviewRecords.value[0]
-                currentInterviewId.value = latest.id
-                isInterviewActive.value = true
-                chatMessages.value = []
-                
-                // 设置基准时间为新面试的创建时间
-                baseTime.value = new Date(latest.createTime)
-                
-                if (response.data) {
-                    addMessage('ai', response.data)
-                }
+            
+            currentInterviewId.value = 'current-interview-' + Date.now()
+            isInterviewActive.value = true
+            chatMessages.value = []
+            
+            // 设置基准时间为当前时间
+            baseTime.value = new Date()
+            
+            // 显示AI面试官开场白
+            if (response.data) {
+                addMessage('ai', response.data)
             }
+
+            ElMessage.success('面试开始成功')
+            
         } else {
             ElMessage.error(response.message || '开始面试失败')
         }
     } catch (error) {
-        console.error('开始面试失败:', error)
         ElMessage.error('开始面试失败')
     } finally {
         startingInterview.value = false
