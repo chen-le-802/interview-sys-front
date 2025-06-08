@@ -38,12 +38,12 @@ import BankList from '@/components/shared/bankList.vue'
 
 // 固定的分类列表 TODO 待后端完成题库分类逻辑实现
 const categories = ref<string[]>([
-    '热门', '后端', '前端', '数据库', 
-    '算法', '操作系统', '计算机网络', 'Java', 
-    'SpringBoot', 'SpringCloud', 'MySQL', 'Redis',
-    'Vue', 'React', 'JavaScript', 'Python',
-    '面试经验', '面试技巧', '设计模式', '微服务',
-    '分布式', '消息队列', '缓存', '全部'
+    '热门', '后端开发', '前端开发',
+    '移动开发', '游戏开发','算法题库', '数据库技术',
+    '计算机网络', '操作系统','计算机基础', '系统设计',
+    '分布式系统', '微服务架构','大数据技术', '人工智能', 
+    '机器学习', '云计算','DevOps运维', '测试技术',
+    '项目经验', '面试经验','真实面经', '其他技术','全部',
 ])
 
 const activeCategory = ref('热门')

@@ -129,7 +129,7 @@ const generateMockNotifications = (): Notification[] => {
       type: 'system',
       read: false,
       title: '关于战略升级及邀请有赏佣金调整的重要公告',
-      content: '亲爱的面试鸭伙伴，近期我们上线了[专项练习]、[解析面经]、[AI大模型题库]、[AI实战项目]，并将继续深耕，同时对邀请有赏规则作出重要调整',
+      content: '亲爱的面试斩伙伴，近期我们上线了[专项练习]、[解析面经]、[AI大模型题库]、[AI实战项目]，并将继续深耕，同时对邀请有赏规则作出重要调整',
       avatar: '',
       time: '2023-04-24T20:31:00Z',
       important: true,
@@ -140,7 +140,7 @@ const generateMockNotifications = (): Notification[] => {
       type: 'system',
       read: false,
       title: '系统维护通知',
-      content: '系统将于2023-05-01 02:00至04:00进行例行维护，期间服务将短暂不可用',
+      content: '系统将于2025-05-01 02:00至04:00进行例行维护，期间服务将短暂不可用',
       avatar: '',
       time: '2023-04-20T10:15:00Z',
       important: false

@@ -2,12 +2,14 @@
     <div class="container">
         <FrontendHeader class="header"></FrontendHeader>
         <div class="main-content">
-            <QuestionList @select="handleQuestionSelect"></QuestionList>
+            <QuestionList :question-bank-id="questionBankId" :selected-question-id="currentQuestionId"
+                :current-question-id="currentQuestionId" @select="handleQuestionSelect">
+            </QuestionList>
             <div class="question-box">
                 <div class="question-content">
                     <!-- 题目标题区域 -->
                     <div class="question-title-box" v-if="currentQuestion">
-                        <div class="question-title">{{ `${currentQuestion.id}. ${currentQuestion.title}` }}</div>
+                        <div class="question-title">{{ currentQuestion.title }}</div>
                         <div class="question-tags">
                             <el-tag size="small" class="tag-difficulty"
                                 :style="{ backgroundColor: difficultyColors[currentQuestion.difficulty] || '#909399' }">
@@ -28,12 +30,18 @@
                         </div>
                     </div>
 
+                    <!-- 加载状态 -->
+                    <div v-if="loading" class="loading-wrapper">
+                        <el-skeleton :rows="8" animated />
+                    </div>
+
                     <!-- 答案内容区域 -->
-                    <QuestionAnswer v-if="currentQuestion" :question-id="currentQuestion.id"
-                        :content="currentQuestion.content" :answer="currentQuestion.answer"></QuestionAnswer>
+                    <QuestionAnswer v-else-if="currentQuestion" :question-id="currentQuestion.id"
+                        :content="currentQuestion.content" :answer="currentQuestion.answer">
+                    </QuestionAnswer>
 
                     <!-- 上一题下一题控制区 -->
-                    <div class="control-box">
+                    <div class="control-box" v-if="!loading">
                         <div class="pre" v-if="adjacentQuestions?.previous"
                             @click="navigateToQuestion(adjacentQuestions.previous.id)">
                             上一题
@@ -59,13 +67,14 @@
                         </div>
                         <div v-else class="next disabled">
                             下一题
-                            <div class="pre-next-question-title disabled">
-                                没有下一题
+                            <!-- <div class="pre-next-question-title disabled"> -->
+                            <div class="next">
+                                请介绍操作系统的内存管理方式...
                             </div>
                         </div>
                     </div>
 
-                    <Comments></Comments>
+                    <Comments v-if="!loading"></Comments>
                     <div style="width: 120px;height: 80px;"></div>
                 </div>
 
@@ -171,6 +180,10 @@ const tableOfContents = ref<TableOfContent[]>([])
 const activeSection = ref<string>('')
 const loading = ref(false)
 
+// 计算属性
+const questionBankId = computed(() => route.query.questionBankId as string || '')
+const currentQuestionId = computed(() => route.params.id as string || '')
+
 // 难度映射
 const difficultyMap: Record<string, string> = {
     '简单': '简单',
@@ -211,21 +224,11 @@ const fetchQuestionDetail = async (questionId: string) => {
             await fetchAdjacentQuestions(questionId)
         } else {
             ElMessage.error(response.message || '获取题目详情失败')
+            currentQuestion.value = null
         }
     } catch (error) {
-        console.error('获取题目详情失败:', error)
         ElMessage.error('获取题目详情失败')
-        // 如果获取失败，也设置相邻题目的兜底数据
-        adjacentQuestions.value = {
-            previous: {
-                id: '415',
-                title: 'Java中什么是反射机制?'
-            },
-            next: {
-                id: '417',
-                title: 'Java中什么是序列化?'
-            }
-        }
+        currentQuestion.value = null
     } finally {
         loading.value = false
     }
@@ -236,27 +239,13 @@ const fetchAdjacentQuestions = async (currentId: string) => {
     try {
         const response = await getAdjacentQuestions({
             currentId,
-            questionBankId: route.query.questionBankId as string
+            questionBankId: questionBankId.value
         })
         if (response.code === 0) {
             adjacentQuestions.value = response.data
         }
     } catch (error) {
-        console.error('获取相邻题目失败:', error)
-    }
-
-    // 确保总是有一些数据用于测试显示（即使API失败）
-    if (!adjacentQuestions.value) {
-        adjacentQuestions.value = {
-            previous: {
-                id: '415',
-                title: 'Java中什么是反射机制?'
-            },
-            next: {
-                id: '417',
-                title: 'Java中什么是序列化?'
-            }
-        }
+        // 静默处理错误
     }
 }
 
@@ -350,22 +339,43 @@ const scrollToSection = (sectionId: string) => {
             }
 
             activeSection.value = sectionId
-        } 
+        }
     })
 }
 
-// 处理问题选择（接收子组件事件）
-const handleQuestionSelect = (questionId: string) => {
-    navigateToQuestion(questionId)
+// 处理问题选择
+const handleQuestionSelect = async (questionId: string) => {
+    try {
+        if (!questionId || questionId === currentQuestionId.value) {
+            return
+        }
+        await navigateToQuestion(questionId)
+    } catch (error) {
+        ElMessage.error('切换题目失败')
+    }
 }
 
 // 跳转到指定题目
-const navigateToQuestion = (questionId: string) => {
-    router.push({
-        name: 'Question',
-        params: { id: questionId },
-        query: route.query // 保持当前查询参数
-    })
+const navigateToQuestion = async (questionId: string) => {
+    try {
+        if (!questionId) {
+            throw new Error('题目ID为空')
+        }
+
+        const newRoute = {
+            name: 'question',
+            params: { id: questionId },
+            query: { ...route.query }
+        }
+
+        await router.replace(newRoute)
+
+    } catch (error: any) {
+        if (error?.name === 'NavigationDuplicated' || error?.name === 'NavigationCancelled') {
+            return
+        }
+        throw error
+    }
 }
 
 // 处理操作点击
@@ -380,12 +390,15 @@ const handleOptionClick = (action: string) => {
         case 'star':
             ElMessage.success('收藏功能待实现')
             break
+        case 'view':
+            ElMessage.success('浏览功能待实现')
+            break
     }
 }
 
 // 监听路由参数变化
-watch(() => route.params.id, (newId) => {
-    if (newId && typeof newId === 'string') {
+watch(() => route.params.id, (newId, oldId) => {
+    if (newId && typeof newId === 'string' && newId !== oldId) {
         fetchQuestionDetail(newId)
     }
 }, { immediate: true })
@@ -435,9 +448,17 @@ onMounted(() => {
     height: 100%;
 }
 
+.loading-wrapper {
+    width: 100%;
+    background-color: #ffffff;
+    border-radius: 10px;
+    padding: 26px;
+    margin-bottom: 20px;
+}
+
 .question-title-box {
     width: 100%;
-    height: 168px;
+    min-height: 120px;
     background-color: #ffffff;
     border-radius: 10px;
     margin-bottom: 20px;
@@ -447,16 +468,17 @@ onMounted(() => {
 .question-title-box .question-title {
     font-size: 22px;
     font-weight: 600;
+    line-height: 1.4;
+    margin-bottom: 15px;
 }
 
 .question-tags {
-    margin-top: 10px;
+    margin-bottom: 20px;
     font-size: 12px;
 }
 
 .question-options {
     display: flex;
-    margin-top: 35px;
     color: #989a9a;
 }
 
@@ -465,6 +487,7 @@ onMounted(() => {
     display: flex;
     align-items: center;
     margin-right: 25px;
+    transition: color 0.2s;
 }
 
 .question-options .option-item:hover {
@@ -492,7 +515,7 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     width: 100%;
-    height: 100px;
+    min-height: 80px;
     background-color: #ffffff;
     border-radius: 10px;
     margin-bottom: 20px;
@@ -523,7 +546,7 @@ onMounted(() => {
 }
 
 .pre-next-question-title {
-    margin-top: 4px;
+    margin-top: 8px;
     font-size: 12px;
     color: #1677ff;
     cursor: pointer;
@@ -531,6 +554,9 @@ onMounted(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .pre-next-question-title.disabled {

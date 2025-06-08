@@ -122,57 +122,61 @@ const availableBooks = computed(() => {
 // 带解析的题目数据
 const questions = ref<Question[]>([
     {
-        title: "1.什么是线程安全？（ ）",
+        title: "1.下列关于进程和线程的描述，正确的是：",
         options: [
-            "A.多线程访问某一共享资源",
-            "B.在多线程环境下",
-            "C.多个线程同时访问同一资源时",
-            "D.多个线程同时访问同一资源时，能够保证数据的一致性和正确性"
-        ],
-        correctAnswer: "D",
-        explanation: "线程安全是指多个线程同时访问同一共享资源时，能够保证资源的状态保持一致且符合预期。选项D准确描述了线程安全的定义。",
-        knowledgePoint: "线程安全",
-        relatedQuestion: "线程安全的实现方式有哪些?"
-    },
-    {
-        title: "2.Vue3中的Composition API相比Options API的主要优势是？（ ）",
-        options: [
-            "A.更简洁的语法",
-            "B.更好的类型推导支持",
-            "C.更好的代码组织和逻辑复用",
-            "D.更小的打包体积"
-        ],
-        correctAnswer: "C",
-        explanation: "Composition API的核心优势在于能够更好地组织和复用逻辑代码，特别是在处理复杂组件时。",
-        knowledgePoint: "Vue3 Composition API",
-        relatedQuestion: "Composition API中ref和reactive的区别?"
-    },
-    {
-        title: "3.TypeScript的主要作用是？（ ）",
-        options: [
-            "A.提升代码性能",
-            "B.提供静态类型检查",
-            "C.减少代码量",
-            "D.增强CSS功能"
+            "A. 进程是任务执行的基本单位，线程是资源分配的基本单位",
+            "B. 进程是资源分配的基本单位，线程是任务执行的基本单位",
+            "C. 进程和线程都是资源分配的基本单位",
+            "D. 进程和线程都是任务执行的基本单位"
         ],
         correctAnswer: "B",
-        explanation: "TypeScript的核心功能是提供静态类型系统，可以在编译时检测类型错误，提高代码质量和开发效率。",
-        knowledgePoint: "TypeScript类型系统",
-        relatedQuestion: "TypeScript中的interface和type有什么区别?"
+        explanation: " 进程是操作系统资源分配的基本单位，拥有独立的内存空间；线程是进程内的任务执行单位，共享所属进程的资源。",
+        knowledgePoint: "进程与线程",
+        relatedQuestion: "在Linux系统中，执行fork()系统调用后，父进程和子进程的关系是什么？子进程会继承父进程的哪些资源？"
     },
-    // 添加截图中的题目
     {
-        title: "4.以下关于接口成员变量的描述正确的是？（ ）",
+        title: "2.关于进程和线程的资源管理和通信机制，下列说法错误的是：",
         options: [
-            "A.接口中的成员变量默认为public static final。",
-            "B.接口中的成员变量可以为private。",
-            "C.接口中的成员变量是实例变量。",
-            "D.接口不能包含成员变量。"
+            "A. 进程间通信需要使用IPC机制，如管道、信号量、共享内存等",
+            "B. 线程可以直接读写进程内存，但需要同步控制避免竞态条件",
+            "C. 进程切换开销较高，因为需要切换虚拟地址空间",
+            "D. 线程间可以直接共享文件句柄和系统资源"
         ],
-        correctAnswer: "A",
-        explanation: "在接口中，成员变量默认是public static final，即常量。",
-        knowledgePoint: "接口成员变量",
-        relatedQuestion: "接口和抽象类有什么区别?"
+        correctAnswer: "D",
+        explanation: " 线程共享所属进程的资源，包括内存空间，但文件句柄等系统资源是进程级别的。线程间通信主要通过共享内存变量实现，而不是直接共享系统资源。",
+        knowledgePoint: "进程间通信",
+        relatedQuestion: "请比较管道(pipe)、消息队列(message queue)、共享内存(shared memory)三种IPC机制的特点，并说明各自的适用场景。"
+    },
+    {
+        title: "3.以下应用场景中，最适合使用多进程架构而非多线程架构的是：",
+        options: [
+            "A. GUI应用程序中分离界面线程和业务逻辑线程",
+            "B. Web服务器使用连接线程池处理用户请求",
+            "C. 浏览器为每个标签页分配独立的执行环境",
+            "D. 游戏引擎中分离渲染线程、逻辑线程和音频线程"
+        ],
+        correctAnswer: "C",
+        explanation: "浏览器标签页使用多进程架构可以确保一个标签页崩溃不影响其他标签页，提高稳定性。其他选项都更适合多线程架构，因为需要高效的数据共享和低切换开销。",
+        knowledgePoint: "多进程架构",
+        relatedQuestion: " Apache Web服务器的prefork模式和worker模式分别采用什么并发模型？各有什么优缺点？在什么情况下选择哪种模式？"
+    },
+    {
+    title: `4.考虑以下代码场景，在多线程环境下访问全局变量 global_counter：
+        cint global_counter = 0;
+        void increment() {
+            global_counter++;  // 非原子操作
+        }
+        关于这种情况的分析，正确的是：`,
+        options: [
+                "A. 多个线程同时调用increment()是安全的，因为线程共享进程内存",
+                "B. 需要使用互斥锁等同步机制保护临界区，防止竞态条件",
+                "C. 应该为每个线程创建独立的进程来避免数据冲突",
+                "D. 可以通过进程间通信(IPC)来安全地访问共享变量"
+        ],
+        correctAnswer: "B",
+        explanation: "虽然线程可以直接访问共享内存，但对共享变量的非原子操作会产生竞态条件。需要使用mutex、semaphore等同步机制来保护临界区，确保数据一致性。选项C和D的解决方案过度复杂且不必要。",
+        knowledgePoint: "多线程编程",
+        relatedQuestion: "请设计一个生产者-消费者模型，使用信号量(semaphore)机制解决同步问题。说明如何避免缓冲区溢出和数据竞争。"
     }
 ]);
 
@@ -258,6 +262,7 @@ const confirmAddToWrongBook = () => {
     margin-bottom: 30px;
     display: flex;
     align-items: center;
+    white-space: pre-line;
 }
 
 .wrong-book-icon {
