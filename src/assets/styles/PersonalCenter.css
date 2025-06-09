@@ -147,7 +147,7 @@
 
 .username {
     margin-left: 15px;
-    transform: translateY(-110%);
+    transform: translateY(-95%);
     font-size: 20px;
     font-weight: 600;
     margin: 0;
@@ -163,6 +163,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-height: 18px;
 }
 
 /* 个人资料内容 */
