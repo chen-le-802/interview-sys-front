@@ -60,6 +60,7 @@ declare module 'vue' {
     ATypographyText: typeof import('ant-design-vue/es')['TypographyText']
     ATypographyTitle: typeof import('ant-design-vue/es')['TypographyTitle']
     AUpload: typeof import('ant-design-vue/es')['Upload']
+    AUploadDragger: typeof import('ant-design-vue/es')['UploadDragger']
     Bank: typeof import('./components/shared/Bank.vue')['default']
     BankIcon: typeof import('./components/BankIcon.vue')['default']
     BankList: typeof import('./components/shared/bankList.vue')['default']
