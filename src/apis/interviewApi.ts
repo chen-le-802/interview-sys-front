@@ -114,6 +114,13 @@ uploadResume: async (file: File): Promise<BaseResponse<string>> => {
       url: `/api/resume/${id}`,
       method: 'DELETE'
     })
+  },
+  startResumeInterviewOnResume:(resumeId?: string,type?:string): Promise<BaseResponse<string>> => {
+    return request({
+      url: `/api/resume/${resumeId}/interview/start`,
+      method: 'POST',
+      params: { type}
+    })
   }
   
 }

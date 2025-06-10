@@ -198,9 +198,28 @@
     </div>
 
     <!-- 面试岗位选择模态框，只展示用户个人信息中的目标岗位 -->
-    <a-modal v-model:open="showInterviewModal" title="选择面试岗位" :width="400" :maskClosable="false"
+    <a-modal v-model:open="showInterviewModal" title="选择面试方式及岗位" :width="400" :maskClosable="false"
         @ok="confirmStartInterview" @cancel="showInterviewModal = false">
         <div class="interview-modal-content">
+            <p class="modal-description">请选择您想面试的方式</p>
+            <div class="job-position-selector">
+                <label class="selector-label">我选择的面试方式</label>
+                <a-select v-model:value="selectedInterviewWays" class="job-select" placeholder="请选择面试方式"
+                    :disabled="selectablePositions.length === 0">
+                    <a-select-option v-for="option in interviewWays" :key="option.value" :value="option.value">
+                        {{ option.label }}
+                    </a-select-option>
+                </a-select>
+            </div>
+            <div class="job-position-selector" v-if="selectedInterviewWays === 'resume-interview'" style="padding-top: 0px;">
+                <label class="selector-label">我选择的简历</label>
+                <a-select v-model:value="selectedInterviewResumeId" class="job-select" placeholder="请选择您的简历"
+                    :disabled="selectablePositions.length === 0">
+                    <a-select-option v-for="resume in resumes" :key="resume.id" :value="resume.id">
+                        {{ resume.name }}
+                    </a-select-option>
+                </a-select>
+            </div>
             <p class="modal-description">请选择您想要参与面试的岗位：</p>
             <div class="job-position-selector">
                 <label class="selector-label">我想参与</label>
@@ -264,7 +283,7 @@
 <a-modal 
     v-model:open="showPreviewResumeModal" 
     title="简历预览" 
-    :width="1200"
+    :width="1100"
     :footer="null"
     wrapClassName="resume-preview-modal"
     style="top:20px"
@@ -316,11 +335,15 @@ import {
     LogoutOutlined,
     InboxOutlined, EyeOutlined, LeftOutlined, RightOutlined 
 } from '@ant-design/icons-vue'
-import { interviewApi, type InterviewVO, type BaseResponse } from '@/apis/interviewApi'
+import { interviewApi, type InterviewVO, type BaseResponse, type ResumeVO } from '@/apis/interviewApi'
 import { getCurrentUser } from '@/apis/authApi'
 
 // 全量岗位选项，用于 value => label 的映射
 interface JobPositionOption {
+    label: string
+    value: string
+}
+interface InterviewWays{
     label: string
     value: string
 }
@@ -337,7 +360,10 @@ const allJobPositionOptions: JobPositionOption[] = [
     { label: '市场营销', value: 'marketing' },
     { label: '其他', value: 'other' }
 ]
-
+const interviewWays: InterviewWays[] = [
+    { label: '按简历面试', value: 'resume-interview' },
+    { label: '普通面试', value: 'normal-interview' },
+]
 const router = useRouter()
 // 响应式数据
 const interviewRecords = ref<InterviewVO[]>([])
@@ -372,6 +398,8 @@ const previewResumeUrl = ref<string>(''); // 确保使用 ref 创建响应式变
 const currentPageNum = ref(1);
 const totalPages = ref(1);
 const selectedResumeId = ref<string | null>(null);
+const selectedInterviewWays = ref<string>(''); // 用于存储用户选择的面试方式
+const selectedInterviewResumeId = ref<string>(''); // 用于存储用户选择的简历ID，默认为空字符串
 
 // 时间管理
 const baseTime = ref<Date | null>(null)
@@ -604,23 +632,41 @@ const showInterviewDialog = () => {
 
 // 确认开始新面试，把选定的岗位 value 传给后端
 const confirmStartInterview = async () => {
-    if (!selectedJobPosition.value) {
+     if (!selectedJobPosition.value) {
         ElMessage.warning('请选择面试岗位')
         return
     }
-    showInterviewModal.value = false
-    await startNewInterview(selectedJobPosition.value)
+    if(!selectedInterviewWays.value) {
+        ElMessage.warning('请选择面试方式')
+        return
+    }
+    if (selectedInterviewWays.value === 'resume-interview' && !selectedInterviewResumeId.value) {
+        ElMessage.warning('请选择简历')
+        return
+    }
+    // 如果是按简历面试，传简历ID和岗位value
+    if (selectedInterviewWays.value === 'resume-interview') {
+        showInterviewModal.value = false
+        await startNewInterview(selectedJobPosition.value,selectedInterviewResumeId.value)
+    }
+   
+    // 如果是普通面试，直接传岗位 value
+    if (selectedInterviewWays.value === 'normal-interview') {
+        showInterviewModal.value = false
+        await startNewInterview(selectedJobPosition.value)
+    }
 }
 
 // 开始面试
-const startNewInterview = async (jobPosition?: string) => {
+const startNewInterview = async (jobPosition?: string,resumeId?:string) => {
     try {
         startingInterview.value = true
         chatMessages.value = []
         currentInterviewId.value = null
         isInterviewActive.value = false
-        const response: BaseResponse<string> = await interviewApi.startInterview(jobPosition)
-        if (response.code === 0) {
+        if(selectedInterviewWays.value==='normal-interview') {
+            const response: BaseResponse<string> = await interviewApi.startInterview(jobPosition)
+            if (response.code === 0) {
             
             currentInterviewId.value = 'current-interview-' + Date.now()
             isInterviewActive.value = true
@@ -639,6 +685,28 @@ const startNewInterview = async (jobPosition?: string) => {
         } else {
             ElMessage.error(response.message || '开始面试失败')
         }
+        } else if(selectedInterviewWays.value==='resume-interview') {
+            const response: BaseResponse<string> = await interviewApi.startResumeInterviewOnResume(resumeId, jobPosition)
+            if (response.code === 0) {
+                currentInterviewId.value = 'current-interview-' + Date.now()
+                isInterviewActive.value = true
+                chatMessages.value = []
+                
+                // 设置基准时间为当前时间
+                baseTime.value = new Date()
+                
+                // 显示AI面试官开场白
+                if (response.data) {
+                    addMessage('ai', response.data)
+                }
+
+                ElMessage.success('面试开始成功')
+            } else {
+                ElMessage.error(response.message || '开始面试失败')
+            }
+        }
+        
+        
     } catch (error) {
         ElMessage.error('开始面试失败')
     } finally {
@@ -1483,7 +1551,7 @@ const deleteResume = async (resume: any) => {
 }
 
 .modal-description {
-    margin-bottom: 20px;
+    margin-top:20px;
     color: #666;
     font-size: 14px;
     text-align: center;
@@ -1492,7 +1560,7 @@ const deleteResume = async (resume: any) => {
 .job-position-selector {
     display: flex;
     align-items: center;
-    justify-content: center;
+    padding:15px;
     gap: 8px;
     flex-wrap: wrap;
 }
@@ -1504,7 +1572,7 @@ const deleteResume = async (resume: any) => {
 }
 
 .job-select {
-    min-width: 140px;
+    min-width: 300px;
     flex: 1;
     max-width: 200px;
 }
@@ -1619,7 +1687,7 @@ const deleteResume = async (resume: any) => {
     display: flex;
     flex-direction: column;
     height: 700px;
-    width: 100%;
+    
 }
 
 .preview-toolbar {
@@ -1631,16 +1699,17 @@ const deleteResume = async (resume: any) => {
 }
 
 .pdf-viewer-container {
-    flex: 1;
+    flex:1;
     overflow: auto;
     border: 1px solid #f0f0f0;
 }
 .pdf-viewer-container {
-    transform: scale(0.8); /* 缩小到80% */
+    transform: scale(0.8);
     transform-origin: top left;
-    width: 125%; /* 反向调整宽度以补偿缩放 */
-    height: 125%; /* 反向调整高度以补偿缩放 */
+    width: 125%;   /* 1/0.8 = 1.25，补偿缩放后的宽度 */
+    height: 125%;  /* 同理补偿高度 */
 }
+
 /* 调整PDF预览样式 */
 .resume-preview-modal .ant-modal-body {
     padding: 16px;
@@ -1653,4 +1722,5 @@ const deleteResume = async (resume: any) => {
     width: 100%;
     height: 100%;
 }
+
 </style>
