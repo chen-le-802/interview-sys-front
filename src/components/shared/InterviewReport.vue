@@ -97,53 +97,43 @@
     </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue';
+<script lang="ts" setup>
+import { ref, watch, onMounted } from 'vue';
 import { InfoCircleOutlined } from '@ant-design/icons-vue';
+import { defineProps } from 'vue';
+import { interviewApi } from '@/apis/interviewApi';
 
 interface StrengthItem {
-    title: string;
-    description: string;
+  title: string;
+  description: string;
 }
-
 interface ImprovementItem {
-    title: string;
-    description: string;
+  title: string;
+  description: string;
 }
-
 interface CandidateInfo {
-    name: string;
-    position: string;
-    time: string;
-    duration: string;
+  name: string;
+  position: string;
+  time: string;
+  duration: string;
 }
-
 interface ReportData {
-    score: number;
-    candidate: CandidateInfo;
-    summary: string;
-    strengths: StrengthItem[];
-    improvements: ImprovementItem[];
-    recommendation: string;
-    recommendationTag: string;
+  score: number;
+  candidate: CandidateInfo;
+  summary: string;
+  strengths: StrengthItem[];
+  improvements: ImprovementItem[];
+  recommendation: string;
+  recommendationTag: string;
 }
 
-export default defineComponent({
-    name: 'AiAssessment',
-    components: {
-        InfoCircleOutlined
-    },
-    setup() {
-        // 控制是否有数据
-        const hasData = ref(true); // 改为true以显示数据
-        const report = ref<ReportData>({
+// 1. 接收 interviewId 作为 prop
+const props = defineProps<{ interviewId: string | null }>();
+
+const hasData = ref(false);
+const report = ref<ReportData>({
   score: 0,
-  candidate: {
-    name: '',
-    position: '',
-    time: '',
-    duration: ''
-  },
+  candidate: { name: '', position: '', time: '', duration: '' },
   summary: '',
   strengths: [],
   improvements: [],
@@ -151,66 +141,41 @@ export default defineComponent({
   recommendationTag: ''
 });
 
-        const refresh = () => {
-            console.log('刷新页面');
-            // 这里可以添加刷新逻辑
-        };
+const refresh = () => {
+  if (props.interviewId) fetchReport(props.interviewId);
+};
 
-        // 加载mock数据
-        onMounted(() => {
-            report.value = {
-                score: 86,
-                candidate: {
-                    name: "张明远",
-                    position: "高级前端开发工程师",
-                    time: "2023-06-15 14:30",
-                    duration: "45分钟"
-                },
-                summary: "候选人展现了扎实的前端技术基础和丰富的项目经验，尤其在Vue和React框架的应用上有深入理解。沟通表达清晰，逻辑思维能力强，但在系统设计方面还有提升空间。整体表现优秀，符合高级前端开发工程师的要求。",
-                strengths: [
-                    {
-                        title: "技术基础扎实",
-                        description: "对JavaScript核心概念、ES6+新特性、CSS布局等有深入理解，能够熟练解决复杂的前端问题。"
-                    },
-                    {
-                        title: "框架应用熟练",
-                        description: "在Vue和React项目开发中展现了丰富的实战经验，熟悉组件化开发、状态管理等核心概念。"
-                    },
-                    {
-                        title: "沟通表达能力强",
-                        description: "能够清晰表达技术观点，回答问题逻辑性强，展现了良好的团队协作潜力。"
-                    },
-                    {
-                        title: "学习能力强",
-                        description: "对新技术保持关注，能够快速学习并应用到实际项目中，展示了持续学习的能力。"
-                    }
-                ],
-                improvements: [
-                    {
-                        title: "系统设计能力",
-                        description: "在大型前端架构设计方面经验稍显不足，建议加强微前端、性能优化等领域的实践。"
-                    },
-                    {
-                        title: "测试覆盖意识",
-                        description: "对单元测试和E2E测试的重视程度可以进一步提高，建议在项目中增加测试覆盖率。"
-                    },
-                    {
-                        title: "技术深度拓展",
-                        description: "可以进一步深入研究前端性能优化、WebAssembly等前沿技术，提升技术竞争力。"
-                    }
-                ],
-                recommendation: "候选人整体表现优秀，技术能力和沟通能力都符合高级前端开发工程师的要求。建议进入下一轮技术面试，重点考察系统设计能力和项目架构经验。",
-                recommendationTag: "推荐复试"
-            };
-        });
-
-        return {
-            hasData,
-            report,
-            refresh
-        };
+// 2. 获取报告数据的异步方法（请替换为你的实际 API 调用）
+async function fetchReport(interviewId: string) {
+  try {
+    const res = await interviewApi.getInterviewReport(interviewId);
+    const data = res.data;
+    if (data && res.code === 0 && res.data) {
+      report.value = {
+        score: data.score,
+        candidate: data.candidate,
+        summary: data.summary,
+        strengths: data.strengths,
+        improvements: data.improvements,
+        recommendation: data.recommendation,
+        recommendationTag: data.recommendationTag
+      };
+      hasData.value = true;
+    } else {
+      hasData.value = false;
     }
-});
+  } catch (error) {
+    console.error('获取报告数据失败:', error);
+    hasData.value = false;
+  }
+}
+
+
+// 3. 监听 interviewId 变化
+watch(() => props.interviewId, (newId) => {
+  if (newId) fetchReport(newId);
+}, { immediate: true });
+
 </script>
 
 <style scoped>

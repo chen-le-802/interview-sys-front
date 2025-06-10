@@ -127,6 +127,7 @@
                             fontWeight: currentPage === 'report' ? 'bold' : 'normal'
                         }"
                         @click="changeCurrentPage('report')"
+                        
                     >
                         评估报告
                     </a-button>
@@ -557,11 +558,13 @@ const sendMessage = async () => {
 const endCurrentInterview = async () => {
     try {
         endingInterview.value = true
+        await interviewApi.userReply("结束面试")
         const response: BaseResponse<string> = await interviewApi.endInterview()
 
         if (response.code === 0) {
             isInterviewActive.value = false
             ElMessage.success('面试已结束')
+           
             
             // 结束面试后，重新加载面试记录
             await loadInterviewRecords()

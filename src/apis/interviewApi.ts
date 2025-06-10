@@ -43,6 +43,29 @@ export interface ResumeVO{
   name: string
   fileUrl: string
 }
+export interface ReportVO {
+  id: number
+  interviewId: number
+  score: number
+  candidate: {
+    name: string
+    position: string
+    time: string
+    duration: string
+  }
+  summary: string
+  strengths: {
+    title: string
+    description: string
+  }[]
+  improvements: {
+    title: string
+    description: string
+  }[]
+  recommendation: string
+  recommendationTag: string
+  createTime: number
+}
 
 // 面试相关API
 export const interviewApi = {
@@ -120,6 +143,12 @@ uploadResume: async (file: File): Promise<BaseResponse<string>> => {
       url: `/api/resume/${resumeId}/interview/start`,
       method: 'POST',
       params: { type}
+    })
+  },
+  getInterviewReport: (interviewId: string): Promise<BaseResponse<ReportVO>> => {
+    return request({
+      url: `/api/interview/assessment/${interviewId}`,
+      method: 'GET'
     })
   }
   
