@@ -105,6 +105,7 @@ declare module 'vue' {
     QuestionList: typeof import('./components/shared/QuestionList.vue')['default']
     QuestionRankList: typeof import('./components/shared/QuestionRankList.vue')['default']
     RankList: typeof import('./components/shared/RankList.vue')['default']
+    Resume: typeof import('./components/shared/Resume.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Table: typeof import('./components/shared/Table.vue')['default']

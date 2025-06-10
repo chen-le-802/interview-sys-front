@@ -74,9 +74,24 @@
                             @click="selectResume(resume)"
                         >
                             {{ resume.name }}
-                            <a-button type="text" class="preview-btn" @click.stop="previewResume(resume)">
+                            <a-button 
+                                type="text" 
+                                class="preview-btn" 
+                                @click.stop="previewResume(resume)" 
+                                style="padding: 0 4px; min-width: 30px; height: 24px;"
+                            >
                                 <EyeOutlined />
                             </a-button>
+                            <a-popconfirm
+                                title="确定要删除该简历吗？"
+                                ok-text="删除"
+                                cancel-text="取消"
+                                @confirm="deleteResume(resume)"
+                            >
+                                <a-button type="text" danger @click.stop style="padding: 0 4px; min-width: 30px; height: 24px;">
+                                    <DeleteOutlined />
+                                </a-button>
+                            </a-popconfirm>
                         </div>
                     </div>
                 </div>
@@ -211,38 +226,40 @@
     </a-modal>
     <!-- 上传简历 -->
     <a-modal 
-    v-model:open="showUploadResumeModal" 
-    title="上传简历" 
-    :width="600"
-    :maskClosable="false"
-    :footer="null"
->
-    <div class="resume-upload-container">
-        <a-upload-dragger
-            name="resume"
-            :multiple="false"
-            :before-upload="beforeUpload"
-            :showUploadList="true"
-            accept=".pdf"
-        >
-            <p class="ant-upload-drag-icon">
-                <InboxOutlined />
-            </p>
-            <p class="ant-upload-text">点击或拖拽PDF文件到此处上传</p>
-            <p class="ant-upload-hint">仅支持PDF格式，文件大小不超过5MB</p>
-        </a-upload-dragger>
-        
-        <div v-if="uploading" class="uploading-progress">
-            <a-progress :percent="uploadProgress" status="active" />
-            <p>正在上传 {{ uploadFileName }}...</p>
+        v-model:open="showUploadResumeModal" 
+        title="上传简历" 
+        :width="600"
+        :maskClosable="false"
+        :footer="null"
+    >
+        <div class="resume-upload-container">
+            <a-upload-dragger
+                name="resume"
+                :multiple="false"
+                :before-upload="beforeUpload"
+                :showUploadList="true"
+                accept=".pdf"
+                :file-list="selectedFile ? [{ uid: '-1', name: uploadFileName, status: uploading ? 'uploading' : 'done' }] : []"
+                @remove="cancelUpload"
+            >
+                <p class="ant-upload-drag-icon">
+                    <InboxOutlined />
+                </p>
+                <p class="ant-upload-text">点击或拖拽PDF文件到此处上传</p>
+                <p class="ant-upload-hint">仅支持PDF格式，文件大小不超过5MB</p>
+            </a-upload-dragger>
+            
+            <div v-if="uploading" class="uploading-progress">
+                <a-progress :percent="uploadProgress" status="active" />
+                <p>正在上传 {{ uploadFileName }}...</p>
+            </div>
+            
+            <div class="upload-actions" v-if="selectedFile">
+                <a-button @click="cancelUpload">取消</a-button>
+                <a-button type="primary" @click="handleUpload" :loading="uploading"style="margin-left: 10px;">开始上传</a-button>
+            </div>
         </div>
-        
-        <div class="upload-actions" v-if="selectedFile">
-            <a-button @click="cancelUpload">取消</a-button>
-            <a-button type="primary" @click="handleUpload" :loading="uploading">开始上传</a-button>
-        </div>
-    </div>
-</a-modal>
+    </a-modal>
 <!-- 简历预览模态框 -->
 <a-modal 
     v-model:open="showPreviewResumeModal" 
@@ -265,11 +282,10 @@
         
         <div class="pdf-viewer-container">
             <vue-pdf-embed 
-                :source="previewResumeUrl" 
+                :source="previewResumeUrl"
                 :page="currentPageNum"
                 class="pdf-viewer"
-                :width="1200"
-                
+                :width="1200"  
             />
         </div>
     </div>
@@ -283,6 +299,14 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { message } from 'ant-design-vue';
 import VuePdfEmbed from 'vue-pdf-embed';
+import {DeleteOutlined} from '@ant-design/icons-vue'
+
+import * as pdfjsLib from 'pdfjs-dist';
+
+import testUrl from '../../assets/images/frontend/陈佳莉-前端开发工程师-贵州大学.pdf'
+// 1. 初始化 pdf.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = 
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
 import {
     PlusOutlined,
     ClockCircleOutlined,
@@ -344,7 +368,7 @@ const uploading = ref(false);
 const uploadProgress = ref(0);
 const uploadFileName = ref('');
 const selectedFile = ref<File | null>(null);
-const previewResumeUrl = ref('');
+const previewResumeUrl = ref<string>(''); // 确保使用 ref 创建响应式变量
 const currentPageNum = ref(1);
 const totalPages = ref(1);
 const selectedResumeId = ref<string | null>(null);
@@ -379,7 +403,7 @@ const selectablePositions = computed<JobPositionOption[]>(() => {
 onMounted(async () => {
     await loadUserInfo()
     await loadInterviewRecords()
-    loadResumes();
+    await loadResumes();
 
 })
 
@@ -645,46 +669,72 @@ const formatTime = (timestamp: Date) => {
 }
 
 // 简历相关逻辑
-// 简历mock数据
 const resumes = ref<Array<{
     id: string;
     name: string;
-    fileData: string; // 存储为base64
-    createdAt: number;
+    fileUrl: string;
+    [key:string] : any;
 }>>([]);
 const showUploadModal = () => {
     showUploadResumeModal.value = true;
 };
+const beforeUpload = async (file: File) => {
+  // 更可靠的文件类型验证
+  if (!file.name.toLowerCase().endsWith('.pdf') || 
+      (file.type && file.type !== 'application/pdf')) {
+    message.error('只能上传PDF文件');
+    return false;
+  }
+  
+  if (file.size > 5 * 1024 * 1024) {
+    message.error('文件大小不能超过5MB');
+    return false;
+  }
 
-const beforeUpload = (file: File) => {
-    // 验证文件类型
-    if (file.type !== 'application/pdf') {
-        message.error('只能上传PDF文件');
-        return false;
+
+    const isTextBased = checkTextBasedPDF(file);
+    if (!isTextBased) {
+      message.error('请上传文字版PDF，扫描件或图片PDF不被接受');
+      return false;
     }
-    
-    // 验证文件大小
-    if (file.size > 5 * 1024 * 1024) {
-        message.error('文件大小不能超过5MB');
-        return false;
-    }
-    
     selectedFile.value = file;
     uploadFileName.value = file.name;
-    return false; // 阻止自动上传
+    return false; // 阻止默认上传行为
 };
-// 使用LocalStorage模拟数据持久化
-const RESUME_STORAGE_KEY = 'ai_interviewer_resumes';
+async function checkTextBasedPDF(file: File) {
+  if (!pdfjsLib || !pdfjsLib.getDocument) {
+    throw new Error('PDF.js 未正确初始化');
+  }
 
-// 保存简历到localStorage
-const saveResumes = () => {
-    localStorage.setItem(RESUME_STORAGE_KEY, JSON.stringify(resumes.value));
-};
-// 加载保存的简历
-const loadResumes = () => {
-    const saved = localStorage.getItem(RESUME_STORAGE_KEY);
-    if (saved) {
-        resumes.value = JSON.parse(saved);
+  const arrayBuffer = await file.arrayBuffer();
+  let pdf;
+  
+  try {
+    pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    
+    // 只检查第一页以提高性能
+    const page = await pdf.getPage(1);
+    const textContent = await page.getTextContent();
+    return textContent.items.length > 0;
+  } finally {
+    if (pdf) {
+      await pdf.destroy();
+    }
+  }
+}
+  
+// 加载简历
+const loadResumes = async () => {
+    const response = await interviewApi.getResumes();
+    if (response.code === 0 && Array.isArray(response.data)) {
+        resumes.value = response.data.map(item => ({
+            id: item.id,
+            name: item.name,
+            fileUrl: item.fileUrl,
+            ...item
+        }));
+    } else {
+        resumes.value = [];
     }
 };
 const handleUpload = async () => {
@@ -699,29 +749,17 @@ const handleUpload = async () => {
             uploadProgress.value += Math.random() * 10;
             if (uploadProgress.value >= 95) clearInterval(interval);
         }, 200);
-        
-        // 读取文件为base64
-        const fileReader = new FileReader();
-        const fileData = await new Promise<string>((resolve, reject) => {
-            fileReader.onload = (e) => resolve(e.target?.result as string);
-            fileReader.onerror = reject;
-            fileReader.readAsDataURL(selectedFile.value!);
-        });
-        
+
+        // 实际API调用，直接传递 File
+        const response = await interviewApi.uploadResume(selectedFile.value);
+
         clearInterval(interval);
         uploadProgress.value = 100;
+
+        if (response.code!==200) console.log('上传失败:', response.message);
         
-        // 添加到简历列表
-        const newResume = {
-            id: Date.now().toString(),
-            name: selectedFile.value.name.replace('.pdf', ''),
-            fileData,
-            createdAt: Date.now()
-        };
-        
-        resumes.value.push(newResume);
-        saveResumes();
-        
+        // 刷新简历列表
+        loadResumes();
         message.success('上传成功');
         showUploadResumeModal.value = false;
     } catch (error) {
@@ -733,7 +771,6 @@ const handleUpload = async () => {
     }
 };
 
-
 const cancelUpload = () => {
     selectedFile.value = null;
     uploading.value = false;
@@ -743,21 +780,58 @@ const cancelUpload = () => {
 const selectResume = (resume: any) => {
     selectedResumeId.value = resume.id;
 };
-
 const previewResume = async (resume: any) => {
-    previewResumeUrl.value = resume.fileData;
-    currentPageNum.value = 1;
+  try {
+    if (!resume?.fileUrl) throw new Error('无效的简历URL');
+
+    // 1. 获取 Token（示例从 localStorage 获取）
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('未登录，请重新登录');
+
+    // 2. 用 fetch 请求 PDF，并携带 Token
+    const response = await fetch(resume.fileUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`, // 关键：手动附加 Token
+      },
+      credentials: 'include', // 如果需要 Cookie
+    });
+
+    if (!response.ok) throw new Error(`请求失败: ${response.status}`);
+
+    // 3. 将 PDF 转为 Blob URL（避免后续请求不带 Token）
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    previewResumeUrl.value = blobUrl;
+
+    // 4. 显示预览
     showPreviewResumeModal.value = true;
-    
-    // 获取PDF总页数
+
+    // 5. 用 pdfjsLib 获取页数（可选）
+    const loadingTask = pdfjsLib.getDocument({ url: blobUrl });
+    const pdf = await loadingTask.promise;
+    totalPages.value = pdf.numPages;
+    await pdf.destroy();
+
+  } catch (error) {
+    console.error('预览失败:', error);
+    showPreviewResumeModal.value = false;
+  }
+};
+const deleteResume = async (resume: any) => {
     try {
-        const pdf = await VuePdfEmbed.getDocument(previewResumeUrl.value).promise;
-        totalPages.value = pdf.numPages;
+        const response = await interviewApi.deleteResume(resume.id);
+        if (response.code === 0) {
+            message.success('简历删除成功');
+            loadResumes(); // 刷新简历列表
+        } else {
+            message.error(response.message || '删除失败');
+        }
     } catch (error) {
-        console.error('获取PDF信息失败:', error);
-        totalPages.value = 1;
+        console.error('删除简历失败:', error);
+        message.error('删除简历失败');
     }
 };
+
 </script>
 
 <style scoped>

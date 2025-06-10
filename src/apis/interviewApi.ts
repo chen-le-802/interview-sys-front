@@ -38,6 +38,11 @@ export interface LoginUserVO {
   createTime: string
   updateTime: string
 }
+export interface ResumeVO{
+  id: string
+  name: string
+  fileUrl: string
+}
 
 // 面试相关API
 export const interviewApi = {
@@ -73,7 +78,44 @@ export const interviewApi = {
       url: '/api/interview/records',
       method: 'GET'
     })
+  },
+
+// 上传简历
+uploadResume: async (file: File): Promise<BaseResponse<string>> => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    return request({
+      url: '/api/resume/upload',
+      method: 'POST',
+      data: formData,
+       headers: {
+      'Content-Type': 'multipart/form-data' // 设置正确的 Content-Type
+    }
+    });
+    
+    
+  } catch (error) {
+    console.error('上传简历失败:', error);
+    throw error;
   }
+},
+
+  getResumes:(): Promise<BaseResponse<ResumeVO>> => {
+    return request({
+      url: '/api/resume/list',
+      method: 'GET'
+    })
+  },
+
+  deleteResume: (id: string): Promise<BaseResponse<string>> => {
+    return request({
+      url: `/api/resume/${id}`,
+      method: 'DELETE'
+    })
+  }
+  
 }
 
 export default request
