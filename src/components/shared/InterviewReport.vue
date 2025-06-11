@@ -433,7 +433,7 @@ watch(() => props.interviewId, (newId) => {
   position: absolute;
   width: 40%;
   height: 40%;
-  background: linear-gradient(135deg, #E1F5FE, #F7F8FC);
+  background: linear-gradient(180deg, rgba(225,245,254,0.7), rgba(247,248,252,0.1));
   border-radius: 50%;
 }
 .strength-improve{
