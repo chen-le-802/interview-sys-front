@@ -85,11 +85,11 @@
             <div class="no-data-container">
                 <div class="no-data-content">
                     <div class="no-data-icon">
-                        <InfoCircleOutlined style="font-size: 50px; color: #4F73F3;" />
+                        <InfoCircleOutlined style="font-size: 50px; color: #169DFF;" />
                     </div>
                     <h2 class="no-data-title">暂无评估报告</h2>
                     <p class="no-data-desc">请先完成面试，系统将为您生成AI评估报告</p>
-                    <button class="no-data-button" @click="refresh">刷新页面</button>
+                    <a-button type="primary" @click="refresh" style="background-color: #1677FF">刷新页面</a-button>
                 </div>
             </div>
         </template>
@@ -382,9 +382,7 @@ watch(() => props.interviewId, (newId) => {
   justify-content: center;
   align-items: center;
   height: calc(100vh - 140px);
-  background-color: #f8fafc;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .no-data-content {
@@ -408,30 +406,19 @@ watch(() => props.interviewId, (newId) => {
 
 .no-data-title {
   color: #2c3e50;
-  font-size: 24px;
+  font-size: 20px;
   margin-bottom: 12px;
   font-weight: 600;
 }
 
 .no-data-desc {
   color: #7f8c8d;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.5;
   margin-bottom: 24px;
 }
 
-.no-data-button {
-  background-color: #4F73F3;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 6px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.2);
-}
+
 
 .no-data-button:hover {
   background-color: #2980b9;
