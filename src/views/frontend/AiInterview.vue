@@ -82,7 +82,6 @@
                             v-for="resume in resumes" 
                             :key="resume.id" 
                             class="resume-item"
-                            :class="{ active: selectedResumeId === resume.id }"
                             @click="selectResume(resume)"
                         >
                             {{ resume.name }}
@@ -970,7 +969,7 @@ const deleteInterview = async (interview: InterviewVO) => {
     bottom: 0;
     width: 280px;
     height: 100vh;
-    background-color: #f3f4f6;
+    background-color: #fdfcfc;
     padding: 20px;
     overflow-y: auto;
     z-index: 999;
@@ -1200,6 +1199,7 @@ const deleteInterview = async (interview: InterviewVO) => {
     display: flex;
     flex-direction: column;
     transition: all 0.3s ease;
+    background-color: #FFFFFF;
 }
 
 .main-content.sidebar-collapsed {
@@ -1215,7 +1215,7 @@ const deleteInterview = async (interview: InterviewVO) => {
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: #f7f8fc;
+    background-color: #ffffff;
     z-index: 1000;
     gap: 20px;
     transition: all 0.3s ease;
@@ -1509,7 +1509,7 @@ const deleteInterview = async (interview: InterviewVO) => {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background: linear-gradient(180deg, rgba(247, 248, 252, 0.8) 0%, #f7f8fc 100%);
+    background: linear-gradient(180deg,  #ffffff 100%);
     backdrop-filter: blur(10px);
     z-index: 1000;
     transition: all 0.3s ease;

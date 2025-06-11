@@ -5,17 +5,15 @@
             <div class="assessment-header">
                 <h1>AI面试综合评估报告</h1>
                 <div class="overall-score">
-                    <div class="score-circle">
-                        <span class="score">{{ report.score }}</span>
-                        <span class="score-label">综合得分</span>
-                    </div>
+                    <ScoreBoard :value="report.score"/>
+                    <div class="score-bg"></div>
                 </div>
             </div>
 
             <div class="assessment-content">
                 <!-- 候选人信息 -->
                 <div class="info-card">
-                    <h2 class="card-title">候选人信息</h2>
+                    <h2 class="card-title"><el-icon color="#1C81FC" style="margin-right: 5px;"><UserFilled /></el-icon>候选人信息</h2>
                     <div class="info-grid">
                         <div class="info-item">
                             <span class="info-label">姓名：</span>
@@ -38,7 +36,7 @@
 
                 <!-- 综合评估 -->
                 <div class="assessment-card">
-                    <h2 class="card-title">综合评估</h2>
+                    <h2 class="card-title"><el-icon color="#FF964A" style="margin-right: 5px;"><List /></el-icon>综合评估</h2>
                     <div class="assessment-summary">
                         <p>{{ report.summary }}</p>
                     </div>
@@ -46,7 +44,7 @@
 
                 <!-- 核心优势 -->
                 <div class="strengths-card">
-                    <h2 class="card-title">核心优势</h2>
+                    <div class="strength-improve" style="background-color: #ECFAFB;color:#29C6E4;">优势</div>
                     <ul class="strength-list">
                         <li v-for="(strength, index) in report.strengths" :key="index" class="strength-item">
                             <div class="strength-icon">✓</div>
@@ -60,7 +58,8 @@
 
                 <!-- 改进建议 -->
                 <div class="improvements-card">
-                    <h2 class="card-title">改进建议</h2>
+                  
+                    <div class="strength-improve" style="background-color: #FFF3F3;color:#FF4683;">改进</div>
                     <ul class="improvement-list">
                         <li v-for="(improvement, index) in report.improvements" :key="index" class="improvement-item">
                             <div class="improvement-icon">!</div>
@@ -74,7 +73,7 @@
 
                 <!-- 面试建议 -->
                 <div class="recommendation-card">
-                    <h2 class="card-title">面试建议</h2>
+                    <h2 class="card-title"><el-icon color="#1C81FC" style="margin-right: 5px;"><Comment></Comment></el-icon>面试建议</h2>
                     <div class="recommendation-content">
                         <p>{{ report.recommendation }}</p>
                         <div class="recommendation-tag">{{ report.recommendationTag }}</div>
@@ -102,6 +101,8 @@ import { ref, watch, onMounted } from 'vue';
 import { InfoCircleOutlined } from '@ant-design/icons-vue';
 import { defineProps } from 'vue';
 import { interviewApi } from '@/apis/interviewApi';
+import ScoreBoard from './ScoreBoard.vue';
+import { UserFilled,List,Comment } from '@element-plus/icons-vue';
 
 interface StrengthItem {
   title: string;
@@ -209,14 +210,18 @@ watch(() => props.interviewId, (newId) => {
 }
 
 .assessment-header h1 {
-  color: #2c3e50;
+  color: #000000;
   font-size: 24px;
   margin: 0;
+  font-weight: 500;
 }
 
 .overall-score {
   display: flex;
   align-items: center;
+  justify-content: center;
+  position: relative;
+  top:25px;
 }
 
 .score-circle {
@@ -249,21 +254,23 @@ watch(() => props.interviewId, (newId) => {
 }
 
 .card-title {
-  color: #3498db;
+  color: #000000;
   font-size: 18px;
   margin: 0 0 15px 0;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #e1e5eb;
+  display: flex;
+  align-items: center;
 }
 
 .info-card, .assessment-card, .strengths-card, .improvements-card, .recommendation-card {
-  background-color: white;
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  
 }
 
 .info-grid {
+  background-color: #F9F9F9;
+  padding: 20px;
+  border-radius: 20px;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 15px;
@@ -282,7 +289,11 @@ watch(() => props.interviewId, (newId) => {
 .info-value {
   color: #333;
 }
-
+.assessment-summary,.recommendation-content{
+  background-color: #F9F9F9;
+  border-radius: 20px;
+  padding: 20px;
+}
 .assessment-summary p {
   line-height: 1.6;
   margin: 0;
@@ -307,8 +318,8 @@ watch(() => props.interviewId, (newId) => {
 .strength-icon {
   width: 24px;
   height: 24px;
-  background-color: #e3f2fd;
-  color: #2196f3;
+  background-color: #ECFAFB;
+  color: #29C6E4;
   border-radius: 50%;
   display: flex;
   justify-content: center;
@@ -430,5 +441,23 @@ watch(() => props.interviewId, (newId) => {
 
 .no-data-button:active {
   transform: translateY(0);
+}
+.score-bg {
+  position: absolute;
+  width: 40%;
+  height: 40%;
+  background: linear-gradient(135deg, #E1F5FE, #F7F8FC);
+  border-radius: 50%;
+}
+.strength-improve{
+  width:70px;
+  height: 30px;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 5px;
 }
 </style>

@@ -108,6 +108,7 @@ declare module 'vue' {
     Resume: typeof import('./components/shared/Resume.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    ScoreBoard: typeof import('./components/shared/ScoreBoard.vue')['default']
     Table: typeof import('./components/shared/Table.vue')['default']
     TestContent: typeof import('./components/shared/TestContent.vue')['default']
     UserInfoDropDown: typeof import('./components/UserInfoDropDown.vue')['default']
