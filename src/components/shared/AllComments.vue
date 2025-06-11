@@ -1,195 +1,439 @@
 <template>
-       <div v-if="!isLogin" class="login-add-comment">
-                <a-avatar :size="32" :src="avatarImg" />
-                <div class="login-add-comment-box">
-                    <div class="login-add-comment-input">
-                        <span class="blue-text" @click="handleLogin">点击登录</span>
-                        <span>，快来和大家讨论吧~</span>
+    <!-- 评论输入区域 -->
+    <div v-if="!isLogin" class="login-add-comment">
+        <a-avatar :size="32" :src="avatarImg" />
+        <div class="login-add-comment-box">
+            <div class="login-add-comment-input">
+                <span class="blue-text" @click="handleLogin">点击登录</span>
+                <span>，快来和大家讨论吧~</span>
+            </div>
+        </div>
+    </div>
+    <div v-else class="add-comment-box">
+        <div style="height: 350px;width: 100%;">
+            <Editor ref="editorRef" />
+        </div>
+        <a-button type="primary" style="width: 120px;margin-top: 20px;" :loading="isSubmitting" @click="submitComments">
+            发布回答
+        </a-button>
+    </div>
+
+    <!-- 加载状态 -->
+    <div v-if="loading" class="loading-wrapper">
+        <a-spin size="large" />
+    </div>
+
+    <!-- 回答列表 -->
+    <a-list v-else item-layout="vertical" :data-source="commentList" :locale="{ emptyText: '暂无评论' }">
+        <template #renderItem="{ item }">
+            <a-list-item :key="item.id">
+                <a-comment :author="item.userName" :avatar="item.userAvatar">
+                    <!-- 用户信息区域 -->
+                    <template #author>
+                        <div class="user-info">
+                            <span class="nickname">{{ item.userName }}</span>
+                        </div>
+                    </template>
+
+                    <template #avatar>
+                        <a-avatar :src="item.userAvatar || avatarImg" :alt="item.userName" />
+                    </template>
+
+                    <!-- 回答内容 -->
+                    <template #content>
+                        <div class="answer-content">
+                            <div v-html="formatCommentContent(item.content)"
+                                :class="{ 'collapsed-text': item.expandable && !item.expanded }" />
+                            <a-button v-if="item.expandable" type="link" size="small" @click="toggleExpand(item.id)">
+                                {{ item.expanded ? '收起' : '展开' }}
+                            </a-button>
+                        </div>
+                    </template>
+
+                    <!-- 互动操作 -->
+                    <template #actions>
+                        <div class="action-buttons">
+                            <span class="action-item" :class="{ liked: item.like }" @click="handleLike(item)">
+                                <like-outlined />
+                                {{ item.likeCount || 0 }}
+                            </span>
+                            <span class="action-item" @click="toggleReply(item.id)">
+                                <message-outlined />
+                                回复
+                            </span>
+                            <span class="reply-count-text">{{ item.replies?.length || 0 }} 回复</span>
+                            <span class="answer-time">{{ formatTime(item.createTime) }}</span>
+                        </div>
+                    </template>
+                </a-comment>
+
+                <!-- 回复输入框 -->
+                <div v-if="replyingTo === item.id" class="reply-input-section">
+                    <div class="reply-input-wrapper">
+                        <a-textarea v-model:value="replyContent" placeholder="写下你的回复..." :rows="3" :maxlength="500"
+                            show-count class="reply-textarea" />
+                    </div>
+                    <div class="reply-actions">
+                        <a-button size="small" @click="cancelReply">取消</a-button>
+                        <a-button type="primary" size="small" style="margin-left: 8px;" :loading="isReplySubmitting"
+                            @click="submitReply(item.id)">
+                            回复
+                        </a-button>
                     </div>
                 </div>
-            </div>
-            <div v-else class="add-comment-box">
-                <div style="height: 350px;width: 100%;">
-                    <Editor ref="editorRef"></Editor>
+
+                <!-- 回复列表 -->
+                <div v-if="item.replies && item.replies.length > 0" class="replies-section">
+                    <div v-for="(reply, index) in getDisplayReplies(item)" :key="reply.id" class="reply-item">
+                        <a-comment :author="reply.userName" :avatar="reply.userAvatar">
+                            <template #author>
+                                <div class="user-info">
+                                    <span class="nickname">{{ reply.userName }}</span>
+                                </div>
+                            </template>
+
+                            <template #avatar>
+                                <a-avatar :src="reply.userAvatar || avatarImg" :alt="reply.userName" />
+                            </template>
+
+                            <template #content>
+                                <div class="answer-content">
+                                    <div v-html="formatCommentContent(reply.content)"
+                                        :class="{ 'collapsed-text': reply.expandable && !reply.expanded }" />
+                                    <a-button v-if="reply.expandable" type="link" size="small"
+                                        @click="toggleExpand(reply.id)">
+                                        {{ reply.expanded ? '收起' : '展开' }}
+                                    </a-button>
+                                </div>
+                            </template>
+
+                            <template #actions>
+                                <div class="action-buttons">
+                                    <span class="action-item" :class="{ liked: reply.like }" @click="handleLike(reply)">
+                                        <like-outlined />
+                                        {{ reply.likeCount || 0 }}
+                                    </span>
+                                    <span class="action-item" @click="toggleReply(item.id, reply.userName)">
+                                        <message-outlined />
+                                        回复
+                                    </span>
+                                    <span class="answer-time">{{ formatTime(reply.createTime) }}</span>
+                                </div>
+                            </template>
+                        </a-comment>
+                    </div>
+
+                    <!-- 展开所有回复按钮 -->
+                    <div v-if="!item.showAllReplies && item.replies && item.replies.length > 2"
+                        class="show-all-replies">
+                        <a-button type="link" size="small" @click="toggleShowAllReplies(item.id)">
+                            查看全部 {{ item.replies.length }} 条回复
+                        </a-button>
+                    </div>
+
+                    <!-- 收起回复按钮 -->
+                    <div v-if="item.showAllReplies && item.replies && item.replies.length > 2" class="show-all-replies">
+                        <a-button type="link" size="small" @click="toggleShowAllReplies(item.id)">
+                            收起回复
+                        </a-button>
+                    </div>
                 </div>
-                <a-button type="primary" style="width: 120px;margin-top: 20px;" @click="submitComments">发布回答</a-button>
-            </div>
- <!-- 回答列表 -->
-        <a-list item-layout="vertical" :data-source="data" :locale="{ emptyText: '暂无数据' }">
-            <template #renderItem="{ item }">
-                <a-list-item>
-                    <a-comment :author="item.author" :avatar="item.avatar">
-                        <!-- 用户信息区域 -->
-                        <template #author>
-
-                            <div class="user-info">
-                                <span class="nickname">{{ item.author }}</span>
-                             
-                            </div>
-                        </template>
-                        <template #avatar>
-                            <a-avatar :src="item.avatar" alt="Han Solo" />
-                        </template>
-                        <!-- 回答内容 -->
-                        <template #content>
-                            <div class="answer-content">
-                                <p :class="{ 'collapsed-text': item.expandable && !item.expanded }">
-                                    {{ item.content }}
-                                </p>
-                                <a-button v-if="item.expandable" type="link" size="small" @click="toggleExpand(item)">
-                                    {{ item.expanded ? '收起' : '展开' }}
-                                </a-button>
-                            </div>
-                        </template>
-
-                        <!-- 互动操作 -->
-                        <template #actions>
-                            <div class="action-buttons">
-                                <span class="action-item">
-                                    <like-outlined />
-                                    {{ item.likes || 0 }}
-                                </span>
-                                <span class="action-item">
-                                    <star-outlined />
-                                    {{ item.collects || 0 }}
-                                </span>
-                                <span class="action-item">
-                                    <message-outlined />
-                                    {{ item.replies || 0 }} 回复
-                                </span>
-                                <span class="answer-time">{{ formatTime(item.datetime) }}</span>
-                            </div>
-                        </template>
-                    </a-comment>
-                </a-list-item>
-            </template>
-        </a-list>
+            </a-list-item>
+        </template>
+    </a-list>
 </template>
+
 <script setup lang="ts">
 import avatarImg from '@/assets/images/common/avatar.png';
-import { ref } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import {
     LikeOutlined,
-    StarOutlined,
     MessageOutlined
 } from '@ant-design/icons-vue';
-import dayjs, { Dayjs } from 'dayjs';
-import { getItem, getUserAvatar, getUserName,getUserID } from '@/utils/storage';
+import dayjs from 'dayjs';
+import { getItem } from '@/utils/storage';
 import router from '@/router';
-import {Empty, message} from 'ant-design-vue';
+import { message } from 'ant-design-vue';
+import { getCommentList, addComment, likeComment, unlikeComment, type Comment, type CommentBase } from '@/apis/commentApi';
 
-const isLogin = (getItem('token') !== null); // 登录状态
-const editorRef = ref(); // 编辑器引用
-const isSubmitting = ref(false); // 提交状态，防止重复提交
-
-interface CommentItem {
-    id?: string | number; // 新增id属性，类型可根据实际情况调整
-    author: string;
-    avatar: string;
-    content: string;
-    datetime: Dayjs;
-    likes?: number;
-    collects?: number;
-    replies?: number;
-    expandable?: boolean;
-    expanded?: boolean;
+// Props
+interface Props {
+    questionId: string;
 }
 
-const data = ref<CommentItem[]>([
-    {
-        author: '面试斩9880',
-        avatar: avatarImg,
-        content: `在JDK 1.8中，HashMap引入了红黑树的结构，以优化其在某些极端情况下的性能。具体来说，红黑树的引入是为了提高在哈希冲突严重的情况下的查找效率。在JDK 1.8之前，HashMap仅使用链表来处理哈希冲突，这在平均情况下表现良好，但在极端情况下性能较差...`,
-        datetime: dayjs('2024-09-08 18:11'),
-        likes: 28,
-        collects: 4,
-        replies: 1,
-        expandable: true,
-        expanded: false
-    },
-    {
-        author: '夹锌饼干',
-        avatar: avatarImg,
-        content: '答得太好了，把握好几个疑惑的点都解开了',
-        datetime: dayjs('2024-09-02 19:00'),
-        likes: 10,
-        collects: 0,
-        replies: 0
-    },
-    {
-        author: '面试斩00085',
-        avatar: avatarImg,
-        content: '官方答案还是评论第一的答案啊',
-        datetime: dayjs('2025-03-28 00:20'),
-        likes: 0,
-        collects: 0,
-        replies: 0
-    }
-]);
+const props = defineProps<Props>();
 
-const toggleExpand = (item: CommentItem) => {
-    item.expanded = !item.expanded;
+// Emits
+const emit = defineEmits<{
+    'comment-count-change': [count: number];
+}>();
+
+// 响应式数据
+const isLogin = computed(() => getItem('token') !== null);
+const editorRef = ref();
+const isSubmitting = ref(false);
+const isReplySubmitting = ref(false);
+const loading = ref(false);
+const commentList = ref<Comment[]>([]);
+const replyingTo = ref<string | null>(null);
+const replyContent = ref('');
+const replyToUser = ref<string>('');
+
+// 格式化评论内容，高亮@用户名
+const formatCommentContent = (content: string): string => {
+    return content.replace(/@(\S+)/g, '<span class="mention-user">@$1</span>');
 };
 
-const handleLogin = () => {
-   router.push('/login');
-};
-
-// 将HTML内容转换为纯文本
+// 将HTML内容转换为纯文本（用于判断是否可展开）
 const htmlToText = (html: string): string => {
-    // 创建一个临时div来处理HTML内容
     const div = document.createElement('div');
     div.innerHTML = html;
     return div.textContent || div.innerText || '';
 };
-// 提交评论逻辑
-const submitComments = async () => {
-    if (isSubmitting.value) return; // 防止重复提交
-    isSubmitting.value = true;
-    
+
+// 转换API数据为组件需要的格式
+const transformCommentData = (apiComments: CommentBase[]): Comment[] => {
+    return apiComments.map(comment => {
+        const plainText = htmlToText(comment.content);
+        return {
+            ...comment,
+            expandable: plainText.length > 150,
+            expanded: false,
+            showAllReplies: false,
+            replies: transformCommentData(comment.replies || [])
+        };
+    });
+};
+
+// 获取显示的回复列表（默认显示前2条）
+const getDisplayReplies = (comment: Comment): Comment[] => {
+    if (!comment.replies || comment.replies.length === 0) {
+        return [];
+    }
+
+    if (comment.showAllReplies || comment.replies.length <= 2) {
+        return comment.replies;
+    }
+
+    return comment.replies.slice(0, 2);
+};
+
+// 切换显示所有回复
+const toggleShowAllReplies = (commentId: string) => {
+    const findAndToggle = (comments: Comment[]): boolean => {
+        for (const comment of comments) {
+            if (comment.id === commentId) {
+                comment.showAllReplies = !comment.showAllReplies;
+                return true;
+            }
+            if (comment.replies && findAndToggle(comment.replies)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    findAndToggle(commentList.value);
+};
+
+// 获取评论列表
+const fetchComments = async () => {
+    if (!props.questionId) return;
+
+    loading.value = true;
     try {
-        // 获取编辑器内容（包含HTML标签）
+        const response = await getCommentList(props.questionId);
+        if (response.code === 0) {
+            commentList.value = transformCommentData(response.data || []);
+            // 计算总评论数（包括回复）
+            const totalCount = calculateTotalComments(commentList.value);
+            emit('comment-count-change', totalCount);
+        } else {
+            message.error(response.message || '获取评论失败');
+        }
+    } catch (error) {
+        message.error('获取评论失败');
+    } finally {
+        loading.value = false;
+    }
+};
+
+// 计算总评论数（包括回复）
+const calculateTotalComments = (comments: Comment[]): number => {
+    return comments.reduce((total, comment) => {
+        return total + 1 + (comment.replies ? calculateTotalComments(comment.replies) : 0);
+    }, 0);
+};
+
+// 提交评论
+const submitComments = async () => {
+    if (isSubmitting.value) return;
+    isSubmitting.value = true;
+
+    try {
         const htmlContent = editorRef.value?.getContent?.() || '';
-        
-        // 转换为纯文本并去除首尾空格
         const plainText = htmlToText(htmlContent).trim();
-        
-        // 验证内容是否为空
+
         if (!plainText) {
             message.warning('评论内容不能为空');
             return;
         }
-        
-        // 获取用户信息
-        const userAvatar = getUserAvatar() || avatarImg;
-        const username = getUserName() || '新用户';
-        
-        // 添加新评论
-        data.value.unshift({
-            id: getUserID(),
-            author: username,
-            avatar: userAvatar,
-            content: htmlContent, // 使用带格式的HTML内容
-            datetime: dayjs(),
-            expandable: plainText.length > 100, // 基于纯文本长度判断是否可展开
-            expanded: false
+
+        const response = await addComment({
+            content: htmlContent,
+            questionId: props.questionId
         });
-        
-        // 清空编辑器
-        editorRef.value?.setContent?.('');
-        message.success('评论发布成功！');
+
+        if (response.code === 0) {
+            message.success('评论发布成功！');
+            editorRef.value?.setContent?.('');
+            // 重新获取评论列表
+            await fetchComments();
+        } else {
+            message.error(response.message || '评论发布失败');
+        }
     } catch (error) {
-        console.error('提交评论失败:', error);
         message.error('评论发布失败，请重试');
     } finally {
         isSubmitting.value = false;
     }
 };
 
-const formatTime = (datetime: Dayjs): string => {
-    return datetime.format('YYYY-MM-DD HH:mm');
-};// 新增评论内容响应式变量
+// 开始回复
+const toggleReply = (commentId: string, replyToUserName?: string) => {
+    if (!isLogin.value) {
+        message.warning('请先登录');
+        return;
+    }
 
+    if (replyingTo.value === commentId) {
+        replyingTo.value = null;
+        replyContent.value = '';
+        replyToUser.value = '';
+    } else {
+        replyingTo.value = commentId;
+        replyToUser.value = replyToUserName || '';
+        // 如果是回复某个用户，自动添加@用户名
+        replyContent.value = replyToUserName ? `@${replyToUserName} ` : '';
+    }
+};
+
+// 取消回复
+const cancelReply = () => {
+    replyingTo.value = null;
+    replyContent.value = '';
+    replyToUser.value = '';
+};
+
+// 提交回复
+const submitReply = async (parentId: string) => {
+    if (isReplySubmitting.value) return;
+    isReplySubmitting.value = true;
+
+    try {
+        const content = replyContent.value.trim();
+
+        if (!content) {
+            message.warning('回复内容不能为空');
+            return;
+        }
+
+        // 如果只有@用户名没有其他内容，提示用户
+        if (replyToUser.value && content === `@${replyToUser.value}`) {
+            message.warning('请输入回复内容');
+            return;
+        }
+
+        const response = await addComment({
+            content: content,
+            questionId: props.questionId,
+            parentId: parentId
+        });
+
+        if (response.code === 0) {
+            message.success('回复发布成功！');
+            replyContent.value = '';
+            replyingTo.value = null;
+            replyToUser.value = '';
+            // 重新获取评论列表
+            await fetchComments();
+        } else {
+            message.error(response.message || '回复发布失败');
+        }
+    } catch (error) {
+        message.error('回复发布失败，请重试');
+    } finally {
+        isReplySubmitting.value = false;
+    }
+};
+
+// 处理点赞
+const handleLike = async (comment: Comment) => {
+    if (!isLogin.value) {
+        message.warning('请先登录');
+        return;
+    }
+
+    try {
+        const response = comment.like
+            ? await unlikeComment(comment.id)
+            : await likeComment(comment.id);
+
+        if (response.code === 0) {
+            // 更新本地状态
+            comment.like = !comment.like;
+            comment.likeCount = comment.like
+                ? (comment.likeCount || 0) + 1
+                : Math.max(0, (comment.likeCount || 0) - 1);
+        } else {
+            message.error(response.message || '操作失败');
+        }
+    } catch (error) {
+        message.error('操作失败，请重试');
+    }
+};
+
+// 展开/收起切换
+const toggleExpand = (commentId: string) => {
+    const findAndToggle = (comments: Comment[]): boolean => {
+        for (const comment of comments) {
+            if (comment.id === commentId) {
+                comment.expanded = !comment.expanded;
+                return true;
+            }
+            if (comment.replies && findAndToggle(comment.replies)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    findAndToggle(commentList.value);
+};
+
+// 登录方法
+const handleLogin = () => {
+    router.push('/login');
+};
+
+// 格式化时间
+const formatTime = (timestamp: number): string => {
+    return dayjs(timestamp).format('YYYY-MM-DD HH:mm');
+};
+
+// 监听questionId变化
+watch(() => props.questionId, (newId) => {
+    if (newId) {
+        fetchComments();
+    }
+}, { immediate: true });
+
+// 组件挂载时获取数据
+onMounted(() => {
+    if (props.questionId) {
+        fetchComments();
+    }
+});
 </script>
 
 <style scoped>
@@ -199,6 +443,12 @@ const formatTime = (datetime: Dayjs): string => {
     cursor: pointer;
 }
 
+.loading-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 50px;
+}
 
 .user-info {
     display: flex;
@@ -206,32 +456,11 @@ const formatTime = (datetime: Dayjs): string => {
     gap: 8px;
 }
 
-.user-level {
-    font-size: 12px;
-    padding: 2px 8px;
-    border-radius: 12px;
-}
-
-.user-level.lv1 {
-    background: #e8f5e9;
-    color: #4caf50;
-}
-
-.user-level.lv2 {
-    background: #fff3e0;
-    color: #ff9800;
-}
-
-.user-level.camp {
-    background: #ffebee;
-    color: #f44336;
-}
-
 .answer-content {
     color: #333;
 }
 
-.answer-content p {
+.answer-content>div {
     margin-bottom: 8px;
     line-height: 1.6;
 }
@@ -239,6 +468,7 @@ const formatTime = (datetime: Dayjs): string => {
 .collapsed-text {
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -255,6 +485,20 @@ const formatTime = (datetime: Dayjs): string => {
     gap: 4px;
     color: #666;
     cursor: pointer;
+    transition: color 0.3s;
+}
+
+.action-item:hover {
+    color: #1890ff;
+}
+
+.action-item.liked {
+    color: #1890ff;
+}
+
+.reply-count-text {
+    color: #999;
+    font-size: 14px;
 }
 
 .answer-time {
@@ -262,16 +506,9 @@ const formatTime = (datetime: Dayjs): string => {
     font-size: 12px;
 }
 
-.login-prompt {
-    margin-top: 20px;
-    cursor: pointer;
-}
-
 .add-comment-box {
-
     width: 100%;
     margin: 20px auto;
-    /* margin-top: 20px; */
 }
 
 .login-add-comment {
@@ -293,7 +530,6 @@ const formatTime = (datetime: Dayjs): string => {
     border-radius: 5px;
     box-shadow: #e9e7e7 0px 0px 5px 0px;
     margin-left: 15px;
-
 }
 
 .login-add-comment-box .login-add-comment-input {
@@ -304,5 +540,70 @@ const formatTime = (datetime: Dayjs): string => {
     height: 50%;
     background-color: #f6f6f6;
     border-radius: 10px;
+}
+
+.replies-section {
+    margin-left: 40px;
+    margin-top: 10px;
+    border-left: 2px solid #f0f0f0;
+    padding-left: 20px;
+}
+
+.reply-item {
+    margin-bottom: 10px;
+}
+
+.reply-input-section {
+    margin-left: 40px;
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #fafafa;
+    border-radius: 8px;
+    border-left: 3px solid #1890ff;
+}
+
+.reply-input-wrapper {
+    margin-bottom: 10px;
+}
+
+.reply-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.reply-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.show-all-replies {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.show-all-replies .ant-btn-link {
+    color: #1890ff;
+    font-size: 13px;
+}
+
+/* @用户名样式 */
+.reply-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.reply-textarea:focus {
+    border-color: #1890ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* @用户名高亮样式 */
+:deep(.mention-user) {
+    color: #1890ff;
+    font-weight: 500;
+    background-color: rgba(24, 144, 255, 0.1);
+    padding: 1px 4px;
+    border-radius: 3px;
 }
 </style>

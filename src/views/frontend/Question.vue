@@ -74,7 +74,7 @@
                         </div>
                     </div>
 
-                    <Comments v-if="!loading"></Comments>
+                    <Comments v-if="!loading" :question-id="currentQuestionId"></Comments>
                     <div style="width: 120px;height: 80px;"></div>
                 </div>
 
