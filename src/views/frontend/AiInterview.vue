@@ -39,16 +39,28 @@
                             :class="{ active: currentInterviewId === record.id }" @click="switchInterview(record)" style="display: flex;align-items: center;justify-content: space-between;">
                             {{ getDisplayInterviewName(record.name) }}
                             <div style="margin-left: 5px;">
-                                 <a-popconfirm
-                                title="确定要删除该面试记录吗？"
-                                ok-text="删除"
-                                cancel-text="取消"
-                                @confirm="deleteInterview(record)"
-                            >
-                                <a-button type="text" danger @click.stop style="padding: 0 4px; min-width: 30px; height: 24px;">
-                                    <DeleteOutlined />
+                            <a-dropdown :trigger="['click']" >
+                                <a-button type="text" style="padding: 0 4px; min-width: 30px; height: 24px;" @click.stop>
+                                <MoreOutlined />
                                 </a-button>
-                            </a-popconfirm>
+                                
+                                <template #overlay>
+                                <a-menu>
+                                    <a-menu-item key="delete">
+                                    <a-popconfirm
+                                        title="确定要删除该面试记录吗？"
+                                        ok-text="删除"
+                                        cancel-text="取消"
+                                        @confirm="deleteInterview(record)"
+                                    >
+                                        <a-button type="text" danger @click.stop style="width: 100%; text-align: left; padding: 0 12px;">
+                                         删除
+                                        </a-button>
+                                    </a-popconfirm>
+                                    </a-menu-item>
+                                </a-menu>
+                                </template>
+                            </a-dropdown>
                             </div>
                         </div>
                         <div v-if="interviewRecords.length === 0" class="empty-text">
@@ -82,27 +94,32 @@
                             v-for="resume in resumes" 
                             :key="resume.id" 
                             class="resume-item"
-                            @click="selectResume(resume)"
+                            @click="selectResume(resume),previewResume(resume)"
+                            
                         >
                             {{ resume.name }}
-                            <a-button 
-                                type="text" 
-                                class="preview-btn" 
-                                @click.stop="previewResume(resume)" 
-                                style="padding: 0 4px; min-width: 30px; height: 24px;"
-                            >
-                                <EyeOutlined />
-                            </a-button>
-                            <a-popconfirm
-                                title="确定要删除该简历吗？"
-                                ok-text="删除"
-                                cancel-text="取消"
-                                @confirm="deleteResume(resume)"
-                            >
-                                <a-button type="text" danger @click.stop style="padding: 0 4px; min-width: 30px; height: 24px;">
-                                    <DeleteOutlined />
+                            <a-dropdown :trigger="['click']" >
+                                <a-button type="text" style="padding: 0 4px; min-width: 30px; height: 24px;" @click.stop>
+                                <MoreOutlined />
                                 </a-button>
-                            </a-popconfirm>
+                                
+                                <template #overlay>
+                                <a-menu>
+                                    <a-menu-item key="delete">
+                                    <a-popconfirm
+                                        title="确定要删除该简历吗？"
+                                        ok-text="删除"
+                                        cancel-text="取消"
+                                        @confirm="deleteResume(resume)"
+                                    >
+                                        <a-button type="text" danger @click.stop style="padding: 0 4px; min-width: 30px; height: 24px;">
+                                            删除
+                                        </a-button>
+                                    </a-popconfirm>
+                                    </a-menu-item>
+                                </a-menu>
+                                </template>
+                            </a-dropdown>
                         </div>
                     </div>
                 </div>
@@ -347,7 +364,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { message } from 'ant-design-vue';
 import VuePdfEmbed from 'vue-pdf-embed';
-import {DeleteOutlined} from '@ant-design/icons-vue'
+import {DeleteOutlined,MoreOutlined} from '@ant-design/icons-vue'
 
 import * as pdfjsLib from 'pdfjs-dist';
 
@@ -1094,7 +1111,7 @@ const deleteInterview = async (interview: InterviewVO) => {
 
 .interview-item,
 .resume-item {
-    padding: 10px 22px;
+    padding: 8px 12px;
     margin-bottom: 8px;
     border-radius: 8px;
     cursor: pointer;
