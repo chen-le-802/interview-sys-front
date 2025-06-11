@@ -146,7 +146,11 @@ const refresh = () => {
 };
 
 // 2. 获取报告数据的异步方法（请替换为你的实际 API 调用）
-async function fetchReport(interviewId: string) {
+async function fetchReport(interviewId: string | null) {
+  if (!interviewId) {
+    hasData.value = false;
+    return;
+  }
   try {
     const res = await interviewApi.getInterviewReport(interviewId);
     const data = res.data;
@@ -173,7 +177,7 @@ async function fetchReport(interviewId: string) {
 
 // 3. 监听 interviewId 变化
 watch(() => props.interviewId, (newId) => {
-  if (newId) fetchReport(newId);
+ fetchReport(newId);
 }, { immediate: true });
 
 </script>
@@ -195,7 +199,6 @@ watch(() => props.interviewId, (newId) => {
   display: none;
 }
 
-/* 原有评估报告样式保持不变 */
 .assessment-header {
   display: flex;
   justify-content: space-between;

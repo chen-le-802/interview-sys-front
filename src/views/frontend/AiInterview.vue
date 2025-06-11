@@ -36,8 +36,20 @@
                     <!-- 展开状态 -->
                     <div class="interview-list" v-if="!sidebarCollapsed">
                         <div v-for="record in interviewRecords" :key="record.id" class="interview-item"
-                            :class="{ active: currentInterviewId === record.id }" @click="switchInterview(record)">
+                            :class="{ active: currentInterviewId === record.id }" @click="switchInterview(record)" style="display: flex;align-items: center;justify-content: space-between;">
                             {{ getDisplayInterviewName(record.name) }}
+                            <div style="margin-left: 5px;">
+                                 <a-popconfirm
+                                title="确定要删除该面试记录吗？"
+                                ok-text="删除"
+                                cancel-text="取消"
+                                @confirm="deleteInterview(record)"
+                            >
+                                <a-button type="text" danger @click.stop style="padding: 0 4px; min-width: 30px; height: 24px;">
+                                    <DeleteOutlined />
+                                </a-button>
+                            </a-popconfirm>
+                            </div>
                         </div>
                         <div v-if="interviewRecords.length === 0" class="empty-text">
                             暂无面试记录
@@ -145,7 +157,23 @@
                 </div>
 
                 <div class="interview-controls" v-if="isInterviewActive">
-                    <a-button danger @click="endCurrentInterview" :loading="endingInterview">结束面试</a-button>
+                    <a-popconfirm
+                        title="确定要结束本次面试并生成评估报告吗？"
+                        ok-text="确定"
+                        cancel-text="取消"
+                        @confirm="endCurrentInterview"
+                    >
+                        <a-button danger :loading="endingInterview">
+                            <template v-if="endingInterview">
+                                <span>
+                                    正在生成评估报告...
+                                </span>
+                            </template>
+                            <template v-else>
+                                结束面试
+                            </template>
+                        </a-button>
+                    </a-popconfirm>
                 </div>
             </div>
             
@@ -154,7 +182,8 @@
                 <div class="chat-content" ref="chatContainer">
                     <div v-if="chatMessages.length === 0" class="empty-chat" @click="showInterviewDialog">
                         <div class="empty-icon">💬</div>
-                        <p class="empty-text">点击"新建面试"开始你的AI面试体验</p>
+                        <p class="empty-text" v-if="startingInterview">请稍等，AI面试官正在为您准备题目...</p>
+                        <p class="empty-text" v-else>点击"新建面试"开始你的AI面试体验</p>
                     </div>
 
                     <div v-for="(message, index) in chatMessages" :key="index" class="chat-bubble"
@@ -902,6 +931,26 @@ const deleteResume = async (resume: any) => {
         message.error('删除简历失败');
     }
 };
+const deleteInterview = async (interview: InterviewVO) => {
+    try {
+        const response = await interviewApi.deleteInterview(interview.id);
+        if (response.code === 0) {
+            message.success('面试记录删除成功');
+            // 重新加载面试记录
+            await loadInterviewRecords();
+            // 如果当前面试被删除，清空聊天内容
+            if (currentInterviewId.value === interview.id) {
+                currentInterviewId.value = null;
+                chatMessages.value = [];
+            }
+        } else {
+            message.error(response.message || '删除失败');
+        }
+    } catch (error) {
+        console.error('删除面试记录失败:', error);
+        message.error('删除面试记录失败');
+    }
+}
 
 </script>
 

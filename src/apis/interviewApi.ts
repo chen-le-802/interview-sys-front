@@ -103,6 +103,15 @@ export const interviewApi = {
     })
   },
 
+  //删除面试记录
+  deleteInterview: (interviewId: string): Promise<BaseResponse<string>> => {
+    return request({
+      url: `/api/interview/delete`,
+      method: 'DELETE',
+      params: { interviewId }
+    })
+  },
+
 // 上传简历
 uploadResume: async (file: File): Promise<BaseResponse<string>> => {
   try {
@@ -150,7 +159,8 @@ uploadResume: async (file: File): Promise<BaseResponse<string>> => {
       url: `/api/interview/assessment/${interviewId}`,
       method: 'GET'
     })
-  }
+  },
+  
   
 }
 

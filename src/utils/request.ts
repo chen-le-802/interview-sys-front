@@ -7,7 +7,7 @@ const URL_API = 'http://localhost:8101';
 
 // 创建 Axios 实例
 const request = axios.create({
-  timeout: 20000,
+  timeout: 200000,
   headers: {
     'Content-Type': 'application/json'
   },
