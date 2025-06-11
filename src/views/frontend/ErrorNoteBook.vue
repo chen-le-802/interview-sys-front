@@ -445,7 +445,7 @@ watch(showBatchActions, (newVal) => {
 .left {
     width: 340px;
     min-width: 300px;
-    background: #fff;
+    background: #fdfcfc;
     box-shadow: 2px 0 8px #f0f1f2;
     display: flex;
     flex-direction: column;
@@ -457,7 +457,7 @@ watch(showBatchActions, (newVal) => {
     height: 100%;
     overflow: hidden;
     flex: 1;
-    background-color: #f9fbfd;
+    background-color: #ffffff;
     display: flex;
 }
 
@@ -471,7 +471,7 @@ watch(showBatchActions, (newVal) => {
 
 .search-container {
     position: sticky;
-    background-color: #F9FBFD;
+    background-color: #ffffff;
     top: 0;
     z-index: 100;
     display: flex;
