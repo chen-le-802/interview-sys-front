@@ -64,6 +64,7 @@ declare module 'vue' {
     Bank: typeof import('./components/shared/Bank.vue')['default']
     BankIcon: typeof import('./components/BankIcon.vue')['default']
     BankList: typeof import('./components/shared/bankList.vue')['default']
+    ChoiceQuestionManager: typeof import('./components/manager/ChoiceQuestionManager.vue')['default']
     Comments: typeof import('./components/shared/Comments.vue')['default']
     Editor: typeof import('./components/shared/Editor.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']

@@ -1,0 +1,565 @@
+.choice-question-manager {
+    padding: 24px 0;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* 操作栏 */
+.choice-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+    border: 1px solid #e6f0ff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(24, 144, 255, 0.06);
+    transition: all 0.3s ease;
+}
+
+.choice-actions:hover {
+    box-shadow: 0 4px 16px rgba(24, 144, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.choice-count-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #5c6b77;
+    font-weight: 500;
+}
+
+.count-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, #1890ff, #40a9ff);
+    color: white;
+    border-radius: 14px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0 8px;
+    box-shadow: 0 2px 4px rgba(24, 144, 255, 0.3);
+}
+
+/* 列表容器 */
+.choice-list {
+    min-height: 280px;
+    position: relative;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    background: #fafbfc;
+    border: 2px dashed #d9d9d9;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.empty-state:hover {
+    border-color: #bfbfbf;
+    background: #f5f5f5;
+}
+
+/* 卡片列表 */
+.choice-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.choice-card {
+    border: 1px solid #e8eaed;
+    border-radius: 16px;
+    padding: 24px;
+    background: #fff;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.choice-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #1890ff, #40a9ff, #69c0ff);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+}
+
+.choice-card:hover {
+    border-color: #40a9ff;
+    box-shadow: 0 8px 32px rgba(24, 144, 255, 0.12);
+    transform: translateY(-2px);
+}
+
+.choice-card:hover::before {
+    transform: scaleX(1);
+}
+
+/* 卡片头部 */
+.choice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    gap: 16px;
+}
+
+.choice-title {
+    flex: 1;
+    min-width: 0;
+}
+
+.choice-index {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #1890ff, #40a9ff);
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    margin-right: 12px;
+    box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+    flex-shrink: 0;
+}
+
+.choice-topic {
+    color: #262626;
+    font-size: 16px;
+    line-height: 1.6;
+    font-weight: 500;
+    word-break: break-word;
+    margin-top: 4px;
+}
+
+/* 操作按钮 */
+.choice-actions-btn {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.choice-actions-btn .ant-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.choice-actions-btn .ant-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 选项区域 */
+.choice-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.choice-option {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    border: 2px solid #f0f0f0;
+    border-radius: 12px;
+    background: #fafafa;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.choice-option::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(24, 144, 255, 0.03), rgba(64, 169, 255, 0.03));
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.choice-option:hover {
+    border-color: #d9d9d9;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.choice-option:hover::before {
+    opacity: 1;
+}
+
+.choice-option.correct-answer {
+    border-color: #52c41a;
+    background: linear-gradient(135deg, #f6ffed, #f0fff4);
+    color: #389e0d;
+    position: relative;
+}
+
+.choice-option.correct-answer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, #52c41a, #73d13d);
+}
+
+.option-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, #595959, #737373);
+    color: white;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 12px;
+    margin-right: 12px;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.choice-option.correct-answer .option-label {
+    background: linear-gradient(135deg, #52c41a, #73d13d);
+    box-shadow: 0 2px 6px rgba(82, 196, 26, 0.3);
+}
+
+.option-content {
+    flex: 1;
+    line-height: 1.5;
+    word-break: break-word;
+    position: relative;
+    z-index: 1;
+}
+
+.correct-icon {
+    color: #52c41a;
+    font-size: 16px;
+    margin-left: 12px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 1px 2px rgba(82, 196, 26, 0.3));
+}
+
+/* 答案解析样式 */
+.answer-analysis {
+    margin-top: 16px;
+    padding: 16px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border: 1px solid #bae6fd;
+    border-left: 4px solid #0ea5e9;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+.answer-analysis::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.02), rgba(56, 189, 248, 0.02));
+    pointer-events: none;
+}
+
+.analysis-label {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    color: #0369a1;
+    margin-bottom: 8px;
+    font-size: 14px;
+    position: relative;
+    z-index: 1;
+}
+
+.analysis-icon {
+    margin-right: 6px;
+    font-size: 14px;
+    color: #0ea5e9;
+}
+
+.analysis-content {
+    color: #0c4a6e;
+    line-height: 1.6;
+    font-size: 14px;
+    position: relative;
+    z-index: 1;
+    white-space: pre-wrap;
+}
+
+/* 知识标签样式 */
+.knowledge-tags {
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #fef3f2 0%, #fff7ed 100%);
+    border: 1px solid #fed7aa;
+    border-left: 4px solid #f97316;
+    border-radius: 8px;
+}
+
+.tags-label {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    color: #c2410c;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.tags-icon {
+    margin-right: 6px;
+    font-size: 14px;
+    color: #f97316;
+}
+
+.tags-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.knowledge-tag {
+    display: inline-block;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, #fff7ed, #ffedd5);
+    color: #c2410c;
+    border: 1px solid #fdba74;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(249, 115, 22, 0.1);
+}
+
+.knowledge-tag:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(249, 115, 22, 0.2);
+    background: linear-gradient(135deg, #ffedd5, #fed7aa);
+}
+
+/* 动画效果增强 */
+.choice-card-enter-active {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.choice-card-leave-active {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.choice-card-enter-from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+}
+
+.choice-card-leave-to {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+}
+
+.choice-card-move {
+    transition: transform 0.3s ease;
+}
+
+/* 加载状态 */
+.ant-spin-container {
+    min-height: 200px;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .choice-question-manager {
+        padding: 16px 0;
+    }
+
+    .choice-actions {
+        flex-direction: column;
+        gap: 16px;
+        align-items: stretch;
+        padding: 16px 20px;
+        border-radius: 8px;
+    }
+
+    .choice-count-info {
+        justify-content: center;
+    }
+
+    .choice-options {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .choice-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .choice-actions-btn {
+        align-self: flex-end;
+        margin-top: 8px;
+    }
+
+    .choice-card {
+        padding: 20px;
+        border-radius: 12px;
+    }
+
+    .choice-topic {
+        font-size: 15px;
+    }
+
+    .choice-option {
+        padding: 12px 14px;
+        border-radius: 8px;
+    }
+
+    .answer-analysis {
+        padding: 12px;
+        margin-top: 12px;
+    }
+
+    .knowledge-tags {
+        padding: 10px 12px;
+        margin-top: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .choice-actions {
+        padding: 12px 16px;
+    }
+
+    .choice-card {
+        padding: 16px;
+    }
+
+    .choice-index {
+        min-width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+
+    .choice-topic {
+        font-size: 14px;
+    }
+
+    .choice-actions-btn {
+        flex-direction: column;
+        width: 100%;
+        gap: 8px;
+    }
+
+    .choice-actions-btn .ant-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* 只读模式样式 */
+.choice-question-manager.readonly .choice-card {
+    border-color: #e8eaed;
+    background: #fafbfc;
+}
+
+.choice-question-manager.readonly .choice-card:hover {
+    border-color: #d9d9d9;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+}
+
+.choice-question-manager.readonly .choice-card::before {
+    background: linear-gradient(90deg, #8c8c8c, #bfbfbf);
+}
+
+.choice-question-manager.readonly .choice-index {
+    background: linear-gradient(135deg, #8c8c8c, #bfbfbf);
+}
+
+.choice-question-manager.readonly .choice-option.correct-answer .option-label {
+    background: linear-gradient(135deg, #52c41a, #73d13d);
+}
+
+/* 增强效果 */
+.choice-card {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.choice-actions {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* 模态框表单样式 */
+.ant-modal .ant-form-item-label>label {
+    font-weight: 600;
+    color: #262626;
+}
+
+.ant-modal .ant-input,
+.ant-modal .ant-input-number,
+.ant-modal .ant-select-selector,
+.ant-modal .ant-picker {
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.ant-modal .ant-input:focus,
+.ant-modal .ant-input-focused,
+.ant-modal .ant-input-number:focus,
+.ant-modal .ant-input-number-focused,
+.ant-modal .ant-select-focused .ant-select-selector,
+.ant-modal .ant-picker:focus,
+.ant-modal .ant-picker-focused {
+    border-color: #40a9ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+/* 滚动条美化 */
+.choice-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.choice-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.choice-list::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #bfbfbf, #d9d9d9);
+    border-radius: 3px;
+}
+
+.choice-list::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #999, #bfbfbf);
+}

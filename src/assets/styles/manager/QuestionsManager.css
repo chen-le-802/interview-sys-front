@@ -666,3 +666,98 @@
         transform: translateY(0);
     }
 }
+
+/* 选择题禁用提示样式 */
+.choice-disabled-tip {
+    padding: 20px;
+    text-align: center;
+    background: #fafafa;
+    border-radius: 6px;
+    margin: 16px 0;
+}
+
+.choice-disabled-tip .ant-alert {
+    margin-bottom: 0;
+}
+
+/* 标签页样式优化 */
+:deep(.ant-tabs-content-holder) {
+    min-height: 400px;
+}
+
+:deep(.ant-tabs-tabpane) {
+    padding: 16px 0;
+}
+
+/* 标签页标题样式 */
+:deep(.ant-tabs-tab) {
+    font-weight: 500;
+}
+
+:deep(.ant-tabs-tab-active .ant-tabs-tab-btn) {
+    color: #1890ff !important;
+}
+
+/* 模态框样式调整 */
+:deep(.ant-modal-body) {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* 预览统计信息样式优化 */
+.preview-statistics .statistics-box .stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.preview-statistics .statistics-box .stat-item:last-child {
+    border-bottom: none;
+}
+
+.preview-statistics .stat-label {
+    color: #666;
+    font-weight: 500;
+}
+
+.preview-statistics .stat-value {
+    color: #333;
+}
+
+/* 标签页切换动画 */
+:deep(.ant-tabs-tabpane) {
+    animation: tabSlideIn 0.3s ease;
+}
+
+@keyframes tabSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 选择题禁用提示动画 */
+.choice-disabled-tip .ant-alert {
+    animation: fadeIn 0.3s ease;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    :deep(.ant-tabs-content-holder) {
+        min-height: 300px;
+    }
+    
+    .choice-disabled-tip {
+        padding: 16px;
+    }
+    
+    :deep(.ant-modal-body) {
+        max-height: 60vh;
+    }
+}

@@ -77,15 +77,17 @@
                   </td>
                   <td>{{ getQuestionBankName(question.questionBankId) }}</td>
                   <td>
-                    <button class="edit-btn" @click="showEditModal(question)">
-                      <EditOutlined class="edit-icon" />编辑
-                    </button>
-                    <button class="preview-btn" @click="showPreviewModal(question)">
-                      <FolderViewOutlined class="preview-icon" />预览
-                    </button>
-                    <button class="delete-btn" @click="handleDelete(question)">
-                      <DeleteOutlined class="delete-icon" />删除
-                    </button>
+                    <div class="action-buttons">
+                      <button class="edit-btn" @click="showEditModal(question)">
+                        <EditOutlined class="edit-icon" />编辑
+                      </button>
+                      <button class="preview-btn" @click="showPreviewModal(question)">
+                        <FolderViewOutlined class="preview-icon" />预览
+                      </button>
+                      <button class="delete-btn" @click="handleDelete(question)">
+                        <DeleteOutlined class="delete-icon" />删除
+                      </button>
+                    </div>
                   </td>
                 </tr>
               </transition-group>
@@ -115,161 +117,189 @@
     </div>
 
     <!-- 新增题目 -->
-    <a-modal v-model:visible="addModalVisible" title="新增题目" width="800px" @ok="handleAddQuestion"
+    <a-modal v-model:visible="addModalVisible" title="新增题目" width="1000px" @ok="handleAddQuestion"
       @cancel="handleCancelAdd" :confirm-loading="addLoading" :maskClosable="false">
-      <a-form :model="addForm" :rules="addFormRules" ref="addFormRef" :label-col="{ span: 4 }"
-        :wrapper-col="{ span: 20 }">
-        <a-form-item label="题目标题" name="title">
-          <a-input v-model:value="addForm.title" placeholder="请输入题目标题" />
-        </a-form-item>
+      <a-tabs v-model:activeKey="addActiveTabKey" @change="handleAddTabChange">
+        <a-tab-pane key="basic" tab="基本信息">
+          <a-form :model="addForm" :rules="addFormRules" ref="addFormRef" :label-col="{ span: 4 }"
+            :wrapper-col="{ span: 20 }">
+            <a-form-item label="题目标题" name="title">
+              <a-input v-model:value="addForm.title" placeholder="请输入题目标题" />
+            </a-form-item>
 
-        <a-form-item label="题目目录" name="content">
-          <a-textarea v-model:value="addForm.content" placeholder="请输入题目目录（支持Markdown格式）" :rows="3" />
-        </a-form-item>
+            <a-form-item label="题目目录" name="content">
+              <a-textarea v-model:value="addForm.content" placeholder="请输入题目目录（支持Markdown格式）" :rows="3" />
+            </a-form-item>
 
-        <a-form-item label="参考答案" name="answer">
-          <a-textarea v-model:value="addForm.answer" placeholder="请输入参考答案（支持Markdown格式）" :rows="4" />
-        </a-form-item>
+            <a-form-item label="参考答案" name="answer">
+              <a-textarea v-model:value="addForm.answer" placeholder="请输入参考答案（支持Markdown格式）" :rows="4" />
+            </a-form-item>
 
-        <a-form-item label="难度" name="difficulty">
-          <a-select v-model:value="addForm.difficulty" placeholder="请选择难度">
-            <a-select-option value="简单">简单</a-select-option>
-            <a-select-option value="中等">中等</a-select-option>
-            <a-select-option value="困难">困难</a-select-option>
-          </a-select>
-        </a-form-item>
+            <a-form-item label="难度" name="difficulty">
+              <a-select v-model:value="addForm.difficulty" placeholder="请选择难度">
+                <a-select-option value="简单">简单</a-select-option>
+                <a-select-option value="中等">中等</a-select-option>
+                <a-select-option value="困难">困难</a-select-option>
+              </a-select>
+            </a-form-item>
 
-        <a-form-item label="标签" name="tags">
-          <a-select v-model:value="addForm.tags" mode="tags" style="width: 100%" placeholder="请选择或输入标签">
-            <a-select-option v-for="tag in tagsList" :key="tag" :value="tag">
-              {{ tag }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
+            <a-form-item label="标签" name="tags">
+              <a-select v-model:value="addForm.tags" mode="tags" style="width: 100%" placeholder="请选择或输入标签">
+                <a-select-option v-for="tag in tagsList" :key="tag" :value="tag">
+                  {{ tag }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
 
-        <a-form-item label="题库" name="questionBankId">
-          <a-select v-model:value="addForm.questionBankId" placeholder="请选择题库">
-            <a-select-option v-for="bankItem in questionBanks" :key="bankItem.id" :value="bankItem.id">
-              {{ bankItem.title }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-      </a-form>
+            <a-form-item label="题库" name="questionBankId">
+              <a-select v-model:value="addForm.questionBankId" placeholder="请选择题库">
+                <a-select-option v-for="bankItem in questionBanks" :key="bankItem.id" :value="bankItem.id">
+                  {{ bankItem.title }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-form>
+        </a-tab-pane>
+        <a-tab-pane key="choices" tab="选择题管理" :disabled="!addForm.isCreated">
+          <div v-if="!addForm.isCreated" class="choice-disabled-tip">
+            <a-alert message="请先完成基本信息填写并保存后，再添加选择题" type="info" show-icon />
+          </div>
+          <div v-else-if="addForm.createdQuestionId">
+            <ChoiceQuestionManager :questionId="addForm.createdQuestionId" :readonly="false"
+              @choice-count-change="handleChoiceCountChange" />
+          </div>
+        </a-tab-pane>
+      </a-tabs>
     </a-modal>
 
     <!-- 编辑题目 -->
-    <a-modal v-model:visible="editModalVisible" title="编辑题目" width="800px" @ok="handleEditQuestion"
+    <a-modal v-model:visible="editModalVisible" title="编辑题目" width="1000px" @ok="handleEditQuestion"
       @cancel="handleCancelEdit" :confirm-loading="editLoading" :maskClosable="false">
-      <a-form :model="editForm" :rules="editFormRules" ref="editFormRef" :label-col="{ span: 4 }"
-        :wrapper-col="{ span: 20 }">
-        <a-form-item label="题目ID">
-          <a-input v-model:value="editForm.id" disabled />
-        </a-form-item>
+      <a-tabs v-model:activeKey="editActiveTabKey">
+        <a-tab-pane key="basic" tab="基本信息">
+          <a-form :model="editForm" :rules="editFormRules" ref="editFormRef" :label-col="{ span: 4 }"
+            :wrapper-col="{ span: 20 }">
+            <a-form-item label="题目ID">
+              <a-input v-model:value="editForm.id" disabled />
+            </a-form-item>
 
-        <a-form-item label="题目标题" name="title">
-          <a-input v-model:value="editForm.title" placeholder="请输入题目标题" />
-        </a-form-item>
+            <a-form-item label="题目标题" name="title">
+              <a-input v-model:value="editForm.title" placeholder="请输入题目标题" />
+            </a-form-item>
 
-        <a-form-item label="题目目录" name="content">
-          <a-textarea v-model:value="editForm.content" placeholder="请输入题目目录（支持Markdown格式）" :rows="3" />
-        </a-form-item>
+            <a-form-item label="题目目录" name="content">
+              <a-textarea v-model:value="editForm.content" placeholder="请输入题目目录（支持Markdown格式）" :rows="3" />
+            </a-form-item>
 
-        <a-form-item label="参考答案" name="answer">
-          <a-textarea v-model:value="editForm.answer" placeholder="请输入参考答案（支持Markdown格式）" :rows="4" />
-        </a-form-item>
+            <a-form-item label="参考答案" name="answer">
+              <a-textarea v-model:value="editForm.answer" placeholder="请输入参考答案（支持Markdown格式）" :rows="4" />
+            </a-form-item>
 
-        <a-form-item label="难度" name="difficulty">
-          <a-select v-model:value="editForm.difficulty" placeholder="请选择难度">
-            <a-select-option value="简单">简单</a-select-option>
-            <a-select-option value="中等">中等</a-select-option>
-            <a-select-option value="困难">困难</a-select-option>
-          </a-select>
-        </a-form-item>
+            <a-form-item label="难度" name="difficulty">
+              <a-select v-model:value="editForm.difficulty" placeholder="请选择难度">
+                <a-select-option value="简单">简单</a-select-option>
+                <a-select-option value="中等">中等</a-select-option>
+                <a-select-option value="困难">困难</a-select-option>
+              </a-select>
+            </a-form-item>
 
-        <a-form-item label="标签" name="tags">
-          <a-select v-model:value="editForm.tags" mode="tags" style="width: 100%" placeholder="请选择或输入标签">
-            <a-select-option v-for="tag in tagsList" :key="tag" :value="tag">
-              {{ tag }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
+            <a-form-item label="标签" name="tags">
+              <a-select v-model:value="editForm.tags" mode="tags" style="width: 100%" placeholder="请选择或输入标签">
+                <a-select-option v-for="tag in tagsList" :key="tag" :value="tag">
+                  {{ tag }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
 
-        <a-form-item label="题库" name="questionBankId">
-          <a-select v-model:value="editForm.questionBankId" placeholder="请选择题库">
-            <a-select-option v-for="bankItem in questionBanks" :key="bankItem.id" :value="bankItem.id">
-              {{ bankItem.title }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-      </a-form>
+            <a-form-item label="题库" name="questionBankId">
+              <a-select v-model:value="editForm.questionBankId" placeholder="请选择题库">
+                <a-select-option v-for="bankItem in questionBanks" :key="bankItem.id" :value="bankItem.id">
+                  {{ bankItem.title }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-form>
+        </a-tab-pane>
+        <a-tab-pane key="choices" tab="选择题管理">
+          <ChoiceQuestionManager :questionId="editForm.id" :readonly="false"
+            @choice-count-change="handleChoiceCountChange" />
+        </a-tab-pane>
+      </a-tabs>
     </a-modal>
 
     <!-- 预览题目 -->
-    <a-modal v-model:visible="previewModalVisible" title="题目预览" width="900px" :footer="null" :maskClosable="true"
+    <a-modal v-model:visible="previewModalVisible" title="题目预览" width="1000px" :footer="null" :maskClosable="true"
       :destroyOnClose="true">
-      <transition name="fade" mode="out-in">
-        <div class="preview-container" v-if="previewQuestion">
-          <div class="preview-header">
-            <h3>{{ previewQuestion.title }}</h3>
-            <div class="preview-meta">
-              <span :class="difficultyClass(previewQuestion.difficulty)" class="difficulty-tag">
-                {{ previewQuestion.difficulty }}
-              </span>
-              <span class="meta-divider">|</span>
-              <span class="bank-name">
-                题库：{{ getQuestionBankName(previewQuestion.questionBankId) }}
-              </span>
-              <span class="meta-divider">|</span>
-              <span class="question-id">题目ID：{{ previewQuestion.id }}</span>
-            </div>
-          </div>
-
-          <div class="preview-tags">
-            <transition-group tag="div" name="tag">
-              <span v-for="tag in previewQuestion.tagList" :key="tag" class="tag">
-                {{ tag }}
-              </span>
-            </transition-group>
-          </div>
-
-          <div class="preview-content">
-            <h4>题目目录</h4>
-            <div class="content-box markdown-content" v-html="renderMarkdown(previewQuestion.content || '暂无内容')">
-            </div>
-          </div>
-
-          <div class="preview-answer">
-            <h4>参考答案</h4>
-            <div class="content-box markdown-content" v-html="renderMarkdown(previewQuestion.answer || '暂无答案')">
-            </div>
-          </div>
-
-          <div class="preview-statistics">
-            <div class="statistics-box">
-              <div class="stat-item">
-                <span class="stat-label">提交次数：</span>
-                <span class="stat-value">
-                  {{ previewQuestion.submissionQuantity || 0 }}
-                </span>
+      <a-tabs v-model:activeKey="previewActiveTabKey">
+        <a-tab-pane key="basic" tab="基本信息">
+          <transition name="fade" mode="out-in">
+            <div class="preview-container" v-if="previewQuestion">
+              <div class="preview-header">
+                <h3>{{ previewQuestion.title }}</h3>
+                <div class="preview-meta">
+                  <span :class="difficultyClass(previewQuestion.difficulty)" class="difficulty-tag">
+                    {{ previewQuestion.difficulty }}
+                  </span>
+                  <span class="meta-divider">|</span>
+                  <span class="bank-name">
+                    题库：{{ getQuestionBankName(previewQuestion.questionBankId) }}
+                  </span>
+                  <span class="meta-divider">|</span>
+                  <span class="question-id">题目ID：{{ previewQuestion.id }}</span>
+                </div>
               </div>
-              <div class="stat-item">
-                <span class="stat-label">通过率：</span>
-                <span class="stat-value" :class="passRateClass(previewQuestion.passRate)">
-                  {{ previewQuestion.passRate || '0%' }}
-                </span>
+
+              <div class="preview-tags">
+                <transition-group tag="div" name="tag">
+                  <span v-for="tag in previewQuestion.tagList" :key="tag" class="tag">
+                    {{ tag }}
+                  </span>
+                </transition-group>
               </div>
-              <div class="stat-item">
-                <span class="stat-label">最近更新：</span>
-                <span class="stat-value">
-                  {{ previewQuestion.updateTime
-                    ? formatDateTime(new Date(previewQuestion.updateTime))
-                    : '暂无记录' }}
-                </span>
+
+              <div class="preview-content">
+                <h4>题目目录</h4>
+                <div class="content-box markdown-content" v-html="renderMarkdown(previewQuestion.content || '暂无内容')">
+                </div>
+              </div>
+
+              <div class="preview-answer">
+                <h4>参考答案</h4>
+                <div class="content-box markdown-content" v-html="renderMarkdown(previewQuestion.answer || '暂无答案')">
+                </div>
+              </div>
+
+              <div class="preview-statistics">
+                <div class="statistics-box">
+                  <div class="stat-item">
+                    <span class="stat-label">提交次数：</span>
+                    <span class="stat-value">
+                      {{ previewQuestion.submissionQuantity || 0 }}
+                    </span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">通过率：</span>
+                    <span class="stat-value" :class="passRateClass(previewQuestion.passRate)">
+                      {{ previewQuestion.passRate || '0%' }}
+                    </span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">最近更新：</span>
+                    <span class="stat-value">
+                      {{ previewQuestion.updateTime
+                        ? formatDateTime(new Date(previewQuestion.updateTime))
+                        : '暂无记录' }}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      </transition>
+          </transition>
+        </a-tab-pane>
+        <a-tab-pane key="choices" tab="选择题预览">
+          <ChoiceQuestionManager v-if="previewQuestion" :questionId="previewQuestion.id" :readonly="true" />
+        </a-tab-pane>
+      </a-tabs>
     </a-modal>
   </div>
 </template>
@@ -285,6 +315,7 @@ import { addQuestion, updateQuestion, deleteQuestion, getQuestionList } from '@/
 import { getQuestionBankList } from '@/apis/questionBankApi';
 import { addQuestionToBank, getQuestionBanksByQuestionId, updateQuestionBankRelation } from '@/apis/questionBankQuestionApi';
 import { marked } from 'marked';
+import ChoiceQuestionManager from '@/components/manager/ChoiceQuestionManager.vue';
 
 // 题目接口
 interface Question {
@@ -353,15 +384,18 @@ const showTotal = (total: number) => `共 ${total} 条记录`;
 const addModalVisible = ref<boolean>(false);
 const addLoading = ref<boolean>(false);
 const addFormRef = ref<FormInstance>();
+const addActiveTabKey = ref<string>('basic');
 
 // 编辑题目相关
 const editModalVisible = ref<boolean>(false);
 const editLoading = ref<boolean>(false);
 const editFormRef = ref<FormInstance>();
+const editActiveTabKey = ref<string>('basic');
 
 // 预览题目相关
 const previewModalVisible = ref<boolean>(false);
 const previewQuestion = ref<Question | null>(null);
+const previewActiveTabKey = ref<string>('basic');
 
 // 题库列表
 const questionBanks = ref<QuestionBank[]>([]);
@@ -377,13 +411,17 @@ const addForm = reactive<{
   difficulty?: string;
   tags: string[];
   questionBankId?: string;
+  isCreated: boolean;
+  createdQuestionId: string;
 }>({
   title: '',
   content: '',
   answer: '',
   difficulty: undefined,
   tags: [],
-  questionBankId: undefined
+  questionBankId: undefined,
+  isCreated: false,
+  createdQuestionId: ''
 });
 
 // 编辑题目表单
@@ -431,10 +469,25 @@ const addFormRules: Record<string, Rule[]> = {
 
 const editFormRules = addFormRules;
 
+// 标签页切换处理
+const handleAddTabChange = (activeKey: string | number) => {
+  const key = String(activeKey);
+  addActiveTabKey.value = key;
+  if (key === 'choices' && !addForm.isCreated) {
+    message.warning('请先保存基本信息后再管理选择题');
+    addActiveTabKey.value = 'basic';
+  }
+};
+
+// 选择题数量变化处理
+const handleChoiceCountChange = (count: number) => {
+
+};
+
 // Markdown渲染函数
 const renderMarkdown = (content: string): string => {
   if (!content) return '暂无内容';
-  
+
   try {
     // 配置marked选项
     marked.setOptions({
@@ -685,63 +738,76 @@ const showAddModal = () => {
   addForm.difficulty = undefined;
   addForm.tags = [];
   addForm.questionBankId = undefined;
+  addForm.isCreated = false;
+  addForm.createdQuestionId = '';
+  addActiveTabKey.value = 'basic';
   addModalVisible.value = true;
 };
 
 const handleAddQuestion = async () => {
   try {
-    const valid = await addFormRef.value?.validate();
-    if (!valid) return;
+    if (addActiveTabKey.value === 'basic') {
+      // 在基本信息页，验证并保存基本信息
+      const valid = await addFormRef.value?.validate();
+      if (!valid) return;
 
-    addLoading.value = true;
-    if (!addForm.difficulty) {
-      message.error('请选择难度');
-      addLoading.value = false;
-      return;
-    }
-    if (!addForm.questionBankId) {
-      message.error('请选择题库');
-      addLoading.value = false;
-      return;
-    }
-    // 同步标签到全局
-    if (addForm.tags.length > 0) {
-      const newTags = addForm.tags.filter((t) => !tagsList.value.includes(t));
-      if (newTags.length > 0) {
-        tagsList.value = tagsList.value.concat(newTags);
+      addLoading.value = true;
+      if (!addForm.difficulty) {
+        message.error('请选择难度');
+        addLoading.value = false;
+        return;
       }
-    }
+      if (!addForm.questionBankId) {
+        message.error('请选择题库');
+        addLoading.value = false;
+        return;
+      }
+      // 同步标签到全局
+      if (addForm.tags.length > 0) {
+        const newTags = addForm.tags.filter((t) => !tagsList.value.includes(t));
+        if (newTags.length > 0) {
+          tagsList.value = tagsList.value.concat(newTags);
+        }
+      }
 
-    // 先提交"新题目"到后端，拿到自动生成的 questionId（Long → 转为 String）
-    const questionData: any = {
-      title: addForm.title,
-      content: addForm.content,
-      answer: addForm.answer,
-      difficulty: addForm.difficulty,
-      tags: addForm.tags
-    };
-    const resp = await addQuestion(questionData);
-    if (resp.code === 0) {
-      const newQid = String(resp.data);
-      // 新题目创建成功后，再把题目和题库关联
-      try {
-        const bankRes = await addQuestionToBank(
-          newQid,
-          addForm.questionBankId as string
-        );
-        if (bankRes.code !== 0) {
+      // 先提交"新题目"到后端，拿到自动生成的 questionId（Long → 转为 String）
+      const questionData: any = {
+        title: addForm.title,
+        content: addForm.content,
+        answer: addForm.answer,
+        difficulty: addForm.difficulty,
+        tags: addForm.tags
+      };
+      const resp = await addQuestion(questionData);
+      if (resp.code === 0) {
+        const newQid = String(resp.data);
+        addForm.createdQuestionId = newQid;
+        addForm.isCreated = true;
+
+        // 新题目创建成功后，再把题目和题库关联
+        try {
+          const bankRes = await addQuestionToBank(
+            newQid,
+            addForm.questionBankId as string
+          );
+          if (bankRes.code !== 0) {
+            message.warning('题目创建成功，但关联题库失败');
+          }
+        } catch (e) {
+          console.error('新增题目关联题库失败:', e);
           message.warning('题目创建成功，但关联题库失败');
         }
-      } catch (e) {
-        console.error('新增题目关联题库失败:', e);
-        message.warning('题目创建成功，但关联题库失败');
+        message.success('题目基本信息保存成功！可以继续添加选择题');
+        addActiveTabKey.value = 'choices'; // 自动切换到选择题管理页
+      } else {
+        message.error(resp.message || '添加题目失败');
       }
-      message.success('题目添加成功！');
+    } else {
+      // 在选择题页，直接关闭模态框
       addModalVisible.value = false;
       addFormRef.value?.resetFields();
       fetchQuestionList();
-    } else {
-      message.error(resp.message || '添加题目失败');
+      message.success('题目创建完成！');
     }
   } catch (e) {
     console.error('添加题目出错:', e);
@@ -752,8 +818,20 @@ const handleAddQuestion = async () => {
 };
 
 const handleCancelAdd = () => {
-  addFormRef.value?.resetFields();
-  addModalVisible.value = false;
+  if (addForm.isCreated) {
+    Modal.confirm({
+      title: '确认关闭',
+      content: '题目已创建，关闭后将无法继续编辑选择题，确定要关闭吗？',
+      onOk: () => {
+        addFormRef.value?.resetFields();
+        addModalVisible.value = false;
+        fetchQuestionList(); // 刷新列表
+      }
+    });
+  } else {
+    addFormRef.value?.resetFields();
+    addModalVisible.value = false;
+  }
 };
 
 const showEditModal = (question: Question) => {
@@ -772,51 +850,59 @@ const showEditModal = (question: Question) => {
     ? formatDateTime(new Date(question.updateTime))
     : '暂无记录';
 
+  editActiveTabKey.value = 'basic';
   editModalVisible.value = true;
 };
 
 const handleEditQuestion = async () => {
   try {
-    const valid = await editFormRef.value?.validate();
-    if (!valid) return;
+    if (editActiveTabKey.value === 'basic') {
+      // 在基本信息页，验证并保存基本信息
+      const valid = await editFormRef.value?.validate();
+      if (!valid) return;
 
-    editLoading.value = true;
-    if (!editForm.questionBankId) {
-      message.error('请选择题库');
-      editLoading.value = false;
-      return;
-    }
-
-    // 编辑标签时同步到全局
-    if (editForm.tags.length > 0) {
-      const newTags = editForm.tags.filter((t) => !tagsList.value.includes(t));
-      if (newTags.length > 0) {
-        tagsList.value = tagsList.value.concat(newTags);
+      editLoading.value = true;
+      if (!editForm.questionBankId) {
+        message.error('请选择题库');
+        editLoading.value = false;
+        return;
       }
-    }
 
-    const updQ: any = {
-      id: editForm.id,
-      title: editForm.title,
-      content: editForm.content,
-      answer: editForm.answer,
-      difficulty: editForm.difficulty,
-      tags: editForm.tags
-    };
-    const resp = await updateQuestion(updQ);
-    if (resp.code === 0) {
-      const ok = await updateQuestionBankRelation(
-        editForm.id,
-        editForm.questionBankId as string
-      );
-      if (!ok) {
-        message.warning('题目更新成功，但更新题库关联失败');
+      // 编辑标签时同步到全局
+      if (editForm.tags.length > 0) {
+        const newTags = editForm.tags.filter((t) => !tagsList.value.includes(t));
+        if (newTags.length > 0) {
+          tagsList.value = tagsList.value.concat(newTags);
+        }
       }
-      message.success('题目更新成功！');
+
+      const updQ: any = {
+        id: editForm.id,
+        title: editForm.title,
+        content: editForm.content,
+        answer: editForm.answer,
+        difficulty: editForm.difficulty,
+        tags: editForm.tags
+      };
+      const resp = await updateQuestion(updQ);
+      if (resp.code === 0) {
+        const ok = await updateQuestionBankRelation(
+          editForm.id,
+          editForm.questionBankId as string
+        );
+        if (!ok) {
+          message.warning('题目更新成功，但更新题库关联失败');
+        }
+        message.success('题目基本信息更新成功！');
+        editActiveTabKey.value = 'choices'; // 自动切换到选择题管理页
+      } else {
+        message.error(resp.message || '更新题目失败');
+      }
+    } else {
+      // 在选择题页，直接关闭模态框
       editModalVisible.value = false;
       fetchQuestionList();
-    } else {
-      message.error(resp.message || '更新题目失败');
+      message.success('题目更新完成！');
     }
   } catch (e) {
     console.error('编辑题目出错:', e);
@@ -864,6 +950,8 @@ const showPreviewModal = (question: Question) => {
     ...question,
     updateTime: question.updateTime || undefined
   };
+
+  previewActiveTabKey.value = 'basic';
   previewModalVisible.value = true;
 };
 
