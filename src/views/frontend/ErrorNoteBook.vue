@@ -58,12 +58,11 @@
                                 <a-select-option value="solved">已解决</a-select-option>
                             </a-select>
 
-                            <a-select v-model:value="difficultyFilter" placeholder="筛选难度" style="width: 120px;"
-                                allowClear>
-                                <a-select-option value="all">全部难度</a-select-option>
-                                <a-select-option value="easy">简单</a-select-option>
-                                <a-select-option value="medium">中等</a-select-option>
-                                <a-select-option value="hard">困难</a-select-option>
+                            <a-select v-model:value="tagFilter" placeholder="筛选标签" style="width: 120px;" allowClear>
+                                <a-select-option value="all">全部标签</a-select-option>
+                                <a-select-option v-for="tag in availableTags" :key="tag" :value="tag">
+                                    {{ tag }}
+                                </a-select-option>
                             </a-select>
                         </div>
                     </div>
@@ -128,7 +127,12 @@
                         </div>
                     </div>
 
-                    <div class="error-cards-container">
+                    <!-- 加载状态 -->
+                    <div v-if="errorStore.loading" class="loading-state">
+                        <a-spin size="large" tip="加载中..." />
+                    </div>
+
+                    <div v-else class="error-cards-container">
                         <div v-if="displayedErrors.length === 0" class="empty-state">
                             <div class="empty-content">
                                 <div class="empty-icon">
@@ -171,8 +175,9 @@
 
         <!-- 添加错题本模态框 -->
         <a-modal v-model:visible="showAddBookModal" title="添加错题本" @ok="handleAddBook"
-            @cancel="showAddBookModal = false">
-            <a-input v-model:value="newBookName" placeholder="请输入错题本名称" style="margin-bottom: 16px;" />
+            @cancel="cancelAddBook" :confirmLoading="addBookLoading">
+            <a-input v-model:value="newBookName" placeholder="请输入错题本名称" style="margin-bottom: 16px;" 
+                :maxlength="20" show-count />
             <div style="margin-bottom: 8px;">选择图标颜色：</div>
             <a-radio-group v-model:value="newBookColor">
                 <a-radio v-for="color in bookColors" :key="color" :value="color">
@@ -183,7 +188,7 @@
 
         <!-- 移动错题模态框 -->
         <a-modal v-model:visible="showMoveModal" title="移动到其他错题本" @ok="handleMoveErrors"
-            @cancel="showMoveModal = false">
+            @cancel="showMoveModal = false" :confirmLoading="moveLoading">
             <div>选择目标错题本：</div>
             <a-radio-group v-model:value="targetBookId" style="margin-top: 12px;">
                 <a-radio v-for="book in availableTargetBooks" :key="book.id" :value="book.id"
@@ -197,7 +202,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
     BookFilled,
@@ -212,6 +217,7 @@ import {
 import { h } from 'vue';
 import { message } from 'ant-design-vue';
 import { useErrorNotebookStore, type ErrorQuestion } from '@/stores/errorNoteBook';
+import ErrorCard from '@/components/shared/ErrorCard.vue';
 
 const router = useRouter();
 const errorStore = useErrorNotebookStore();
@@ -228,6 +234,7 @@ const searchBook = ref('');
 const showAddBookModal = ref(false);
 const newBookName = ref('');
 const newBookColor = ref('#DE868F');
+const addBookLoading = ref(false);
 const bookColors = [
     '#65A1DC', '#FCD13C', '#50BF5B', '#EF6973', '#BABBCF',
     '#35C9DD', '#EE9762', '#3FD2A6', '#E573B4'
@@ -235,14 +242,16 @@ const bookColors = [
 
 const selectedError = ref<ErrorQuestion | null>(null);
 const statusFilter = ref<string>('all');
-const difficultyFilter = ref<string>('all');
+const tagFilter = ref<string>('all');
 
 // 批量操作相关
 const showBatchActions = ref(false);
-const selectedErrors = ref<number[]>([]);
+const selectedErrors = ref<string[]>([]);
 const showMoveModal = ref(false);
-const targetBookId = ref<number>();
+const targetBookId = ref<string>();
+const moveLoading = ref(false);
 
+// 模拟相关题目数据
 const relatedQuestions = ref<RelatedQuestion[]>([
     { id: 101, title: '如何优化前端性能？', heat: 1200, tags: ['前端', '性能'] },
     { id: 102, title: 'Vue3的响应式原理是什么？', heat: 800, tags: ['Vue3', '响应式'] },
@@ -260,6 +269,14 @@ const filteredBooks = computed(() => {
     );
 });
 
+const availableTags = computed(() => {
+    const tags = new Set<string>();
+    errorStore.errors.forEach(error => {
+        error.tags.forEach(tag => tags.add(tag));
+    });
+    return Array.from(tags);
+});
+
 const displayedErrors = computed(() => {
     let result = errorStore.filteredErrors;
 
@@ -268,9 +285,9 @@ const displayedErrors = computed(() => {
         result = result.filter(error => error.status === statusFilter.value);
     }
 
-    // 难度筛选
-    if (difficultyFilter.value && difficultyFilter.value !== 'all') {
-        result = result.filter(error => error.difficulty === difficultyFilter.value);
+    // 标签筛选
+    if (tagFilter.value && tagFilter.value !== 'all') {
+        result = result.filter(error => error.tags.includes(tagFilter.value));
     }
 
     return result;
@@ -292,18 +309,28 @@ const indeterminate = computed(() => {
 // 方法
 const goback = () => router.back();
 
-const selectBook = (bookId: number) => {
-    errorStore.setActiveBook(bookId);
-    selectedErrors.value = [];
-    showBatchActions.value = false;
+const selectBook = async (bookId: string) => {
+    try {
+        await errorStore.setActiveBook(bookId);
+        selectedErrors.value = [];
+        showBatchActions.value = false;
+        statusFilter.value = 'all';
+        tagFilter.value = 'all';
+    } catch (error: any) {
+        message.error(error.message || '切换错题本失败');
+    }
 };
 
 const onSearchBook = () => {
     console.log('搜索错题本:', searchBook.value);
 };
 
-const onQuestionSearch = () => {
-    console.log('搜索错题:', errorStore.searchKeyword);
+const onQuestionSearch = async () => {
+    try {
+        await errorStore.searchErrors(errorStore.searchKeyword);
+    } catch (error: any) {
+        message.error(error.message || '搜索错题失败');
+    }
 };
 
 const selectError = (error: ErrorQuestion) => {
@@ -313,57 +340,61 @@ const selectError = (error: ErrorQuestion) => {
 
 const selectRelatedQuestion = (question: RelatedQuestion) => {
     console.log('选中相关题目:', question);
+    // TODO: 跳转到题目详情页面
 };
 
-const handleAddBook = () => {
+const handleAddBook = async () => {
     if (!newBookName.value.trim()) {
         message.warning('请输入错题本名称');
         return;
     }
 
     try {
-        const newBook = errorStore.addBook(newBookName.value, newBookColor.value);
+        addBookLoading.value = true;
+        const newBook = await errorStore.addBook(newBookName.value.trim(), newBookColor.value);
         message.success(`创建错题本 "${newBook.name}" 成功`);
-        newBookName.value = '';
-        newBookColor.value = '#DE868F';
-        showAddBookModal.value = false;
-    } catch (error) {
-        message.error('创建错题本失败');
-        console.error('创建错题本失败:', error);
+        cancelAddBook();
+    } catch (error: any) {
+        message.error(error.message || '创建错题本失败');
+    } finally {
+        addBookLoading.value = false;
     }
 };
 
-const deleteCurrentBook = () => {
+const cancelAddBook = () => {
+    newBookName.value = '';
+    newBookColor.value = '#DE868F';
+    showAddBookModal.value = false;
+};
+
+const deleteCurrentBook = async () => {
     if (!errorStore.currentBook) return;
 
     try {
         const bookName = errorStore.currentBook.name;
-        errorStore.deleteBook(errorStore.activeBookId);
+        await errorStore.deleteBook(errorStore.activeBookId);
         message.success(`删除错题本 "${bookName}" 成功`);
-    } catch (error) {
-        message.error('删除错题本失败');
-        console.error('删除错题本失败:', error);
+    } catch (error: any) {
+        message.error(error.message || '删除错题本失败');
     }
 };
 
-const deleteError = (errorId: number) => {
+const deleteError = async (errorId: string) => {
     try {
-        errorStore.removeError(errorId);
+        await errorStore.removeError(errorId);
         selectedErrors.value = selectedErrors.value.filter(id => id !== errorId);
         message.success('删除错题成功');
-    } catch (error) {
-        message.error('删除错题失败');
-        console.error('删除错题失败:', error);
+    } catch (error: any) {
+        message.error(error.message || '删除错题失败');
     }
 };
 
-const updateErrorStatus = (errorId: number, status: 'solved' | 'unsolved') => {
+const updateErrorStatus = (errorId: string, status: 'solved' | 'unsolved') => {
     try {
         errorStore.updateErrorStatus(errorId, status);
         message.success(`错题状态已更新为${status === 'solved' ? '已解决' : '未解决'}`);
     } catch (error) {
         message.error('更新错题状态失败');
-        console.error('更新错题状态失败:', error);
     }
 };
 
@@ -376,7 +407,7 @@ const onCheckAllChange = (e: any) => {
     }
 };
 
-const onCheckError = (errorId: number, checked: boolean) => {
+const onCheckError = (errorId: string, checked: boolean) => {
     if (checked) {
         selectedErrors.value.push(errorId);
     } else {
@@ -384,30 +415,28 @@ const onCheckError = (errorId: number, checked: boolean) => {
     }
 };
 
-const batchDelete = () => {
+const batchDelete = async () => {
     if (selectedErrors.value.length === 0) return;
 
     try {
-        errorStore.batchDeleteErrors(selectedErrors.value);
+        await errorStore.batchDeleteErrors(selectedErrors.value);
         const count = selectedErrors.value.length;
         selectedErrors.value = [];
         message.success(`成功删除 ${count} 道错题`);
-    } catch (error) {
-        message.error('批量删除失败');
-        console.error('批量删除失败:', error);
+    } catch (error: any) {
+        message.error(error.message || '批量删除失败');
     }
 };
 
-const handleMoveErrors = () => {
+const handleMoveErrors = async () => {
     if (!targetBookId.value || selectedErrors.value.length === 0) {
         message.warning('请选择目标错题本');
         return;
     }
 
     try {
-        selectedErrors.value.forEach(errorId => {
-            errorStore.moveErrorToBook(errorId, targetBookId.value!);
-        });
+        moveLoading.value = true;
+        await errorStore.batchMoveErrors(selectedErrors.value, targetBookId.value);
 
         const targetBook = errorStore.books.find(b => b.id === targetBookId.value);
         const count = selectedErrors.value.length;
@@ -415,9 +444,10 @@ const handleMoveErrors = () => {
         showMoveModal.value = false;
 
         message.success(`成功移动 ${count} 道错题到 "${targetBook?.name}"`);
-    } catch (error) {
-        message.error('移动错题失败');
-        console.error('移动错题失败:', error);
+    } catch (error: any) {
+        message.error(error.message || '移动错题失败');
+    } finally {
+        moveLoading.value = false;
     }
 };
 
@@ -426,12 +456,28 @@ watch(() => errorStore.activeBookId, () => {
     selectedError.value = null;
     selectedErrors.value = [];
     showBatchActions.value = false;
+    statusFilter.value = 'all';
+    tagFilter.value = 'all';
 });
 
 watch(showBatchActions, (newVal) => {
     if (!newVal) {
         selectedErrors.value = [];
     }
+});
+
+// 生命周期
+onMounted(async () => {
+    try {
+        await errorStore.initialize();
+    } catch (error) {
+        console.error('初始化失败:', error);
+    }
+});
+
+onUnmounted(() => {
+    // 清理过期的临时数据
+    errorStore.cleanupTempData();
 });
 </script>
 
@@ -672,7 +718,6 @@ watch(showBatchActions, (newVal) => {
     color: #666;
 }
 
-/* 书籍操作按钮样式 */
 .book-actions {
     display: flex;
     gap: 12px;
@@ -716,7 +761,6 @@ watch(showBatchActions, (newVal) => {
     transform: translateY(-1px);
 }
 
-/* 批量操作栏样式 */
 .batch-actions {
     display: flex;
     align-items: center;
@@ -803,13 +847,20 @@ watch(showBatchActions, (newVal) => {
     box-shadow: none !important;
 }
 
+.loading-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 80px 20px;
+    min-height: 400px;
+}
+
 .error-cards-container {
     display: flex;
     flex-direction: column;
     gap: 16px;
 }
 
-/* 空状态样式 */
 .empty-state {
     display: flex;
     align-items: center;

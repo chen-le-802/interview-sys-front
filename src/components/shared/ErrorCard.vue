@@ -5,9 +5,6 @@
       <a-checkbox v-if="showCheckbox" :checked="checked" @click.stop @change="onCheckChange"
         style="margin-right: 12px;" />
 
-      <span :class="['subject-tag', `difficulty-${error.difficulty}`]">
-        {{ getDifficultyText(error.difficulty) }}
-      </span>
       <span :class="['status-tag', error.status]">
         {{ error.status === 'solved' ? '已解决' : '未解决' }}
       </span>
@@ -76,11 +73,6 @@
           <h4>关联题目：</h4>
           <p class="related-question">{{ error.relatedQuestion }}</p>
         </div>
-        <div class="knowledge-tags">
-          <span v-for="tag in error.tags" :key="tag" class="tag">
-            {{ tag }}
-          </span>
-        </div>
       </div>
     </div>
   </div>
@@ -114,9 +106,9 @@ const props = withDefaults(defineProps<Props>(), {
 // Emits
 const emit = defineEmits<{
   click: [error: ErrorQuestion];
-  check: [errorId: number, checked: boolean];
-  delete: [errorId: number];
-  updateStatus: [errorId: number, status: 'solved' | 'unsolved'];
+  check: [errorId: string, checked: boolean];
+  delete: [errorId: string];
+  updateStatus: [errorId: string, status: 'solved' | 'unsolved'];
 }>();
 
 // 响应式数据
@@ -138,15 +130,6 @@ const deleteError = () => {
 
 const updateStatus = (status: 'solved' | 'unsolved') => {
   emit('updateStatus', props.error.id, status);
-};
-
-const getDifficultyText = (difficulty: string) => {
-  const difficultyMap = {
-    'easy': '简单',
-    'medium': '中等',
-    'hard': '困难'
-  };
-  return difficultyMap[difficulty as keyof typeof difficultyMap] || difficulty;
 };
 </script>
 
@@ -173,29 +156,6 @@ const getDifficultyText = (difficulty: string) => {
   cursor: pointer;
   position: relative;
   border-bottom: 1px solid #f0f0f0;
-}
-
-.subject-tag {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  margin-right: 8px;
-}
-
-.difficulty-easy {
-  background: #f6ffed;
-  color: #52c41a;
-}
-
-.difficulty-medium {
-  background: #fff7e6;
-  color: #fa8c16;
-}
-
-.difficulty-hard {
-  background: #fff1f0;
-  color: #ff4d4f;
 }
 
 .status-tag {
@@ -407,26 +367,6 @@ const getDifficultyText = (difficulty: string) => {
 
 .related-question:hover {
   color: #40a9ff;
-}
-
-.knowledge-tags {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.tag {
-  background: #f5f5f5;
-  color: #666;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  transition: all 0.3s;
-}
-
-.tag:hover {
-  background: #e6f7ff;
-  color: #1890ff;
 }
 
 /* 响应式设计 */

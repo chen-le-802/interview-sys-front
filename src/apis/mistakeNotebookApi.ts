@@ -26,12 +26,17 @@ export interface WrongQuestion {
   c: string;
   d: string;
   answerAnalysis?: string;
-  knowledgeTags?: string[];
+  knowledgeTags?: string[] | string;
 }
 
 // 添加错题本
 export const addMistakeNotebook = (data: { name: string; color: string }): Promise<BaseResponse<string>> => {
   return request.post('/api/mistakeNotebook/add', data);
+};
+
+// 更新错题本
+export const updateMistakeNotebook = (data: { id: string; name: string; color: string }): Promise<BaseResponse<null>> => {
+  return request.post('/api/mistakeNotebook/update', data);
 };
 
 // 获取错题本列表
@@ -67,4 +72,13 @@ export const getWrongQuestionsByNotebookId = (mistakeNotebookId: string): Promis
   return request.get('/api/mistakeNotebook/wrongQuestion/get', {
     params: { mistakeNotebookId }
   });
+};
+
+// 动态条件查询错题
+export const searchWrongQuestions = (data: {
+  knowledgeTags: string[];
+  mistakeNotebookId: string;
+  topic: string;
+}): Promise<BaseResponse<WrongQuestion[]>> => {
+  return request.post('/api/mistakeNotebook/wrongQuestion/getByDynamicCondition', data);
 };

@@ -1,311 +1,487 @@
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
+import { message } from 'ant-design-vue';
+import {
+  getMistakeNotebooks,
+  addMistakeNotebook,
+  updateMistakeNotebook,
+  deleteMistakeNotebook,
+  getWrongQuestionsByNotebookId,
+  addWrongQuestionToNotebook,
+  removeWrongQuestionFromNotebook,
+  searchWrongQuestions,
+  type MistakeNotebook,
+  type WrongQuestion
+} from '@/apis/mistakeNotebookApi';
+import { tempStorage } from '@/utils/tempStorage';
 
-// 定义错题本数据结构
-export interface Book {
-  id: number
-  name: string
-  type?: string
-  count: number
-  color?: string
-  createTime: string
+// 扩展错题接口，添加前端需要的字段
+export interface ErrorQuestion extends WrongQuestion {
+  title: string; // 从 topic 映射过来
+  status: 'solved' | 'unsolved'; // 错题状态
+  date: string; // 添加日期
+  knowledgePoint: string; // 从 knowledgeTags 第一个标签映射
+  source?: string; // 来源
+  options: string[]; // 从 a,b,c,d 组合而来
+  correctAnswer: string; // 从 answer 映射
+  userAnswer: string; // 用户答案
+  explanation: string; // 从 answerAnalysis 映射
+  relatedQuestion?: string; // 关联题目
+  tags: string[]; // 从 knowledgeTags 映射
 }
 
-// 定义错题数据结构
-export interface ErrorQuestion {
-  id: number
-  bookId: number
-  title: string
-  content: string
-  options: string[]
-  correctAnswer: string
-  userAnswer: string
-  explanation: string
-  knowledgePoint: string
-  relatedQuestion: string
-  tags: string[]
-  date: string
-  difficulty: 'easy' | 'medium' | 'hard'
-  status: 'unsolved' | 'solved'
-  source?: string // 题目来源
-}
-
-// 定义题目数据结构（用于从测试页面传入）
-export interface Question {
-  title: string
-  options: string[]
-  correctAnswer: string
-  explanation: string
-  knowledgePoint: string
-  relatedQuestion: string
+// 错题本接口扩展
+export interface ErrorNotebook extends MistakeNotebook {
+  count: number; // 错题数量
 }
 
 export const useErrorNotebookStore = defineStore('errorNotebook', () => {
   // 状态
-  const books = ref<Book[]>([
-    { 
-      id: 1, 
-      name: '前端错题', 
-      type: 'front', 
-      count: 0, 
-      color: '#DE868F',
-      createTime: '2024-01-15'
-    },
-    { 
-      id: 2, 
-      name: '后端错题', 
-      type: 'back', 
-      count: 0, 
-      color: '#FCCA00',
-      createTime: '2024-02-01'
-    },
-    { 
-      id: 3, 
-      name: '运维错题', 
-      type: 'ops', 
-      count: 0, 
-      color: '#6C6C6C',
-      createTime: '2024-02-15'
-    }
-  ])
+  const books = ref<ErrorNotebook[]>([]);
+  const activeBookId = ref<string>('');
+  const errors = ref<ErrorQuestion[]>([]);
+  const searchKeyword = ref('');
+  const loading = ref(false);
 
-  const errors = ref<ErrorQuestion[]>([
-    // {
-    //   id: 1,
-    //   bookId: 1,
-    //   title: '1.下列关于进程和线程的描述，正确的是：',
-    //   content: '进程和线程的基本概念理解',
-    //   options: [
-    //     'A. 进程是任务执行的基本单位，线程是资源分配的基本单位',
-    //     'B. 进程是资源分配的基本单位，线程是任务执行的基本单位',
-    //     'C. 进程和线程都是资源分配的基本单位',
-    //     'D. 进程和线程都是任务执行的基本单位'
-    //   ],
-    //   correctAnswer: 'B',
-    //   userAnswer: 'A',
-    //   explanation: '进程是操作系统资源分配的基本单位，拥有独立的内存空间；线程是进程内的任务执行单位，共享所属进程的资源。',
-    //   knowledgePoint: '进程与线程',
-    //   relatedQuestion: '在Linux系统中，执行fork()系统调用后，父进程和子进程的关系是什么？',
-    //   tags: ['Vue3', '响应式'],
-    //   date: '2024-03-15',
-    //   difficulty: 'medium',
-    //   status: 'unsolved'
-    // },
-    // {
-    //   id: 2,
-    //   bookId: 1,
-    //   title: '2.关于进程和线程的资源管理和通信机制，下列说法错误的是：',
-    //   content: '进程间通信机制的理解',
-    //   options: [
-    //     'A. 进程间通信需要使用IPC机制，如管道、信号量、共享内存等',
-    //     'B. 线程可以直接读写进程内存，但需要同步控制避免竞态条件',
-    //     'C. 进程切换开销较高，因为需要切换虚拟地址空间',
-    //     'D. 线程间可以直接共享文件句柄和系统资源'
-    //   ],
-    //   correctAnswer: 'D',
-    //   userAnswer: 'C',
-    //   explanation: '线程共享所属进程的资源，包括内存空间，但文件句柄等系统资源是进程级别的。',
-    //   knowledgePoint: '进程间通信',
-    //   relatedQuestion: '请比较管道、消息队列、共享内存三种IPC机制的特点',
-    //   tags: ['React', '性能'],
-    //   date: '2024-03-02',
-    //   difficulty: 'hard',
-    //   status: 'solved'
-    // }
-  ])
-
-  const activeBookId = ref<number>(1)
-  const searchKeyword = ref<string>('')
-  
   // 计算属性
   const currentBook = computed(() => 
     books.value.find(book => book.id === activeBookId.value)
-  )
+  );
 
   const filteredErrors = computed(() => {
-    let result = errors.value.filter(error => error.bookId === activeBookId.value)
+    if (!searchKeyword.value.trim()) return errors.value;
     
-    if (searchKeyword.value.trim()) {
-      const keyword = searchKeyword.value.toLowerCase().trim()
-      result = result.filter(error => 
-        error.title.toLowerCase().includes(keyword) ||
-        error.content.toLowerCase().includes(keyword) ||
-        error.knowledgePoint.toLowerCase().includes(keyword) ||
-        error.tags.some(tag => tag.toLowerCase().includes(keyword))
-      )
-    }
-    
-    return result
-  })
+    const keyword = searchKeyword.value.toLowerCase();
+    return errors.value.filter(error => 
+      error.title.toLowerCase().includes(keyword) ||
+      error.tags.some(tag => tag.toLowerCase().includes(keyword)) ||
+      error.knowledgePoint.toLowerCase().includes(keyword)
+    );
+  });
 
-  const getBookById = computed(() => (id: number) => 
-    books.value.find(book => book.id === id)
-  )
-
-  const getErrorsByBookId = computed(() => (bookId: number) => 
-    errors.value.filter(error => error.bookId === bookId)
-  )
-
-  // 方法
-  const addBook = (name: string, color: string = '#DE868F') => {
-    const newBook: Book = {
-      id: Date.now(), // 简单的ID生成，实际项目中应该用更好的方式
-      name: name.trim(),
-      count: 0,
-      color,
-      createTime: new Date().toISOString().split('T')[0]
-    }
-    books.value.push(newBook)
-    return newBook
-  }
-
-  const deleteBook = (bookId: number) => {
-    // 删除错题本和其中的所有错题
-    books.value = books.value.filter(book => book.id !== bookId)
-    errors.value = errors.value.filter(error => error.bookId !== bookId)
-    
-    // 如果删除的是当前选中的错题本，切换到第一个
-    if (activeBookId.value === bookId && books.value.length > 0) {
-      activeBookId.value = books.value[0].id
-    }
-  }
-
-  const addErrorToBook = (
-    bookId: number, 
-    question: Question, 
-    userAnswer: string,
-    questionIndex?: number
-  ) => {
-    const newError: ErrorQuestion = {
-      id: Date.now() + Math.random(), // 确保唯一性
-      bookId,
-      title: question.title,
-      content: `第${questionIndex !== undefined ? questionIndex + 1 : ''}题错题记录`,
-      options: question.options,
-      correctAnswer: question.correctAnswer,
-      userAnswer,
-      explanation: question.explanation,
-      knowledgePoint: question.knowledgePoint,
-      relatedQuestion: question.relatedQuestion,
-      tags: [question.knowledgePoint], // 基于知识点生成标签
-      date: new Date().toISOString().split('T')[0],
-      difficulty: 'medium', // 默认中等难度
-      status: 'unsolved',
-      source: '在线测试'
-    }
-    
-    errors.value.push(newError)
-    
-    // 更新错题本的计数
-    const book = books.value.find(b => b.id === bookId)
-    if (book) {
-      book.count++
-    }
-    
-    return newError
-  }
-
-  const removeError = (errorId: number) => {
-    const errorIndex = errors.value.findIndex(error => error.id === errorId)
-    if (errorIndex !== -1) {
-      const error = errors.value[errorIndex]
-      const book = books.value.find(b => b.id === error.bookId)
-      
-      // 更新错题本计数
-      if (book && book.count > 0) {
-        book.count--
-      }
-      
-      errors.value.splice(errorIndex, 1)
-    }
-  }
-
-  const updateErrorStatus = (errorId: number, status: 'solved' | 'unsolved') => {
-    const error = errors.value.find(e => e.id === errorId)
-    if (error) {
-      error.status = status
-    }
-  }
-
-  const setActiveBook = (bookId: number) => {
-    activeBookId.value = bookId
-  }
-
-  const setSearchKeyword = (keyword: string) => {
-    searchKeyword.value = keyword
-  }
-
-  const clearSearch = () => {
-    searchKeyword.value = ''
-  }
-
-  // 获取统计信息
   const getStatistics = computed(() => {
-    const totalErrors = errors.value.length
-    const solvedErrors = errors.value.filter(e => e.status === 'solved').length
-    const unsolvedErrors = totalErrors - solvedErrors
-    
-    const difficultyStats = {
-      easy: errors.value.filter(e => e.difficulty === 'easy').length,
-      medium: errors.value.filter(e => e.difficulty === 'medium').length,
-      hard: errors.value.filter(e => e.difficulty === 'hard').length
-    }
+    const totalErrors = errors.value.length;
+    const solvedErrors = errors.value.filter(error => error.status === 'solved').length;
+    const solvedRate = totalErrors > 0 ? Math.round((solvedErrors / totalErrors) * 100) : 0;
     
     return {
       totalErrors,
       solvedErrors,
-      unsolvedErrors,
-      solvedRate: totalErrors > 0 ? Math.round((solvedErrors / totalErrors) * 100) : 0,
-      difficultyStats
-    }
-  })
+      solvedRate
+    };
+  });
 
-  // 批量操作
-  const batchDeleteErrors = (errorIds: number[]) => {
-    errorIds.forEach(id => removeError(id))
-  }
-
-  const moveErrorToBook = (errorId: number, targetBookId: number) => {
-    const error = errors.value.find(e => e.id === errorId)
-    if (error) {
-      const oldBook = books.value.find(b => b.id === error.bookId)
-      const newBook = books.value.find(b => b.id === targetBookId)
-      
-      if (oldBook && newBook) {
-        // 更新计数
-        if (oldBook.count > 0) oldBook.count--
-        newBook.count++
-        
-        // 更新错题归属
-        error.bookId = targetBookId
+  // 数据转换函数
+const convertWrongQuestionToError = (wrongQuestion: WrongQuestion): ErrorQuestion => {
+  const errorId = wrongQuestion.id;
+  const tempStatus = tempStorage.getErrorStatus(errorId);
+  
+  let tags: string[] = [];
+  if (wrongQuestion.knowledgeTags) {
+    if (Array.isArray(wrongQuestion.knowledgeTags)) {
+      tags = wrongQuestion.knowledgeTags;
+    } else if (typeof wrongQuestion.knowledgeTags === 'string') {
+      // 如果是字符串，可能是 JSON 字符串或逗号分隔的字符串
+      try {
+        const parsed = JSON.parse(wrongQuestion.knowledgeTags);
+        tags = Array.isArray(parsed) ? parsed : [wrongQuestion.knowledgeTags];
+      } catch {
+        // 如果不是 JSON，尝试按逗号分隔
+        tags = wrongQuestion.knowledgeTags.includes(',') 
+          ? wrongQuestion.knowledgeTags.split(',').map(tag => tag.trim()).filter(tag => tag)
+          : [wrongQuestion.knowledgeTags];
       }
     }
   }
+  
+  return {
+    ...wrongQuestion,
+    title: wrongQuestion.topic,
+    status: tempStatus.status,
+    date: new Date().toLocaleDateString(),
+    knowledgePoint: tags[0] || '未分类', // 使用第一个标签作为主知识点
+    options: [
+      `A.${wrongQuestion.a}`,
+      `B.${wrongQuestion.b}`,
+      `C.${wrongQuestion.c}`,
+      `D.${wrongQuestion.d}`
+    ],
+    correctAnswer: wrongQuestion.answer.toUpperCase(),
+    userAnswer: tempStatus.userAnswer || 'A',
+    explanation: wrongQuestion.answerAnalysis || '暂无解析',
+    tags: tags, // 使用处理后的标签数组
+    source: '题目练习' // 临时默认值
+  };
+};
+
+  // API 调用方法
+  const fetchBooks = async () => {
+    try {
+      loading.value = true;
+      const response = await getMistakeNotebooks();
+      if (response.code === 0) {
+        // 为每个错题本添加错题数量
+        const booksWithCount = await Promise.all(
+          response.data.map(async (book) => {
+            try {
+              const errorsResponse = await getWrongQuestionsByNotebookId(book.id);
+              return {
+                ...book,
+                count: errorsResponse.data?.length || 0
+              };
+            } catch {
+              return { ...book, count: 0 };
+            }
+          })
+        );
+        books.value = booksWithCount;
+        
+        // 如果没有激活的错题本，设置第一个为激活状态
+        if (!activeBookId.value && books.value.length > 0) {
+          activeBookId.value = books.value[0].id;
+        }
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error: any) {
+      message.error('获取错题本列表失败');
+      console.error('获取错题本失败:', error);
+      throw error;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const fetchErrors = async (bookId: string) => {
+    if (!bookId) return;
+    
+    try {
+      loading.value = true;
+      const response = await getWrongQuestionsByNotebookId(bookId);
+      if (response.code === 0) {
+        errors.value = response.data.map(convertWrongQuestionToError);
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error: any) {
+      message.error('获取错题列表失败');
+      console.error('获取错题失败:', error);
+      errors.value = []; // 清空错题列表
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const addBook = async (name: string, color: string): Promise<ErrorNotebook> => {
+    try {
+      const response = await addMistakeNotebook({ name, color });
+      if (response.code === 0) {
+        const newBook: ErrorNotebook = {
+          id: response.data,
+          name,
+          color,
+          userId: '',
+          createTime: Date.now(),
+          count: 0
+        };
+        books.value.push(newBook);
+        return newBook;
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error: any) {
+      console.error('添加错题本失败:', error);
+      throw error;
+    }
+  };
+
+  const updateBook = async (id: string, name: string, color: string) => {
+    try {
+      const response = await updateMistakeNotebook({ id, name, color });
+      if (response.code === 0) {
+        const bookIndex = books.value.findIndex(book => book.id === id);
+        if (bookIndex !== -1) {
+          books.value[bookIndex] = { ...books.value[bookIndex], name, color };
+        }
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error: any) {
+      console.error('更新错题本失败:', error);
+      throw error;
+    }
+  };
+
+  const deleteBook = async (bookId: string) => {
+    try {
+      const response = await deleteMistakeNotebook(bookId);
+      if (response.code === 0) {
+        books.value = books.value.filter(book => book.id !== bookId);
+        
+        // 如果删除的是当前激活的错题本，切换到第一个
+        if (activeBookId.value === bookId) {
+          activeBookId.value = books.value.length > 0 ? books.value[0].id : '';
+          errors.value = []; // 清空错题列表
+          if (activeBookId.value) {
+            await fetchErrors(activeBookId.value);
+          }
+        }
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error: any) {
+      console.error('删除错题本失败:', error);
+      throw error;
+    }
+  };
+
+  const addErrorToBook = async (choiceQuestionId: string, bookId: string) => {
+    try {
+      const response = await addWrongQuestionToNotebook({
+        choiceQuestionId,
+        mistakeNoteBookId: bookId
+      });
+      if (response.code === 0) {
+        // 刷新当前错题本的错题列表
+        if (activeBookId.value === bookId) {
+          await fetchErrors(bookId);
+        }
+        // 更新错题本计数
+        const book = books.value.find(b => b.id === bookId);
+        if (book) book.count++;
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error: any) {
+      console.error('添加错题失败:', error);
+      throw error;
+    }
+  };
+
+  const removeError = async (errorId: string) => {
+    if (!activeBookId.value) return;
+    
+    try {
+      const response = await removeWrongQuestionFromNotebook({
+        choiceQuestionId: errorId,
+        mistakeNoteBookId: activeBookId.value
+      });
+      
+      if (response.code === 0) {
+        errors.value = errors.value.filter(error => error.id !== errorId);
+        // 删除本地存储的状态
+        tempStorage.removeErrorStatus(errorId);
+        // 更新错题本计数
+        const book = books.value.find(b => b.id === activeBookId.value);
+        if (book && book.count > 0) book.count--;
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error: any) {
+      console.error('删除错题失败:', error);
+      throw error;
+    }
+  };
+
+  const moveErrorToBook = async (errorId: string, targetBookId: string) => {
+    if (!activeBookId.value) return;
+    
+    try {
+      // 先从当前错题本移除
+      const removeResponse = await removeWrongQuestionFromNotebook({
+        choiceQuestionId: errorId,
+        mistakeNoteBookId: activeBookId.value
+      });
+      
+      if (removeResponse.code !== 0) {
+        throw new Error(removeResponse.message);
+      }
+      
+      // 再添加到目标错题本
+      const addResponse = await addWrongQuestionToNotebook({
+        choiceQuestionId: errorId,
+        mistakeNoteBookId: targetBookId
+      });
+      
+      if (addResponse.code !== 0) {
+        throw new Error(addResponse.message);
+      }
+      
+      // 更新本地状态
+      errors.value = errors.value.filter(error => error.id !== errorId);
+      
+      // 更新错题本计数
+      const currentBook = books.value.find(b => b.id === activeBookId.value);
+      const targetBook = books.value.find(b => b.id === targetBookId);
+      if (currentBook && currentBook.count > 0) currentBook.count--;
+      if (targetBook) targetBook.count++;
+      
+    } catch (error: any) {
+      console.error('移动错题失败:', error);
+      throw error;
+    }
+  };
+
+  const batchDeleteErrors = async (errorIds: string[]) => {
+    if (!activeBookId.value || errorIds.length === 0) return;
+    
+    try {
+      // 并行删除所有错题
+      const promises = errorIds.map(errorId => 
+        removeWrongQuestionFromNotebook({
+          choiceQuestionId: errorId,
+          mistakeNoteBookId: activeBookId.value
+        })
+      );
+      
+      const results = await Promise.allSettled(promises);
+      
+      // 检查是否有失败的请求
+      const failedCount = results.filter(result => 
+        result.status === 'rejected' || 
+        (result.status === 'fulfilled' && result.value.code !== 0)
+      ).length;
+      
+      if (failedCount > 0) {
+        message.warning(`${errorIds.length - failedCount} 道错题删除成功，${failedCount} 道失败`);
+      }
+      
+      // 更新本地状态 - 只移除成功删除的错题
+      const successfullyDeleted = errorIds.filter((_, index) => {
+        const result = results[index];
+        return result.status === 'fulfilled' && result.value.code === 0;
+      });
+      
+      errors.value = errors.value.filter(error => !successfullyDeleted.includes(error.id));
+      tempStorage.batchRemoveErrorStatus(successfullyDeleted);
+      
+      // 更新错题本计数
+      const book = books.value.find(b => b.id === activeBookId.value);
+      if (book) book.count = Math.max(0, book.count - successfullyDeleted.length);
+      
+    } catch (error: any) {
+      console.error('批量删除失败:', error);
+      throw error;
+    }
+  };
+
+  const batchMoveErrors = async (errorIds: string[], targetBookId: string) => {
+    if (!activeBookId.value || errorIds.length === 0) return;
+    
+    try {
+      // 并行移动所有错题
+      const promises = errorIds.map(errorId => moveErrorToBook(errorId, targetBookId));
+      await Promise.all(promises);
+    } catch (error: any) {
+      console.error('批量移动失败:', error);
+      throw error;
+    }
+  };
+
+  // 本地状态管理方法
+  const updateErrorStatus = (errorId: string, status: 'solved' | 'unsolved') => {
+    // 保存到本地存储
+    tempStorage.saveErrorStatus(errorId, status);
+    
+    // 更新本地状态
+    const error = errors.value.find(e => e.id === errorId);
+    if (error) {
+      error.status = status;
+    }
+    
+    // TODO: 等后端 API 准备好后，调用真实接口
+    // await updateErrorStatusAPI(errorId, status);
+  };
+
+  const searchErrors = async (keyword: string, tags: string[] = []) => {
+    if (!activeBookId.value) return;
+    
+    try {
+      // 如果有关键词，尝试调用后端搜索API
+      if (keyword.trim() || tags.length > 0) {
+        const response = await searchWrongQuestions({
+          mistakeNotebookId: activeBookId.value,
+          topic: keyword,
+          knowledgeTags: tags
+        });
+        
+        if (response.code === 0) {
+          errors.value = response.data.map(convertWrongQuestionToError);
+          return;
+        }
+      }
+      
+      // 如果后端搜索失败或没有关键词，使用本地搜索
+      searchKeyword.value = keyword;
+      
+    } catch (error) {
+      console.error('搜索错题失败:', error);
+      // 搜索失败时，回退到本地搜索
+      searchKeyword.value = keyword;
+    }
+  };
+
+  const setActiveBook = async (bookId: string) => {
+    if (activeBookId.value === bookId) return;
+    
+    activeBookId.value = bookId;
+    searchKeyword.value = ''; // 清空搜索关键词
+    if (bookId) {
+      await fetchErrors(bookId);
+    } else {
+      errors.value = [];
+    }
+  };
+
+  // 初始化
+  const initialize = async () => {
+    try {
+      await fetchBooks();
+      if (activeBookId.value) {
+        await fetchErrors(activeBookId.value);
+      }
+    } catch (error) {
+      console.error('初始化失败:', error);
+      // 初始化失败时，设置默认状态
+      books.value = [];
+      errors.value = [];
+      activeBookId.value = '';
+    }
+  };
+
+  // 清理过期的临时数据
+  const cleanupTempData = () => {
+    tempStorage.cleanExpiredData(30); // 清理30天前的数据
+  };
 
   return {
     // 状态
     books,
-    errors,
     activeBookId,
+    errors,
     searchKeyword,
+    loading,
     
     // 计算属性
     currentBook,
     filteredErrors,
-    getBookById,
-    getErrorsByBookId,
     getStatistics,
     
     // 方法
+    fetchBooks,
+    fetchErrors,
     addBook,
+    updateBook,
     deleteBook,
     addErrorToBook,
     removeError,
-    updateErrorStatus,
-    setActiveBook,
-    setSearchKeyword,
-    clearSearch,
+    moveErrorToBook,
     batchDeleteErrors,
-    moveErrorToBook
-  }
-})
+    batchMoveErrors,
+    updateErrorStatus,
+    searchErrors,
+    setActiveBook,
+    initialize,
+    cleanupTempData
+  };
+});
