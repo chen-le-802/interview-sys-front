@@ -19,7 +19,7 @@
         </AnswerContent>
 
         <!-- 测试内容 -->
-        <TestContent v-if="current === 'test'"></TestContent>
+        <TestContent v-if="current === 'test'" :question-id="questionId" :key="questionId"></TestContent>
     </div>
 </template>
 
