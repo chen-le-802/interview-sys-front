@@ -109,6 +109,12 @@
                   :loading="markingIds.includes(item.id)">
                   标记已读
                 </el-button>
+                <el-button v-if="activeTab === 'comment'" link size="small" @click="deleteCommentNotification(item.id)"
+                  :loading="deletingIds.includes(item.id)">
+                  <el-icon>
+                    <Delete />
+                  </el-icon>
+                </el-button>
                 <el-button v-if="item.read && !item.important && activeTab === 'system'" link size="small"
                   @click="deleteNotification(item.id)">
                   <el-icon>
@@ -152,7 +158,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
-import { getNotifications, getUnreadCount, markAsRead as apiMarkAsRead, getQuestionByCommentId, type CommentNotification } from '@/apis/commentApi'
+import { getNotifications, getUnreadCount, markAsRead as apiMarkAsRead, getQuestionByCommentId, deleteNotification as apiDeleteNotification, type CommentNotification } from '@/apis/commentApi'
 
 dayjs.extend(relativeTime)
 dayjs.locale('zh-cn')
@@ -184,6 +190,7 @@ const pageSize = ref(10)
 const loading = ref(false)
 const marking = ref(false)
 const markingIds = ref<string[]>([])
+const deletingIds = ref<string[]>([])
 
 // 生成系统通知的Mock数据
 const generateSystemNotifications = (): Notification[] => {
@@ -389,6 +396,44 @@ const markAsRead = async (id: string) => {
       systemNotifications.value[index].read = true
       systemNotifications.value = [...systemNotifications.value]
       ElMessage.success('已标记为已读')
+    }
+  }
+}
+
+// 删除评论通知
+const deleteCommentNotification = async (id: string) => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除这条通知吗？',
+      '提示',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+
+    deletingIds.value.push(id)
+
+    try {
+      const response = await apiDeleteNotification(id)
+      if (response.code === 0) {
+        // 从本地列表中移除
+        notifications.value = notifications.value.filter(item => item.id !== id)
+        ElMessage.success('删除成功')
+      } else {
+        ElMessage.error(response.message || '删除失败')
+      }
+    } catch (error) {
+      ElMessage.error('删除失败')
+      console.error('删除通知失败:', error)
+    } finally {
+      deletingIds.value = deletingIds.value.filter(deletingId => deletingId !== id)
+    }
+  } catch (error) {
+    // 用户取消删除
+    if (error !== 'cancel') {
+      console.error('删除通知失败:', error)
     }
   }
 }

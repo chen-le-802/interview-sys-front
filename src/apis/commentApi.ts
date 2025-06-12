@@ -120,3 +120,10 @@ export const getQuestionByCommentId = (commentId: string): Promise<BaseResponse<
     params: { commentId }
   });
 };
+
+// 删除评论回复通知
+export const deleteNotification = (commentNotificationId: string): Promise<BaseResponse> => {
+  return request.delete('/api/comment/deleteNotification', {
+    params: { commentNotificationId }
+  });
+};
