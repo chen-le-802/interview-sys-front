@@ -156,6 +156,12 @@ export const useErrorNotebookStore = defineStore('errorNotebook', () => {
       const response = await getWrongQuestionsByNotebookId(bookId);
       if (response.code === 0) {
         errors.value = response.data.map(convertWrongQuestionToError);
+        
+        // 同步更新错题本的实际count
+        const book = books.value.find(b => b.id === bookId);
+        if (book) {
+          book.count = response.data.length;
+        }
       } else {
         throw new Error(response.message);
       }
@@ -165,6 +171,21 @@ export const useErrorNotebookStore = defineStore('errorNotebook', () => {
       errors.value = []; // 清空错题列表
     } finally {
       loading.value = false;
+    }
+  };
+
+  // 刷新单个错题本的count
+  const refreshBookCount = async (bookId: string) => {
+    try {
+      const response = await getWrongQuestionsByNotebookId(bookId);
+      if (response.code === 0) {
+        const book = books.value.find(b => b.id === bookId);
+        if (book) {
+          book.count = response.data.length;
+        }
+      }
+    } catch (error) {
+      console.error('刷新错题本计数失败:', error);
     }
   };
 
@@ -238,13 +259,13 @@ export const useErrorNotebookStore = defineStore('errorNotebook', () => {
         mistakeNoteBookId: bookId
       });
       if (response.code === 0) {
-        // 刷新当前错题本的错题列表
+        // 刷新当前错题本的错题列表（这会同步更新count）
         if (activeBookId.value === bookId) {
           await fetchErrors(bookId);
+        } else {
+          // 如果不是当前错题本，只更新该错题本的count
+          await refreshBookCount(bookId);
         }
-        // 更新错题本计数
-        const book = books.value.find(b => b.id === bookId);
-        if (book) book.count++;
       } else {
         throw new Error(response.message);
       }
@@ -267,9 +288,8 @@ export const useErrorNotebookStore = defineStore('errorNotebook', () => {
         errors.value = errors.value.filter(error => error.id !== errorId);
         // 删除本地存储的状态
         tempStorage.removeErrorStatus(errorId);
-        // 更新错题本计数
-        const book = books.value.find(b => b.id === activeBookId.value);
-        if (book && book.count > 0) book.count--;
+        // 同步更新错题本计数
+        await refreshBookCount(activeBookId.value);
       } else {
         throw new Error(response.message);
       }
@@ -306,11 +326,11 @@ export const useErrorNotebookStore = defineStore('errorNotebook', () => {
       // 更新本地状态
       errors.value = errors.value.filter(error => error.id !== errorId);
       
-      // 更新错题本计数
-      const currentBook = books.value.find(b => b.id === activeBookId.value);
-      const targetBook = books.value.find(b => b.id === targetBookId);
-      if (currentBook && currentBook.count > 0) currentBook.count--;
-      if (targetBook) targetBook.count++;
+      // 同步更新两个错题本的计数
+      await Promise.all([
+        refreshBookCount(activeBookId.value),
+        refreshBookCount(targetBookId)
+      ]);
       
     } catch (error: any) {
       console.error('移动错题失败:', error);
@@ -351,9 +371,8 @@ export const useErrorNotebookStore = defineStore('errorNotebook', () => {
       errors.value = errors.value.filter(error => !successfullyDeleted.includes(error.id));
       tempStorage.batchRemoveErrorStatus(successfullyDeleted);
       
-      // 更新错题本计数
-      const book = books.value.find(b => b.id === activeBookId.value);
-      if (book) book.count = Math.max(0, book.count - successfullyDeleted.length);
+      // 同步更新错题本计数
+      await refreshBookCount(activeBookId.value);
       
     } catch (error: any) {
       console.error('批量删除失败:', error);
@@ -481,6 +500,7 @@ export const useErrorNotebookStore = defineStore('errorNotebook', () => {
     // 方法
     fetchBooks,
     fetchErrors,
+    refreshBookCount,
     addBook,
     updateBook,
     deleteBook,
