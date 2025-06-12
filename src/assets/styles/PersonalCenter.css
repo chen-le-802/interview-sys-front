@@ -252,6 +252,61 @@
     box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
 }
 
+/* 空状态样式 */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    background-color: #fafafa;
+    border-radius: 8px;
+    border: 1px dashed #d9d9d9;
+    margin-top: 12px;
+}
+
+.empty-icon {
+    font-size: 48px;
+    color: #d9d9d9;
+    margin-bottom: 16px;
+}
+
+.empty-text {
+    font-size: 16px;
+    color: #666;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.empty-desc {
+    font-size: 14px;
+    color: #999;
+    text-align: center;
+    line-height: 1.5;
+    max-width: 300px;
+}
+
+/* 加载状态样式 */
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    margin-top: 12px;
+}
+
+.loading-text {
+    margin-top: 16px;
+    font-size: 14px;
+    color: #666;
+}
+
+/* 优化加载中的年份选择器样式 */
+.activity-section .ant-select.ant-select-loading .ant-select-selector {
+    border-color: #6366f1;
+}
+
 /* 信息表单卡片 */
 .info-form-card {
     border-radius: 8px;
@@ -384,7 +439,7 @@
     width: 100%;
 }
 
-/* 响应式设计 */
+/* 优化空状态在不同屏幕下的显示 */
 @media (max-width: 768px) {
     .content-wrapper {
         max-width: 100%;
@@ -422,6 +477,29 @@
         width: 100px;
         height: 100px;
     }
+    
+    /* 移动端空状态优化 */
+    .empty-state {
+        padding: 32px 16px;
+    }
+    
+    .empty-icon {
+        font-size: 40px;
+        margin-bottom: 12px;
+    }
+    
+    .empty-text {
+        font-size: 15px;
+    }
+    
+    .empty-desc {
+        font-size: 13px;
+        max-width: 250px;
+    }
+    
+    .loading-state {
+        padding: 32px 16px;
+    }
 }
 
 /* 小屏幕优化 */
@@ -441,5 +519,90 @@
     
     .heatmap-container {
         height: 180px;
+    }
+    
+    /* 超小屏幕空状态优化 */
+    .empty-state {
+        padding: 24px 12px;
+    }
+    
+    .empty-icon {
+        font-size: 36px;
+        margin-bottom: 10px;
+    }
+    
+    .empty-text {
+        font-size: 14px;
+    }
+    
+    .empty-desc {
+        font-size: 12px;
+        max-width: 200px;
+    }
+    
+    .loading-state {
+        padding: 24px 12px;
+    }
+    
+    .loading-text {
+        font-size: 13px;
+    }
+}
+
+/* 深色主题下的空状态样式（可选） */
+@media (prefers-color-scheme: dark) {
+    .empty-state {
+        background-color: #1f1f1f;
+        border-color: #404040;
+    }
+    
+    .empty-icon {
+        color: #404040;
+    }
+    
+    .empty-text {
+        color: #d9d9d9;
+    }
+    
+    .empty-desc {
+        color: #8c8c8c;
+    }
+    
+    .loading-text {
+        color: #d9d9d9;
+    }
+}
+
+/* 热力图容器的过渡动画 */
+.heatmap-container {
+    transition: opacity 0.3s ease-in-out;
+}
+
+.heatmap-container.loading {
+    opacity: 0.5;
+}
+
+/* 年份选择器加载状态优化 */
+.activity-section .ant-select-loading {
+    position: relative;
+}
+
+.activity-section .ant-select-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    border: 2px solid #6366f1;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: translateY(-50%) rotate(360deg);
     }
 }

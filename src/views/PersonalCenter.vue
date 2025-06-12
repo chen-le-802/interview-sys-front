@@ -58,13 +58,29 @@
 
                             <!-- 选择年份 -->
                             <a-select v-model:value="selectedYear" style="width: 120px; margin-bottom: 12px;"
-                                @change="onYearChange">
+                                @change="onYearChange" :loading="heatmapLoading">
                                 <a-select-option v-for="year in yearOptions" :key="year" :value="year">
                                     {{ year }}
                                 </a-select-option>
                             </a-select>
 
-                            <div ref="heatmapRef" class="heatmap-container"></div>
+                            <!-- 热力图容器 -->
+                            <div ref="heatmapRef" class="heatmap-container" v-show="!showEmptyState"></div>
+                            
+                            <!-- 空状态 -->
+                            <div v-if="showEmptyState" class="empty-state">
+                                <div class="empty-icon">
+                                    <CalendarOutlined />
+                                </div>
+                                <div class="empty-text">{{ emptyStateText }}</div>
+                                <div class="empty-desc">{{ emptyStateDesc }}</div>
+                            </div>
+
+                            <!-- 加载状态 -->
+                            <div v-if="heatmapLoading" class="loading-state">
+                                <a-spin size="large" />
+                                <div class="loading-text">加载刷题记录中...</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -151,10 +167,10 @@ import * as echarts from 'echarts';
 import 'echarts/theme/macarons';
 import { useRouter } from 'vue-router';
 import Header from '@/components/layout/FrontendHeader.vue';
-import { RollbackOutlined, CameraOutlined } from '@ant-design/icons-vue';
+import { RollbackOutlined, CameraOutlined, CalendarOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import { getCurrentUser } from '@/apis/authApi';
-import { updateMyInfo, updateMyPassword, getUserSignInRecord, userSignIn } from '@/apis/userApi';
+import { updateMyInfo, updateMyPassword, getUserSignInRecord } from '@/apis/userApi';
 import type { UploadChangeParam, UploadFile } from 'ant-design-vue/es/upload/interface';
 
 // 类型定义
@@ -172,7 +188,7 @@ interface FormData {
 }
 
 interface UserInfo {
-    id: number;
+    id: string;
     userName: string;
     userAccount: string;
     userAvatar: string;
@@ -189,6 +205,13 @@ interface PasswordForm {
 interface JobPositionOption {
     label: string;
     value: string;
+}
+
+// 签到记录响应接口
+interface SignInRecordResponse {
+    code: number;
+    data: number[];
+    message?: string;
 }
 
 // 目标岗位选项数据
@@ -218,14 +241,22 @@ const hasCompletedToday = ref<boolean>(false);
 // 计算"连续刷题天数"，根据 signedDays 和 当前日期算出
 const continuousDays = ref<number>(0);
 
-// 解题总数 - 使用mock数据，后续对接真实API TODO
-const totalSolved = ref<number>(1248 + Math.floor(Math.random() * 100)); // 模拟1248-1348之间的数字
+// 解题总数 - 累计所有年份的签到天数
+const totalSolved = ref<number>(0);
+
+// 当前年份的签到天数（用于统计显示）
+const currentYearSigned = ref<number>(0);
 
 // ECharts 实例与容器
 const heatmapRef = ref<HTMLElement | null>(null);
 let heatmapChart: echarts.ECharts | null = null;
 
+// 加载和状态控制
 const loading = ref(false);
+const heatmapLoading = ref(false);
+const showEmptyState = ref(false);
+const emptyStateText = ref('');
+const emptyStateDesc = ref('');
 const uploadRef = ref();
 
 // 工具函数：把"第几天"转换为 "yyyy-MM-dd" 字符串
@@ -305,134 +336,138 @@ function calcContinuousDays(year: number, dayIndices: number[]): number {
     return streak;
 }
 
-// 渲染/更新 Heatmap 的主方法
-
-async function renderHeatmap() {
+// 计算累计解题总数
+async function calculateTotalSolved() {
     try {
-        // 1. 当年第 N 天的索引数组
-        let apiSignedDays: number[] = [];
-
-        try {
-            const res = await getUserSignInRecord(selectedYear.value);
-            if (res.code === 0) {
-                apiSignedDays = res.data || [];
-            } else {
-                console.warn('获取刷题记录失败:', res.message);
+        let total = 0;
+        
+        // 遍历所有年份，累计签到天数
+        for (const year of yearOptions) {
+            const response: SignInRecordResponse = await getUserSignInRecord(year);
+            if (response.code === 0 && response.data) {
+                total += response.data.length;
             }
-        } catch (error) {
-            console.warn('API调用失败，使用mock数据:', error);
         }
+        
+        totalSolved.value = total;
+    } catch (error) {
+        console.error('计算累计解题总数失败:', error);
+        totalSolved.value = 0;
+    }
+}
 
-        // 如果API返回空数据，使用mock数据展示样例
-        if (apiSignedDays.length === 0) {
-            // Mock数据：模拟一些刷题记录
-            const mockDays: number[] = [];
-            const today = new Date();
-            const currentDayOfYear = Math.floor((today.getTime() - new Date(selectedYear.value, 0, 1).getTime()) / (1000 * 60 * 60 * 24)) + 1;
-
-            // 模拟最近30天有一些刷题记录
-            for (let i = Math.max(1, currentDayOfYear - 30); i <= currentDayOfYear; i += 2) {
-                if (Math.random() > 0.3) { // 70%概率有刷题记录
-                    mockDays.push(i);
-                }
-            }
-
-            // 添加一些早期的记录
-            const earlyDays = [5, 12, 18, 25, 32, 45, 58, 67, 89, 103, 125, 146, 167, 189, 210];
-            mockDays.push(...earlyDays);
-
-            signedDays.value = mockDays.sort((a, b) => a - b);
-
-            // 显示提示信息
-            if (selectedYear.value === today.getFullYear()) {
-                message.info('当前显示模拟数据，等待后端接口对接');
-            }
-        } else {
+// 渲染/更新 Heatmap 的主方法
+async function renderHeatmap() {
+    heatmapLoading.value = true;
+    showEmptyState.value = false;
+    
+    try {
+        // 调用接口获取签到记录
+        const response: SignInRecordResponse = await getUserSignInRecord(selectedYear.value);
+        
+        if (response.code === 0) {
+            const apiSignedDays = response.data || [];
             signedDays.value = apiSignedDays;
-        }
 
-        // 2. 计算"连续刷题天数"
-        continuousDays.value = calcContinuousDays(selectedYear.value, signedDays.value);
+            // 更新当前年份的签到天数
+            currentYearSigned.value = apiSignedDays.length;
+            
+            // 计算连续刷题天数
+            continuousDays.value = calcContinuousDays(selectedYear.value, signedDays.value);
 
-        // 3. 准备 ECharts Heatmap 所需数据
-        const heatmapData = buildHeatmapData(selectedYear.value, signedDays.value);
+            // 检查是否有记录
+            if (apiSignedDays.length === 0) {
+                currentYearSigned.value = 0;
+                showEmptyState.value = true;
+                const currentYear = new Date().getFullYear();
+                if (selectedYear.value === currentYear) {
+                    emptyStateText.value = '还没有刷题记录';
+                    emptyStateDesc.value = '开始你的第一次刷题吧！';
+                } else {
+                    emptyStateText.value = `${selectedYear.value}年暂无刷题记录`;
+                    emptyStateDesc.value = '该年份暂无刷题数据';
+                }
+                return;
+            }
 
-        // 4. 初始化或清空已有实例
-        if (!heatmapChart) {
-            heatmapChart = echarts.init(heatmapRef.value!);
-        }
-        heatmapChart.clear();
+            // 准备 ECharts Heatmap 所需数据
+            const heatmapData = buildHeatmapData(selectedYear.value, signedDays.value);
 
-        // 5. 如果没有任何记录，则在图表中央显示"暂无刷题记录"
-        if (heatmapData.length === 0) {
+            // 初始化或清空已有实例
+            if (!heatmapChart) {
+                heatmapChart = echarts.init(heatmapRef.value!);
+            }
+            heatmapChart.clear();
+
+            // 设置 Heatmap 的配置项
             heatmapChart.setOption({
-                graphic: [
-                    {
-                        type: 'text',
-                        left: 'center',
-                        top: 'middle',
-                        style: {
-                            text: '暂无刷题记录',
-                            fontSize: 14,
-                            fill: '#999'
+                animation: false,
+                tooltip: {
+                    position: 'top',
+                    formatter: (params: any) => {
+                        const [dateStr, value] = params.data as [string, number];
+                        if (value === 1) {
+                            return `${dateStr}：已完成刷题`;
+                        } else {
+                            return `${dateStr}：未刷题`;
                         }
                     }
-                ]
-            });
-            return;
-        }
-
-        // 6. 设置 Heatmap 的配置项
-        heatmapChart.setOption({
-            animation: false,
-            tooltip: {
-                position: 'top',
-                formatter: (params: any) => {
-                    const [dateStr] = params.data as [string, number];
-                    return `${dateStr}：已完成刷题`;
-                }
-            },
-            visualMap: {
-                show: false,
-                min: 0,
-                max: 1,
-                inRange: {
-                    color: [ '#f7f8f9', '#6598f7' ]
-                }
-            },
-            calendar: {
-                top: 50,
-                left: 30,
-                right: 30,
-                cellSize: ['auto', 13],
-                range: `${selectedYear.value}`, // 整年
-                itemStyle: {
-                    borderWidth: 2,
-                    borderColor: '#fff'
                 },
-                yearLabel: { show: false }
-            },
-            series: {
-                type: 'heatmap',
-                coordinateSystem: 'calendar',
-                data: heatmapData
-            }
-        });
+                visualMap: {
+                    show: false,
+                    min: 0,
+                    max: 1,
+                    inRange: {
+                        color: ['#f7f8f9', '#6598f7']
+                    }
+                },
+                calendar: {
+                    top: 50,
+                    left: 30,
+                    right: 30,
+                    cellSize: ['auto', 13],
+                    range: `${selectedYear.value}`, // 整年
+                    itemStyle: {
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    },
+                    yearLabel: { show: false }
+                },
+                series: {
+                    type: 'heatmap',
+                    coordinateSystem: 'calendar',
+                    data: heatmapData
+                }
+            });
 
-        // 7. 给每个格子绑定点击事件，提示
-        heatmapChart.off('click');
-        heatmapChart.on('click', (params: any) => {
-            if (params.componentType === 'series' && params.data) {
-            }
-        });
+            // 监听窗口大小变化
+            const resizeHandler = () => {
+                heatmapChart?.resize();
+            };
+            window.addEventListener('resize', resizeHandler);
+
+        } else {
+            // 接口返回错误
+            console.error('获取签到记录失败:', response.message);
+            currentYearSigned.value = 0;
+            showEmptyState.value = true;
+            emptyStateText.value = '获取数据失败';
+            emptyStateDesc.value = response.message || '请稍后重试';
+            message.error(response.message || '获取刷题记录失败');
+        }
     } catch (error) {
-        console.error(error);
-        message.error('渲染刷题日历时出错');
+        console.error('获取签到记录异常:', error);
+        currentYearSigned.value = 0;
+        showEmptyState.value = true;
+        emptyStateText.value = '网络异常';
+        emptyStateDesc.value = '请检查网络连接后重试';
+        message.error('获取刷题记录失败，请稍后重试');
+    } finally {
+        heatmapLoading.value = false;
     }
 }
 
 // ========== 切换年份时重新拉取并渲染 ==========
-
 async function onYearChange(value: any) {
     let year: number;
 
@@ -536,7 +571,7 @@ const passwordForm = reactive<PasswordForm>({
 
 // 获取当前登录用户信息
 const userInfo = reactive<UserInfo>({
-    id: 0,
+    id: '',
     userName: '',
     userAccount: '',
     userAvatar: '',
@@ -806,7 +841,8 @@ const fetchUserInfo = async () => {
 
         if (res.code === 0 && res.data) {
             const userData = res.data;
-            userInfo.id = userData.id;
+            // 确保id转换为string类型
+            userInfo.id = String(userData.id);
             userInfo.userName = userData.userName;
             userInfo.userAccount = userData.userAccount || '';
 
@@ -845,6 +881,9 @@ function goBack() {
 onMounted(async () => {
     // 获取用户信息
     await fetchUserInfo();
+
+    // 计算累计解题总数
+    await calculateTotalSolved();
 
     // 初始化热力图
     await renderHeatmap();
