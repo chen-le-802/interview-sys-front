@@ -389,12 +389,12 @@ const deleteError = async (errorId: string) => {
     }
 };
 
-const updateErrorStatus = (errorId: string, status: 'solved' | 'unsolved') => {
+const updateErrorStatus = async (errorId: string, status: 'solved' | 'unsolved') => {
     try {
-        errorStore.updateErrorStatus(errorId, status);
+        await errorStore.updateErrorStatus(errorId, status);
         message.success(`错题状态已更新为${status === 'solved' ? '已解决' : '未解决'}`);
-    } catch (error) {
-        message.error('更新错题状态失败');
+    } catch (error: any) {
+        message.error(error.message || '更新错题状态失败');
     }
 };
 

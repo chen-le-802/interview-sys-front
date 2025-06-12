@@ -12,6 +12,7 @@ export interface MistakeNotebook {
   name: string;
   userId: string;
   color: string;
+  count: number;
   createTime: number;
 }
 
@@ -27,6 +28,7 @@ export interface WrongQuestion {
   d: string;
   answerAnalysis?: string;
   knowledgeTags?: string[] | string;
+  state?: string;
 }
 
 // 添加错题本
@@ -81,4 +83,13 @@ export const searchWrongQuestions = (data: {
   topic: string;
 }): Promise<BaseResponse<WrongQuestion[]>> => {
   return request.post('/api/mistakeNotebook/wrongQuestion/getByDynamicCondition', data);
+};
+
+// 设置错题状态
+export const setWrongQuestionState = (data: {
+  choiceQuestionId: string;
+  mistakeNoteBookId: string;
+  state: string;
+}): Promise<BaseResponse<null>> => {
+  return request.post('/api/mistakeNotebook/wrongQuestion/setState', data);
 };

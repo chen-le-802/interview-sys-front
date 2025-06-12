@@ -10,6 +10,7 @@ import {
   addWrongQuestionToNotebook,
   removeWrongQuestionFromNotebook,
   searchWrongQuestions,
+  setWrongQuestionState,
   type MistakeNotebook,
   type WrongQuestion
 } from '@/apis/mistakeNotebookApi';
@@ -32,7 +33,7 @@ export interface ErrorQuestion extends WrongQuestion {
 
 // 错题本接口扩展
 export interface ErrorNotebook extends MistakeNotebook {
-  count: number; // 错题数量
+  // count 字段已经在 MistakeNotebook 中定义了，不需要重复
 }
 
 export const useErrorNotebookStore = defineStore('errorNotebook', () => {
@@ -72,47 +73,55 @@ export const useErrorNotebookStore = defineStore('errorNotebook', () => {
   });
 
   // 数据转换函数
-const convertWrongQuestionToError = (wrongQuestion: WrongQuestion): ErrorQuestion => {
-  const errorId = wrongQuestion.id;
-  const tempStatus = tempStorage.getErrorStatus(errorId);
-  
-  let tags: string[] = [];
-  if (wrongQuestion.knowledgeTags) {
-    if (Array.isArray(wrongQuestion.knowledgeTags)) {
-      tags = wrongQuestion.knowledgeTags;
-    } else if (typeof wrongQuestion.knowledgeTags === 'string') {
-      // 如果是字符串，可能是 JSON 字符串或逗号分隔的字符串
-      try {
-        const parsed = JSON.parse(wrongQuestion.knowledgeTags);
-        tags = Array.isArray(parsed) ? parsed : [wrongQuestion.knowledgeTags];
-      } catch {
-        // 如果不是 JSON，尝试按逗号分隔
-        tags = wrongQuestion.knowledgeTags.includes(',') 
-          ? wrongQuestion.knowledgeTags.split(',').map(tag => tag.trim()).filter(tag => tag)
-          : [wrongQuestion.knowledgeTags];
+  const convertWrongQuestionToError = (wrongQuestion: WrongQuestion): ErrorQuestion => {
+    const errorId = wrongQuestion.id;
+    const tempStatus = tempStorage.getErrorStatus(errorId);
+    
+    let tags: string[] = [];
+    if (wrongQuestion.knowledgeTags) {
+      if (Array.isArray(wrongQuestion.knowledgeTags)) {
+        tags = wrongQuestion.knowledgeTags;
+      } else if (typeof wrongQuestion.knowledgeTags === 'string') {
+        // 如果是字符串，可能是 JSON 字符串或逗号分隔的字符串
+        try {
+          const parsed = JSON.parse(wrongQuestion.knowledgeTags);
+          tags = Array.isArray(parsed) ? parsed : [wrongQuestion.knowledgeTags];
+        } catch {
+          // 如果不是 JSON，尝试按逗号分隔
+          tags = wrongQuestion.knowledgeTags.includes(',') 
+            ? wrongQuestion.knowledgeTags.split(',').map(tag => tag.trim()).filter(tag => tag)
+            : [wrongQuestion.knowledgeTags];
+        }
       }
     }
-  }
-  
-  return {
-    ...wrongQuestion,
-    title: wrongQuestion.topic,
-    status: tempStatus.status,
-    date: new Date().toLocaleDateString(),
-    knowledgePoint: tags[0] || '未分类', // 使用第一个标签作为主知识点
-    options: [
-      `A.${wrongQuestion.a}`,
-      `B.${wrongQuestion.b}`,
-      `C.${wrongQuestion.c}`,
-      `D.${wrongQuestion.d}`
-    ],
-    correctAnswer: wrongQuestion.answer.toUpperCase(),
-    userAnswer: tempStatus.userAnswer || 'A',
-    explanation: wrongQuestion.answerAnalysis || '暂无解析',
-    tags: tags, // 使用处理后的标签数组
-    source: '题目练习' // 临时默认值
+    
+    // 优先使用后端返回的状态，如果没有则使用本地存储
+    let status: 'solved' | 'unsolved' = 'unsolved';
+    if (wrongQuestion.state) {
+      status = wrongQuestion.state as 'solved' | 'unsolved';
+    } else {
+      status = tempStatus.status;
+    }
+    
+    return {
+      ...wrongQuestion,
+      title: wrongQuestion.topic,
+      status: status,
+      date: new Date().toLocaleDateString(),
+      knowledgePoint: tags[0] || '未分类', // 使用第一个标签作为主知识点
+      options: [
+        `A.${wrongQuestion.a}`,
+        `B.${wrongQuestion.b}`,
+        `C.${wrongQuestion.c}`,
+        `D.${wrongQuestion.d}`
+      ],
+      correctAnswer: wrongQuestion.answer.toUpperCase(),
+      userAnswer: tempStatus.userAnswer || 'A',
+      explanation: wrongQuestion.answerAnalysis || '暂无解析',
+      tags: tags, // 使用处理后的标签数组
+      source: '题目练习' // 临时默认值
+    };
   };
-};
 
   // API 调用方法
   const fetchBooks = async () => {
@@ -120,21 +129,8 @@ const convertWrongQuestionToError = (wrongQuestion: WrongQuestion): ErrorQuestio
       loading.value = true;
       const response = await getMistakeNotebooks();
       if (response.code === 0) {
-        // 为每个错题本添加错题数量
-        const booksWithCount = await Promise.all(
-          response.data.map(async (book) => {
-            try {
-              const errorsResponse = await getWrongQuestionsByNotebookId(book.id);
-              return {
-                ...book,
-                count: errorsResponse.data?.length || 0
-              };
-            } catch {
-              return { ...book, count: 0 };
-            }
-          })
-        );
-        books.value = booksWithCount;
+        // 后端已经返回了count字段，直接使用
+        books.value = response.data;
         
         // 如果没有激活的错题本，设置第一个为激活状态
         if (!activeBookId.value && books.value.length > 0) {
@@ -379,18 +375,33 @@ const convertWrongQuestionToError = (wrongQuestion: WrongQuestion): ErrorQuestio
   };
 
   // 本地状态管理方法
-  const updateErrorStatus = (errorId: string, status: 'solved' | 'unsolved') => {
-    // 保存到本地存储
-    tempStorage.saveErrorStatus(errorId, status);
+  const updateErrorStatus = async (errorId: string, status: 'solved' | 'unsolved') => {
+    if (!activeBookId.value) return;
     
-    // 更新本地状态
-    const error = errors.value.find(e => e.id === errorId);
-    if (error) {
-      error.status = status;
+    try {
+      // 调用后端API更新状态
+      const response = await setWrongQuestionState({
+        choiceQuestionId: errorId,
+        mistakeNoteBookId: activeBookId.value,
+        state: status
+      });
+      
+      if (response.code === 0) {
+        // API调用成功后，保存到本地存储
+        tempStorage.saveErrorStatus(errorId, status);
+        
+        // 更新本地状态
+        const error = errors.value.find(e => e.id === errorId);
+        if (error) {
+          error.status = status;
+        }
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error: any) {
+      console.error('更新错题状态失败:', error);
+      throw error;
     }
-    
-    // TODO: 等后端 API 准备好后，调用真实接口
-    // await updateErrorStatusAPI(errorId, status);
   };
 
   const searchErrors = async (keyword: string, tags: string[] = []) => {
