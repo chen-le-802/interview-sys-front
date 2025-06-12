@@ -6,6 +6,19 @@ interface BaseResponse<T = any> {
   message: string;
 }
 
+// 题目信息接口
+export interface QuestionVO {
+  id: string;
+  title: string;
+  content: string;
+  tagList: string[];
+  difficulty: string;
+  answer: string;
+  passRate: string;
+  userId: string;
+  user: any;
+}
+
 // 评论接口
 export interface CommentBase {
   id: string;
@@ -98,5 +111,12 @@ export const getUnreadCount = (): Promise<BaseResponse<number>> => {
 export const markAsRead = (commentNotificationId: string): Promise<BaseResponse> => {
   return request.post('/api/comment/markAsRead', null, {
     params: { commentNotificationId }
+  });
+};
+
+// 根据评论ID获取题目信息
+export const getQuestionByCommentId = (commentId: string): Promise<BaseResponse<QuestionVO>> => {
+  return request.get('/api/comment/getQuestionVo', {
+    params: { commentId }
   });
 };

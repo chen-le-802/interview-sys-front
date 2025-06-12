@@ -26,12 +26,9 @@
                     </template>
                 </el-input>
             </div>
-    
-            <div class="message" @click="gotoNotifycations">
-                <el-icon :size="18">
-                    <Bell style="cursor: pointer;" />
-                </el-icon>
-            </div>
+
+            <NotificationBell ref="notificationBellRef" />
+            
             <div class="errorNoteBook" @click="gotoErrorNoteBook">
                 <el-tooltip content="错题本" placement="bottom" effect="light">
                     <span class="errorNoteBook-icon">
@@ -48,11 +45,12 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted } from 'vue'
-import { Bell, Search } from '@element-plus/icons-vue'
+import { ref, computed } from 'vue'
+import { Search } from '@element-plus/icons-vue'
 import { useRouter, useRoute } from 'vue-router'
 import { BookOutlined } from '@ant-design/icons-vue'
 import UserInfoDropDown from '@/components/UserInfoDropDown.vue'
+import NotificationBell from '@/components/shared/NotificationBell.vue'
 
 // Mock数据
 const navItems = [
@@ -63,14 +61,10 @@ const navItems = [
     { name: 'AI面试官', path: '/ai-interview' }
 ]
 
-const mockNotifications = [
-    { title: '系统通知', content: '新增50道大厂真题', time: '3小时前' },
-    { title: '学习提醒', content: '你有3个收藏题目待复习', time: '5小时前' }
-]
-
 // 响应式数据
 const searchQuery = ref('')
 const searchInfoColor = ref('#ffffff')
+const notificationBellRef = ref()
 
 const router = useRouter()
 const route = useRoute()
@@ -94,14 +88,10 @@ const handleSearch = () => {
     }
 }
 
-const gotoNotifycations = () => {
-    router.push('/notifications')
-}
 const gotoErrorNoteBook = () => {
     // 跳转到错题本页面
     router.push('/error-notebook')
 }
-
 </script>
 
 <style scoped>
@@ -144,19 +134,10 @@ header {
     height: 56px;
 }
 
-.message {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 50px;
-    height: 56px;
-    margin: 0 10px;
-}
 .errorNoteBook {
-  cursor: pointer;
+    cursor: pointer;
     height: 56px;
-    margin-right:15px;
+    margin-right: 15px;
 }
 
 .user {

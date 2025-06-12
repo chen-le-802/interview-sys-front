@@ -79,21 +79,6 @@
                     </template>
                 </a-comment>
 
-                <!-- 回复输入框 -->
-                <div v-if="replyingTo === item.id" class="reply-input-section">
-                    <div class="reply-input-wrapper">
-                        <a-textarea v-model:value="replyContent" placeholder="写下你的回复..." :rows="3" :maxlength="500"
-                            show-count class="reply-textarea" />
-                    </div>
-                    <div class="reply-actions">
-                        <a-button size="small" @click="cancelReply">取消</a-button>
-                        <a-button type="primary" size="small" style="margin-left: 8px;" :loading="isReplySubmitting"
-                            @click="submitReply(item.id)">
-                            回复
-                        </a-button>
-                    </div>
-                </div>
-
                 <!-- 回复列表 -->
                 <div v-if="item.replies && item.replies.length > 0" class="replies-section">
                     <div v-for="reply in getDisplayReplies(item)" :key="reply.id" class="reply-item">
@@ -162,6 +147,25 @@
                         </a-button>
                     </div>
                 </div>
+
+                <!-- 回复输入框 -->
+                <div v-if="replyingTo === item.id" class="reply-input-section">
+                    <div class="reply-input-wrapper">
+                        <a-textarea ref="replyTextareaRef" v-model:value="replyContent" placeholder="写下你的回复..."
+                            :rows="3" :maxlength="500" show-count class="reply-textarea"
+                            @keydown.ctrl.enter="submitReply(item.id)" @keydown.meta.enter="submitReply(item.id)" />
+                    </div>
+                    <div class="reply-actions">
+                        <span class="reply-hint">按 Ctrl + Enter 快速发布</span>
+                        <div class="reply-buttons">
+                            <a-button size="small" @click="cancelReply">取消</a-button>
+                            <a-button type="primary" size="small" style="margin-left: 8px;" :loading="isReplySubmitting"
+                                @click="submitReply(item.id)">
+                                回复
+                            </a-button>
+                        </div>
+                    </div>
+                </div>
             </a-list-item>
         </template>
     </a-list>
@@ -169,25 +173,17 @@
 
 <script setup lang="ts">
 import avatarImg from '@/assets/images/common/avatar.png';
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import {
     LikeOutlined,
     MessageOutlined,
     DeleteOutlined
 } from '@ant-design/icons-vue';
 import dayjs from 'dayjs';
-import { getItem, getUserAvatar, getUserName, getUserID } from '@/utils/storage';
+import { getItem, getUserID } from '@/utils/storage';
 import router from '@/router';
 import { message } from 'ant-design-vue';
-import {
-    getCommentList,
-    addComment,
-    deleteComment,
-    likeComment,
-    unlikeComment,
-    type Comment,
-    type CommentBase
-} from '@/apis/commentApi';
+import { getCommentList, addComment, deleteComment, likeComment, unlikeComment, type Comment, type CommentBase } from '@/apis/commentApi';
 
 // Props
 interface Props {
@@ -200,6 +196,7 @@ const props = defineProps<Props>();
 const isLogin = computed(() => getItem('token') !== null);
 const currentUserId = computed(() => getUserID() || null);
 const editorRef = ref();
+const replyTextareaRef = ref();
 const isSubmitting = ref(false);
 const isReplySubmitting = ref(false);
 const loading = ref(false);
@@ -355,8 +352,34 @@ const submitComments = async () => {
     }
 };
 
+// 聚焦回复输入框的方法
+const focusReplyTextarea = async () => {
+    await nextTick();
+    // 等待DOM更新完成
+    setTimeout(() => {
+        if (replyTextareaRef.value) {
+            // 如果是数组，取第一个元素
+            const textarea = Array.isArray(replyTextareaRef.value)
+                ? replyTextareaRef.value[0]
+                : replyTextareaRef.value;
+
+            // 获取实际的 textarea 元素
+            const textareaElement = textarea?.$el?.querySelector('textarea') || textarea?.focus;
+
+            if (textareaElement && typeof textareaElement.focus === 'function') {
+                textareaElement.focus();
+                // 将光标移到内容末尾
+                const length = replyContent.value.length;
+                textareaElement.setSelectionRange(length, length);
+            } else if (textarea?.focus) {
+                textarea.focus();
+            }
+        }
+    }, 100);
+};
+
 // 开始回复
-const toggleReply = (commentId: string, replyToUserName?: string) => {
+const toggleReply = async (commentId: string, replyToUserName?: string) => {
     if (!isLogin.value) {
         message.warning('请先登录');
         return;
@@ -371,6 +394,9 @@ const toggleReply = (commentId: string, replyToUserName?: string) => {
         replyToUser.value = replyToUserName || '';
         // 如果是回复某个用户，自动添加@用户名
         replyContent.value = replyToUserName ? `@${replyToUserName} ` : '';
+
+        // 自动聚焦到回复输入框
+        await focusReplyTextarea();
     }
 };
 
@@ -643,33 +669,74 @@ onMounted(() => {
     margin-top: 10px;
     border-left: 2px solid #f0f0f0;
     padding-left: 20px;
+    margin-bottom: 10px;
+    /* 为回复框预留空间 */
 }
 
 .reply-item {
     margin-bottom: 10px;
 }
 
+/* 优化回复输入框样式 */
 .reply-input-section {
     margin-left: 40px;
     margin-top: 15px;
-    padding: 15px;
-    background-color: #fafafa;
-    border-radius: 8px;
-    border-left: 3px solid #1890ff;
+    padding: 20px;
+    background: linear-gradient(135deg, #f8faff 0%, #f0f7ff 100%);
+    border-radius: 12px;
+    border: 1px solid #e6f2ff;
+    box-shadow: 0 2px 8px rgba(24, 144, 255, 0.08);
+    transition: all 0.3s ease;
+    animation: slideIn 0.3s ease-out;
+}
+
+.reply-input-section:hover {
+    box-shadow: 0 4px 16px rgba(24, 144, 255, 0.12);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .reply-input-wrapper {
-    margin-bottom: 10px;
+    margin-bottom: 15px;
 }
 
 .reply-textarea {
     resize: vertical;
-    min-height: 80px;
+    min-height: 90px;
+    border-radius: 8px;
+    border: 1px solid #d9d9d9;
+    transition: all 0.3s;
+}
+
+.reply-textarea:focus {
+    border-color: #1890ff;
+    box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.12);
 }
 
 .reply-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.reply-hint {
+    color: #999;
+    font-size: 12px;
+    font-style: italic;
+}
+
+.reply-buttons {
+    display: flex;
     gap: 8px;
 }
 
@@ -683,17 +750,6 @@ onMounted(() => {
     font-size: 13px;
 }
 
-/* @用户名样式 */
-.reply-textarea {
-    resize: vertical;
-    min-height: 80px;
-}
-
-.reply-textarea:focus {
-    border-color: #1890ff;
-    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
-}
-
 /* @用户名高亮样式 */
 :deep(.mention-user) {
     color: #1890ff;
@@ -701,5 +757,28 @@ onMounted(() => {
     background-color: rgba(24, 144, 255, 0.1);
     padding: 1px 4px;
     border-radius: 3px;
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+    .replies-section {
+        margin-left: 20px;
+        padding-left: 15px;
+    }
+
+    .reply-input-section {
+        margin-left: 20px;
+        padding: 15px;
+    }
+
+    .reply-actions {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-end;
+    }
+
+    .reply-hint {
+        align-self: flex-start;
+    }
 }
 </style>

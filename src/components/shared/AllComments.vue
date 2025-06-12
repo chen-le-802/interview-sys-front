@@ -26,7 +26,8 @@
     <!-- 回答列表 -->
     <a-list v-else item-layout="vertical" :data-source="commentList" :locale="{ emptyText: '暂无评论' }">
         <template #renderItem="{ item }">
-            <a-list-item :key="item.id">
+            <a-list-item :key="item.id" :id="`comment-${item.id}`"
+                :class="{ 'highlight-comment': highlightCommentId === item.id }">
                 <a-comment :author="item.userName" :avatar="item.userAvatar">
                     <!-- 用户信息区域 -->
                     <template #author>
@@ -67,24 +68,10 @@
                     </template>
                 </a-comment>
 
-                <!-- 回复输入框 -->
-                <div v-if="replyingTo === item.id" class="reply-input-section">
-                    <div class="reply-input-wrapper">
-                        <a-textarea v-model:value="replyContent" placeholder="写下你的回复..." :rows="3" :maxlength="500"
-                            show-count class="reply-textarea" />
-                    </div>
-                    <div class="reply-actions">
-                        <a-button size="small" @click="cancelReply">取消</a-button>
-                        <a-button type="primary" size="small" style="margin-left: 8px;" :loading="isReplySubmitting"
-                            @click="submitReply(item.id)">
-                            回复
-                        </a-button>
-                    </div>
-                </div>
-
                 <!-- 回复列表 -->
                 <div v-if="item.replies && item.replies.length > 0" class="replies-section">
-                    <div v-for="(reply, index) in getDisplayReplies(item)" :key="reply.id" class="reply-item">
+                    <div v-for="(reply, index) in getDisplayReplies(item)" :key="reply.id" :id="`reply-${reply.id}`"
+                        :class="{ 'highlight-reply': highlightReplyId === reply.id }" class="reply-item">
                         <a-comment :author="reply.userName" :avatar="reply.userAvatar">
                             <template #author>
                                 <div class="user-info">
@@ -138,6 +125,25 @@
                         </a-button>
                     </div>
                 </div>
+
+                <!-- 回复输入框 -->
+                <div v-if="replyingTo === item.id" class="reply-input-section">
+                    <div class="reply-input-wrapper">
+                        <a-textarea ref="replyTextareaRef" v-model:value="replyContent" placeholder="写下你的回复..."
+                            :rows="3" :maxlength="500" show-count class="reply-textarea"
+                            @keydown.ctrl.enter="submitReply(item.id)" @keydown.meta.enter="submitReply(item.id)" />
+                    </div>
+                    <div class="reply-actions">
+                        <span class="reply-hint">按 Ctrl + Enter 快速发布</span>
+                        <div class="reply-buttons">
+                            <a-button size="small" @click="cancelReply">取消</a-button>
+                            <a-button type="primary" size="small" style="margin-left: 8px;" :loading="isReplySubmitting"
+                                @click="submitReply(item.id)">
+                                回复
+                            </a-button>
+                        </div>
+                    </div>
+                </div>
             </a-list-item>
         </template>
     </a-list>
@@ -145,7 +151,8 @@
 
 <script setup lang="ts">
 import avatarImg from '@/assets/images/common/avatar.png';
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { useRoute } from 'vue-router';
 import {
     LikeOutlined,
     MessageOutlined
@@ -169,8 +176,10 @@ const emit = defineEmits<{
 }>();
 
 // 响应式数据
+const route = useRoute();
 const isLogin = computed(() => getItem('token') !== null);
 const editorRef = ref();
+const replyTextareaRef = ref();
 const isSubmitting = ref(false);
 const isReplySubmitting = ref(false);
 const loading = ref(false);
@@ -178,6 +187,10 @@ const commentList = ref<Comment[]>([]);
 const replyingTo = ref<string | null>(null);
 const replyContent = ref('');
 const replyToUser = ref<string>('');
+
+// 高亮相关状态
+const highlightCommentId = ref<string>('');
+const highlightReplyId = ref<string>('');
 
 // 格式化评论内容，高亮@用户名
 const formatCommentContent = (content: string): string => {
@@ -236,6 +249,157 @@ const toggleShowAllReplies = (commentId: string) => {
     findAndToggle(commentList.value);
 };
 
+// 获取滚动容器
+const getScrollContainer = (): Element | null => {
+    return document.querySelector('.question-box');
+};
+
+// 通用的滚动到元素的方法
+const scrollToElement = (elementId: string, retryOnFail = true) => {
+    const element = document.getElementById(elementId);
+    const scrollContainer = getScrollContainer();
+
+    if (element && scrollContainer) {
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const elementRect = element.getBoundingClientRect();
+        const currentScrollTop = scrollContainer.scrollTop;
+        const elementTopRelativeToContainer = elementRect.top - containerRect.top;
+        const targetScrollTop = currentScrollTop + elementTopRelativeToContainer - 80;
+
+        scrollContainer.scrollTo({
+            top: Math.max(0, targetScrollTop),
+            behavior: 'smooth'
+        });
+
+        return true;
+    } else if (retryOnFail) {
+        // 重试机制：元素可能还在渲染中
+        let retryCount = 0;
+        const maxRetries = 5;
+        const retryDelay = 200;
+
+        const retryScroll = () => {
+            retryCount++;
+            const retryElement = document.getElementById(elementId);
+            const retryContainer = getScrollContainer();
+
+            if (retryElement && retryContainer) {
+                const containerRect = retryContainer.getBoundingClientRect();
+                const elementRect = retryElement.getBoundingClientRect();
+                const currentScrollTop = retryContainer.scrollTop;
+                const elementTopRelativeToContainer = elementRect.top - containerRect.top;
+                const targetScrollTop = currentScrollTop + elementTopRelativeToContainer - 80;
+
+                retryContainer.scrollTo({
+                    top: Math.max(0, targetScrollTop),
+                    behavior: 'smooth'
+                });
+            } else if (retryCount < maxRetries) {
+                setTimeout(retryScroll, retryDelay * retryCount);
+            }
+        };
+
+        setTimeout(retryScroll, retryDelay);
+    }
+
+    return false;
+};
+
+// 滚动到指定评论
+const scrollToComment = (commentId: string) => {
+    return scrollToElement(`comment-${commentId}`);
+};
+
+// 滚动到指定回复
+const scrollToReply = (replyId: string) => {
+    return scrollToElement(`reply-${replyId}`);
+};
+
+// 展开包含特定回复的评论的方法
+const expandReplyParent = async (replyId: string): Promise<boolean> => {
+    const findAndExpand = (comments: Comment[]): boolean => {
+        for (const comment of comments) {
+            if (comment.replies) {
+                const hasTargetReply = comment.replies.some(reply => reply.id === replyId);
+                if (hasTargetReply) {
+                    comment.showAllReplies = true;
+                    return true;
+                }
+                if (findAndExpand(comment.replies)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+
+    const expanded = findAndExpand(commentList.value);
+
+    if (expanded) {
+        await nextTick();
+        await new Promise(resolve => setTimeout(resolve, 200));
+    }
+
+    return expanded;
+};
+
+// 处理来自通知的跳转参数的方法
+const handleNotificationParams = async () => {
+    const { commentId, highlightReply, fromNotification } = route.query;
+
+    if (fromNotification && (commentId || highlightReply)) {
+        await nextTick();
+
+        if (highlightReply) {
+            // 展开包含目标回复的评论
+            const expanded = await expandReplyParent(highlightReply as string);
+
+            if (expanded) {
+                highlightReplyId.value = highlightReply as string;
+
+                // 等待渲染完成后滚动
+                await new Promise(resolve => setTimeout(resolve, 500));
+                scrollToReply(highlightReply as string);
+
+                // 3秒后移除高亮
+                setTimeout(() => {
+                    highlightReplyId.value = '';
+                }, 3000);
+            } else if (commentId) {
+                // 回复未找到，尝试滚动到评论
+                scrollToComment(commentId as string);
+                highlightCommentId.value = commentId as string;
+                setTimeout(() => {
+                    highlightCommentId.value = '';
+                }, 3000);
+            }
+        } else if (commentId) {
+            // 只需要高亮评论
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            scrollToComment(commentId as string);
+            highlightCommentId.value = commentId as string;
+
+            setTimeout(() => {
+                highlightCommentId.value = '';
+            }, 3000);
+        }
+
+        // 延迟清理URL参数
+        setTimeout(() => {
+            router.replace({
+                path: route.path,
+                query: {
+                    ...route.query,
+                    commentId: undefined,
+                    highlightReply: undefined,
+                    fromNotification: undefined
+                }
+            });
+        }, 1000);
+    }
+};
+
 // 获取评论列表
 const fetchComments = async () => {
     if (!props.questionId) return;
@@ -248,6 +412,9 @@ const fetchComments = async () => {
             // 计算总评论数（包括回复）
             const totalCount = calculateTotalComments(commentList.value);
             emit('comment-count-change', totalCount);
+
+            // 处理来自通知的跳转参数
+            await handleNotificationParams();
         } else {
             message.error(response.message || '获取评论失败');
         }
@@ -299,8 +466,34 @@ const submitComments = async () => {
     }
 };
 
+// 聚焦回复输入框的方法
+const focusReplyTextarea = async () => {
+    await nextTick();
+    // 等待DOM更新完成
+    setTimeout(() => {
+        if (replyTextareaRef.value) {
+            // 如果是数组，取第一个元素
+            const textarea = Array.isArray(replyTextareaRef.value)
+                ? replyTextareaRef.value[0]
+                : replyTextareaRef.value;
+
+            // 获取实际的 textarea 元素
+            const textareaElement = textarea?.$el?.querySelector('textarea') || textarea?.focus;
+
+            if (textareaElement && typeof textareaElement.focus === 'function') {
+                textareaElement.focus();
+                // 将光标移到内容末尾
+                const length = replyContent.value.length;
+                textareaElement.setSelectionRange(length, length);
+            } else if (textarea?.focus) {
+                textarea.focus();
+            }
+        }
+    }, 100);
+};
+
 // 开始回复
-const toggleReply = (commentId: string, replyToUserName?: string) => {
+const toggleReply = async (commentId: string, replyToUserName?: string) => {
     if (!isLogin.value) {
         message.warning('请先登录');
         return;
@@ -315,6 +508,9 @@ const toggleReply = (commentId: string, replyToUserName?: string) => {
         replyToUser.value = replyToUserName || '';
         // 如果是回复某个用户，自动添加@用户名
         replyContent.value = replyToUserName ? `@${replyToUserName} ` : '';
+
+        // 自动聚焦到回复输入框
+        await focusReplyTextarea();
     }
 };
 
@@ -427,6 +623,13 @@ watch(() => props.questionId, (newId) => {
         fetchComments();
     }
 }, { immediate: true });
+
+// 监听路由参数变化
+watch(() => route.query, async (newQuery) => {
+    if (newQuery.fromNotification && commentList.value.length > 0) {
+        await handleNotificationParams();
+    }
+}, { deep: true });
 
 // 组件挂载时获取数据
 onMounted(() => {
@@ -547,6 +750,8 @@ onMounted(() => {
     margin-top: 10px;
     border-left: 2px solid #f0f0f0;
     padding-left: 20px;
+    margin-bottom: 10px;
+    /* 为回复框预留空间 */
 }
 
 .reply-item {
@@ -556,24 +761,62 @@ onMounted(() => {
 .reply-input-section {
     margin-left: 40px;
     margin-top: 15px;
-    padding: 15px;
-    background-color: #fafafa;
-    border-radius: 8px;
-    border-left: 3px solid #1890ff;
+    padding: 20px;
+    background: linear-gradient(135deg, #f8faff 0%, #f0f7ff 100%);
+    border-radius: 12px;
+    border: 1px solid #e6f2ff;
+    box-shadow: 0 2px 8px rgba(24, 144, 255, 0.08);
+    transition: all 0.3s ease;
+    animation: slideIn 0.3s ease-out;
+}
+
+.reply-input-section:hover {
+    box-shadow: 0 4px 16px rgba(24, 144, 255, 0.12);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .reply-input-wrapper {
-    margin-bottom: 10px;
+    margin-bottom: 15px;
 }
 
 .reply-textarea {
     resize: vertical;
-    min-height: 80px;
+    min-height: 90px;
+    border-radius: 8px;
+    border: 1px solid #d9d9d9;
+    transition: all 0.3s;
+}
+
+.reply-textarea:focus {
+    border-color: #1890ff;
+    box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.12);
 }
 
 .reply-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.reply-hint {
+    color: #999;
+    font-size: 12px;
+    font-style: italic;
+}
+
+.reply-buttons {
+    display: flex;
     gap: 8px;
 }
 
@@ -587,17 +830,6 @@ onMounted(() => {
     font-size: 13px;
 }
 
-/* @用户名样式 */
-.reply-textarea {
-    resize: vertical;
-    min-height: 80px;
-}
-
-.reply-textarea:focus {
-    border-color: #1890ff;
-    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
-}
-
 /* @用户名高亮样式 */
 :deep(.mention-user) {
     color: #1890ff;
@@ -605,5 +837,66 @@ onMounted(() => {
     background-color: rgba(24, 144, 255, 0.1);
     padding: 1px 4px;
     border-radius: 3px;
+}
+
+/* 高亮评论样式 */
+.highlight-comment {
+    background: linear-gradient(90deg, #fff7e6 0%, #ffffff 100%) !important;
+    border: 2px solid #ffa940 !important;
+    border-radius: 8px !important;
+    transition: all 0.5s ease !important;
+    box-shadow: 0 4px 12px rgba(255, 169, 64, 0.3) !important;
+    animation: highlight-fade 3s ease-in-out;
+}
+
+/* 高亮回复样式 */
+.highlight-reply {
+    background: linear-gradient(90deg, #f6ffed 0%, #ffffff 100%) !important;
+    border: 2px solid #52c41a !important;
+    border-radius: 6px !important;
+    transition: all 0.5s ease !important;
+    box-shadow: 0 2px 8px rgba(82, 196, 26, 0.3) !important;
+    animation: highlight-fade 3s ease-in-out;
+}
+
+/* 高亮动画 */
+@keyframes highlight-fade {
+    0% {
+        transform: scale(1.02);
+        opacity: 0.8;
+    }
+
+    50% {
+        transform: scale(1.01);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+    .replies-section {
+        margin-left: 20px;
+        padding-left: 15px;
+    }
+
+    .reply-input-section {
+        margin-left: 20px;
+        padding: 15px;
+    }
+
+    .reply-actions {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-end;
+    }
+
+    .reply-hint {
+        align-self: flex-start;
+    }
 }
 </style>
