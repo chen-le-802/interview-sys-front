@@ -495,7 +495,7 @@ const renderMarkdown = (content: string): string => {
       gfm: true, // 支持GitHub风格的Markdown
     });
     
-    return marked(content);
+    return marked(content) as string;
   } catch (error) {
     console.error('Markdown渲染失败:', error);
     // 如果渲染失败，返回原始文本

@@ -75,11 +75,11 @@ const hotProblems = [
   { title: 'Docker核心概念', count: 1654 },
 ];
 const activeUsers = [
-  { name: '01', solved: 328},
-  { name: '02', solved: 312},
-  { name: '03', solved: 289},
-  { name: '04', solved: 276},
-  { name: '05', solved: 245},
+  { name: '01', solved: 328, avatar:'@/assets/images/common/avatar.png'},
+  { name: '02', solved: 312, avatar:'@/assets/images/common/avatar.png'},
+  { name: '03', solved: 289, avatar:'@/assets/images/common/avatar.png'},
+  { name: '04', solved: 276, avatar:'@/assets/images/common/avatar.png'},
+  { name: '05', solved: 245, avatar:'@/assets/images/common/avatar.png'},
 ];
 onMounted(() => {
   if (trendChartRef.value) {

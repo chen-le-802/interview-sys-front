@@ -8,7 +8,7 @@
     </div>
 </div>
 <div class="exam-box">
-    <TestContent></TestContent>
+    <TestContent :questionId="currentQuestionId"></TestContent>
 </div>
 </div>
 </template>
@@ -16,6 +16,7 @@
 import { useRouter } from 'vue-router';
 import { ArrowLeftOutlined } from '@ant-design/icons-vue';
 const router = useRouter();
+const currentQuestionId = ref<string>('');
 </script>
 <style scoped>
 .header{

@@ -368,7 +368,6 @@ import {DeleteOutlined,MoreOutlined} from '@ant-design/icons-vue'
 
 import * as pdfjsLib from 'pdfjs-dist';
 
-import testUrl from '../../assets/images/frontend/陈佳莉-前端开发工程师-贵州大学.pdf'
 // 1. 初始化 pdf.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = 
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
