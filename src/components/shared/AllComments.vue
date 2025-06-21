@@ -150,7 +150,7 @@
 </template>
 
 <script setup lang="ts">
-import avatarImg from '@/assets/images/common/avatar.png';
+import avatarImg from '/avatar.png';
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import {

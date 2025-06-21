@@ -78,7 +78,7 @@ export const getUserInfo = (): any => {
 export const getUserAvatarWithTimestamp = (): string => {
   const userInfo = getUserInfo();
   if (!userInfo || !userInfo.userAvatar) {
-    return '/src/assets/images/common/avatar.png';
+    return '/avatar.png';
   }
   
   // 使用上次验证时间作为时间戳

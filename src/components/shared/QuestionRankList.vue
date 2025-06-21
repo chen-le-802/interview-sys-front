@@ -34,7 +34,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { FireFilled } from '@ant-design/icons-vue';
-import defaultAvatar from '../../assets/images/common/avatar.png'; // 默认头像路径
+import defaultAvatar from '/avatar.png'; // 默认头像路径
 
 // 从父组件传入
 const props = defineProps<{
