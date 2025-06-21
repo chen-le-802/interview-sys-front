@@ -59,7 +59,7 @@
 import { defineComponent, reactive, ref, onMounted } from 'vue'
 import { User, Lock, View, Hide } from '@element-plus/icons-vue'
 import router from '@/router'
-import { userLogin } from '@/apis/authApi'
+import { userLogin, getCurrentUser } from '@/apis/authApi'
 
 const REGISTER_PATH = '/register'
 
@@ -110,32 +110,41 @@ export default defineComponent({
 
             try {
                 loading.value = true
-                const response = await userLogin(loginForm)
-                console.log('登录响应:', response)
+                
+                const loginResponse = await userLogin(loginForm)
 
-                if (response.code === 0) {
-                    // 保存登录状态
-                    localStorage.setItem('token', response.data.id.toString())
-                    localStorage.setItem('userInfo', JSON.stringify(response.data))
-                    // 设置过期时间（例如1小时后过期）
-                    const expireTime = new Date().getTime() + 60 * 60 * 1000
-                    localStorage.setItem('expireTime', expireTime.toString())
+                if (loginResponse.code === 0) {
+                    localStorage.setItem('userInfo', JSON.stringify(loginResponse.data))
 
-                    // 显示成功消息
-                    ElMessage({
-                        message: '登录成功，正在跳转...',
-                        type: 'success',
-                        duration: 1500
-                    })
+                    try {
+                        const verifyResponse = await getCurrentUser()
+                        
+                        if (verifyResponse.code === 0) {
+                            localStorage.setItem('userInfo', JSON.stringify(verifyResponse.data))
+                            
+                            ElMessage({
+                                message: '登录成功，正在跳转...',
+                                type: 'success',
+                                duration: 1500
+                            })
 
-                    setTimeout(() => {
-                        router.push('/').catch(err => {
-                            console.error('路由跳转失败:', err)
-                        })
-                    }, 1000)
+                            setTimeout(() => {
+                                router.push('/').catch(err => {
+                                    console.error('路由跳转失败:', err)
+                                })
+                            }, 1000)
+                        } else {
+                            ElMessage.error('登录状态验证失败，请重试')
+                            localStorage.removeItem('userInfo')
+                        }
+                    } catch (verifyError) {
+                        console.error('登录状态验证失败:', verifyError)
+                        ElMessage.error('登录状态验证失败，请重试')
+                        localStorage.removeItem('userInfo')
+                    }
                 } else {
                     ElMessage({
-                        message: response.message || '登录失败，请重试',
+                        message: loginResponse.message || '登录失败，请重试',
                         type: 'error',
                         duration: 3000,
                         showClose: true

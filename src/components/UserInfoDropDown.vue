@@ -48,7 +48,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { defineComponent, computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowDown, User, Setting, SwitchButton, HomeFilled } from '@element-plus/icons-vue'
 import { userLogout } from '@/apis/authApi'
@@ -117,24 +117,34 @@ export default defineComponent({
                 clearInterval(verifyInterval.value);
             }
             
-            // 设置定期验证 (每5分钟验证一次)
             verifyInterval.value = window.setInterval(async () => {
-                if (await verifyAuthStatus()) {
-                    // 成功验证，更新组件
-                    refreshKey.value++;
-                } else if (isLoggedIn.value) {
-                    // 验证失败但本地状态仍然是登录状态，需要重定向
-                    ElMessage.warning('登录已过期，请重新登录');
-                    router.push('/login');
+                if (isLoggedIn.value) {
+                    try {
+                        const isValid = await verifyAuthStatus(true);
+                        if (isValid) {
+                            refreshKey.value++;
+                        } else {
+                            ElMessage.warning('登录已过期，请重新登录');
+                            clearAuth();
+                            refreshKey.value++;
+                        }
+                    } catch (error) {
+                        clearAuth();
+                        refreshKey.value++;
+                    }
                 }
-            }, 5 * 60 * 1000);
+            }, 3 * 60 * 1000);
         }
 
-        // 组件挂载时验证登录状态
         onMounted(async () => {
-            // 立即验证一次
-            if (await verifyAuthStatus(true)) {
-                refreshKey.value++;
+            if (isLoggedIn.value) {
+                try {
+                    await verifyAuthStatus(true);
+                    refreshKey.value++;
+                } catch (error) {
+                    clearAuth();
+                    refreshKey.value++;
+                }
             }
             
             // 设置定期验证
@@ -152,10 +162,20 @@ export default defineComponent({
             window.removeEventListener('focus', handleWindowFocus);
         });
 
-        // 窗口获得焦点时验证
         const handleWindowFocus = async () => {
-            if (await verifyAuthStatus()) {
-                refreshKey.value++;
+            if (isLoggedIn.value) {
+                try {
+                    const isValid = await verifyAuthStatus(true);
+                    if (isValid) {
+                        refreshKey.value++;
+                    } else {
+                        clearAuth();
+                        refreshKey.value++;
+                    }
+                } catch (error) {
+                    clearAuth();
+                    refreshKey.value++;
+                }
             }
         };
 

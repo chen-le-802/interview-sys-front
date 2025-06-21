@@ -164,24 +164,24 @@ const displayNotifications = computed(() => {
 // 初始化Mock通知数据
 const initMockNotifications = () => {
     systemNotifications.value = [
-        {
-            id: 'sys-1',
-            type: 'system',
-            read: false,
-            title: '新增50道大厂真题',
-            content: '系统已更新最新面试题库，快来刷题吧！',
-            time: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-            jumping: false
-        },
-        {
-            id: 'sys-2',
-            type: 'system',
-            read: false,
-            title: '学习提醒',
-            content: '你有3个收藏题目待复习',
-            time: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-            jumping: false
-        }
+        // {
+        //     id: 'sys-1',
+        //     type: 'system',
+        //     read: false,
+        //     title: '新增50道大厂真题',
+        //     content: '系统已更新最新面试题库，快来刷题吧！',
+        //     time: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+        //     jumping: false
+        // },
+        // {
+        //     id: 'sys-2',
+        //     type: 'system',
+        //     read: false,
+        //     title: '学习提醒',
+        //     content: '你有3个收藏题目待复习',
+        //     time: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+        //     jumping: false
+        // }
     ]
 }
 

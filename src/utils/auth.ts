@@ -29,22 +29,10 @@ export const isAuthenticated = (): boolean => {
     return false;
   }
   
-  const token = localStorage.getItem('token')
   const userInfo = localStorage.getItem('userInfo')
-  const expireTime = localStorage.getItem('expireTime')
   
-  if (!token || !userInfo) {
+  if (!userInfo) {
     return false
-  }
-  
-  // 检查会话是否过期（设置为24小时）
-  if (expireTime) {
-    const expireTimestamp = parseInt(expireTime);
-    if (Date.now() > expireTimestamp) {
-      // 会话已过期，清除认证信息
-      clearAuth();
-      return false;
-    }
   }
   
   try {
@@ -61,10 +49,6 @@ export const isAuthenticated = (): boolean => {
 // 设置用户信息
 export const setUserInfo = (userData: any) => {
   localStorage.setItem('userInfo', JSON.stringify(userData));
-  // 设置会话过期时间（24小时后）
-  const expireTime = Date.now() + 24 * 60 * 60 * 1000;
-  localStorage.setItem('expireTime', expireTime.toString());
-  // 更新验证时间
   lastVerificationTime = Date.now();
 }
 
@@ -93,11 +77,7 @@ export const getUserAvatarWithTimestamp = (): string => {
 
 // 清除登录状态
 export const clearAuth = () => {
-  localStorage.removeItem('token')
   localStorage.removeItem('userInfo')
-  localStorage.removeItem('expireTime')
-  
-  // 设置登出状态标记
   setLoggedOutState();
 }
 
@@ -111,26 +91,18 @@ export const refreshUserInfo = async () => {
       return response.data
     } else {
       clearAuth()
-      router.push('/login')
       return null
     }
   } catch (error) {
     clearAuth()
-    router.push('/login')
     return null
   }
 }
 
-// 验证登录状态 - 添加新函数
+// 验证登录状态
 export const verifyAuthStatus = async (force = false): Promise<boolean> => {
-  // 如果未登录，直接返回false
-  if (!isAuthenticated()) {
-    return false;
-  }
-  
-  // 如果强制验证或者上次验证时间超过5分钟，则向服务器验证
   const now = Date.now();
-  if (force || now - lastVerificationTime > 5 * 60 * 1000) {
+  if (force || now - lastVerificationTime > 2 * 60 * 1000) {
     try {
       const response = await getCurrentUser();
       if (response.code === 0) {
@@ -149,7 +121,7 @@ export const verifyAuthStatus = async (force = false): Promise<boolean> => {
     }
   }
   
-  return true;
+  return isAuthenticated();
 }
 
 // 检查用户角色
@@ -163,9 +135,7 @@ export const isAdmin = (): boolean => {
   return hasRole('admin')
 }
 
-// 初始验证 - 应在应用启动时调用
+// 初始验证
 export const initialAuthCheck = async () => {
-  if (isAuthenticated()) {
-    await verifyAuthStatus(true);
-  }
+  await verifyAuthStatus(true);
 }

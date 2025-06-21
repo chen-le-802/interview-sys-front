@@ -549,30 +549,6 @@
     }
 }
 
-/* 深色主题下的空状态样式（可选） */
-@media (prefers-color-scheme: dark) {
-    .empty-state {
-        background-color: #1f1f1f;
-        border-color: #404040;
-    }
-    
-    .empty-icon {
-        color: #404040;
-    }
-    
-    .empty-text {
-        color: #d9d9d9;
-    }
-    
-    .empty-desc {
-        color: #8c8c8c;
-    }
-    
-    .loading-text {
-        color: #d9d9d9;
-    }
-}
-
 /* 热力图容器的过渡动画 */
 .heatmap-container {
     transition: opacity 0.3s ease-in-out;

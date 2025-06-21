@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus';
 import JSONBig from 'json-bigint';
 
 const URL_API = 'http://localhost:8101';
+// const URL_API = 'http://140.143.188.80';
 
 // 创建 Axios 实例
 const request = axios.create({
@@ -11,6 +12,7 @@ const request = axios.create({
   headers: {
     'Content-Type': 'application/json'
   },
+  withCredentials: true,
   transformResponse: [
     function (data: any) {
       // data 可能是空（例如 DELETE 返回 204 No Content），直接返回空
@@ -42,27 +44,6 @@ request.interceptors.request.use(
       config.url = URL_API + config.url;
     }
 
-    // 哪些接口不需要 token，可以跳过
-    const noTokenUrls = [
-      '/api/user/login',
-      '/api/user/register',
-      '/api/user/get/login'
-    ];
-    if (!noTokenUrls.some(url => config.url?.includes(url))) {
-      const expireTime = localStorage.getItem('expireTime');
-      if (expireTime && parseInt(expireTime) <= new Date().getTime()) {
-        ElMessage.error('登录已过期，请重新登录');
-        router.push('/login');
-        return Promise.reject(new Error('Token expired'));
-      }
-
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-
-    // 允许携带 cookie
     config.withCredentials = true;
     return config;
   },
@@ -75,13 +56,7 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   response => {
-    // 由于 transformResponse 已经把 data 用 JSONBig.parse 处理过了，
-    // 这里 response.data 就已经是 JS 对象（并且超大整数字段都是 string）
-    const res = response.data;
-    console.log('响应数据:', res); // （开发环境调试用，正式环境请删除）
-
-    // 直接返回完整响应，让组件自己处理 code
-    return res;
+    return response.data;
   },
   error => {
     console.error('响应错误:', error);
@@ -94,7 +69,7 @@ request.interceptors.response.use(
           break;
         case 401:
           ElMessage.error('未登录或登录已过期');
-          localStorage.removeItem('token');
+          localStorage.removeItem('userInfo');
           router.push('/login');
           break;
         case 403:
