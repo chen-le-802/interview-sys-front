@@ -117,8 +117,10 @@ export default defineComponent({
                 clearInterval(verifyInterval.value);
             }
             
+            // 延长验证间隔，减少频繁验证
             verifyInterval.value = window.setInterval(async () => {
-                if (isLoggedIn.value) {
+                // 只有在登录状态下且不在登录页面才验证
+                if (isLoggedIn.value && route.path !== '/login' && route.path !== '/register') {
                     try {
                         const isValid = await verifyAuthStatus(true);
                         if (isValid) {
@@ -133,19 +135,22 @@ export default defineComponent({
                         refreshKey.value++;
                     }
                 }
-            }, 3 * 60 * 1000);
+            }, 5 * 60 * 1000); // 改为5分钟验证一次
         }
 
         onMounted(async () => {
-            if (isLoggedIn.value) {
-                try {
-                    await verifyAuthStatus(true);
-                    refreshKey.value++;
-                } catch (error) {
-                    clearAuth();
-                    refreshKey.value++;
+            // 延迟初始验证，避免与登录流程冲突
+            setTimeout(async () => {
+                if (isLoggedIn.value && route.path !== '/login' && route.path !== '/register') {
+                    try {
+                        await verifyAuthStatus(true);
+                        refreshKey.value++;
+                    } catch (error) {
+                        clearAuth();
+                        refreshKey.value++;
+                    }
                 }
-            }
+            }, 2000); // 延迟2秒
             
             // 设置定期验证
             setupAuthVerification();
@@ -162,8 +167,10 @@ export default defineComponent({
             window.removeEventListener('focus', handleWindowFocus);
         });
 
+        // 优化窗口焦点验证
         const handleWindowFocus = async () => {
-            if (isLoggedIn.value) {
+            // 避免在登录页面验证
+            if (isLoggedIn.value && route.path !== '/login' && route.path !== '/register') {
                 try {
                     const isValid = await verifyAuthStatus(true);
                     if (isValid) {

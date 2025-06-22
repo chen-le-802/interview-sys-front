@@ -899,36 +899,39 @@ const previewResume = async (resume: any) => {
   try {
     if (!resume?.fileUrl) throw new Error('无效的简历URL');
 
-    // 1. 获取 Token（示例从 localStorage 获取）
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error('未登录，请重新登录');
+    // 检查登录状态（基于Session认证）
+    const userInfo = localStorage.getItem('userInfo');
+    if (!userInfo) throw new Error('未登录，请重新登录');
 
-    // 2. 用 fetch 请求 PDF，并携带 Token
+    // 使用Session认证方式请求PDF
     const response = await fetch(resume.fileUrl, {
-      headers: {
-        Authorization: `Bearer ${token}`, // 关键：手动附加 Token
-      },
-      credentials: 'include', // 如果需要 Cookie
+      credentials: 'include', // 让浏览器自动携带Session Cookie
     });
 
-    if (!response.ok) throw new Error(`请求失败: ${response.status}`);
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('登录已过期，请重新登录');
+      }
+      throw new Error(`请求失败: ${response.status}`);
+    }
 
-    // 3. 将 PDF 转为 Blob URL（避免后续请求不带 Token）
+    // 将 PDF 转为 Blob URL（避免后续请求不带认证）
     const blob = await response.blob();
     const blobUrl = URL.createObjectURL(blob);
     previewResumeUrl.value = blobUrl;
 
-    // 4. 显示预览
+    // 显示预览
     showPreviewResumeModal.value = true;
 
-    // 5. 用 pdfjsLib 获取页数（可选）
+    // 用 pdfjsLib 获取页数
     const loadingTask = pdfjsLib.getDocument({ url: blobUrl });
     const pdf = await loadingTask.promise;
     totalPages.value = pdf.numPages;
     await pdf.destroy();
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('预览失败:', error);
+    message.error((error as { message?: string }).message || '简历预览失败');
     showPreviewResumeModal.value = false;
   }
 };

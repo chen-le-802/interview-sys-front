@@ -3,8 +3,8 @@ import router from '@/router';
 import { ElMessage } from 'element-plus';
 import JSONBig from 'json-bigint';
 
-const URL_API = 'http://localhost:8101';
-// const URL_API = 'http://140.143.188.80';
+// const URL_API = 'http://localhost:8101';
+const URL_API = 'http://140.143.188.80:8101';
 
 // 创建 Axios 实例
 const request = axios.create({

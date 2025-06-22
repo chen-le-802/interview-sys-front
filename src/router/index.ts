@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { verifyAuthStatus, isAdmin } from '@/utils/auth'
+import { verifyAuthStatus, isAdmin, isAuthenticated } from '@/utils/auth'
 import { ElMessage } from 'element-plus'
 
 const router = createRouter({
@@ -137,15 +137,33 @@ router.beforeEach(async (to, from, next) => {
   // 检查是否需要管理员权限
   const adminRequired = to.matched.some((record) => record.meta.requiresAdmin)
   
-  // 对于需要认证的页面，直接调用服务器验证
+  // 对于需要认证的页面
   if (adminRequired || to.path === '/personal') {
+    // 先检查本地状态，避免不必要的服务器请求
+    if (!isAuthenticated()) {
+      ElMessage.warning('请先登录')
+      return next('/login')
+    }
+    
     try {
-      // 向服务器验证登录状态
-      const isAuthenticated = await verifyAuthStatus(true)
-      
-      if (!isAuthenticated) {
-        ElMessage.warning('请先登录')
-        return next('/login')
+      // 只有在必要时才进行服务器验证
+      // 如果是从登录页跳转过来，给一个短暂的延迟让登录状态稳定
+      if (from.path === '/login') {
+        // 登录后跳转，延迟验证避免冲突
+        setTimeout(async () => {
+          const isAuthenticated = await verifyAuthStatus(true)
+          if (!isAuthenticated) {
+            ElMessage.warning('登录状态验证失败，请重新登录')
+            router.push('/login')
+          }
+        }, 500)
+      } else {
+        // 正常验证
+        const isAuthenticated = await verifyAuthStatus(true)
+        if (!isAuthenticated) {
+          ElMessage.warning('请先登录')
+          return next('/login')
+        }
       }
       
       // 如果需要管理员权限，检查角色
@@ -155,7 +173,7 @@ router.beforeEach(async (to, from, next) => {
       }
       
     } catch (error) {
-      // 验证失败，跳转到登录页
+      console.error('路由验证失败:', error)
       ElMessage.warning('登录状态验证失败，请重新登录')
       return next('/login')
     }

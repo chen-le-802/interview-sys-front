@@ -89,7 +89,6 @@ export default defineComponent({
         }
 
         const handleSubmit = async () => {
-            // 输入验证
             if (!loginForm.userAccount.trim()) {
                 ElMessage({
                     message: '请输入账号',
@@ -110,38 +109,26 @@ export default defineComponent({
 
             try {
                 loading.value = true
-                
+
+                // 只执行登录，不再额外验证
                 const loginResponse = await userLogin(loginForm)
 
                 if (loginResponse.code === 0) {
+                    // 保存用户信息
                     localStorage.setItem('userInfo', JSON.stringify(loginResponse.data))
 
-                    try {
-                        const verifyResponse = await getCurrentUser()
-                        
-                        if (verifyResponse.code === 0) {
-                            localStorage.setItem('userInfo', JSON.stringify(verifyResponse.data))
-                            
-                            ElMessage({
-                                message: '登录成功，正在跳转...',
-                                type: 'success',
-                                duration: 1500
-                            })
+                    ElMessage({
+                        message: '登录成功，正在跳转...',
+                        type: 'success',
+                        duration: 1500
+                    })
 
-                            setTimeout(() => {
-                                router.push('/').catch(err => {
-                                    console.error('路由跳转失败:', err)
-                                })
-                            }, 1000)
-                        } else {
-                            ElMessage.error('登录状态验证失败，请重试')
-                            localStorage.removeItem('userInfo')
-                        }
-                    } catch (verifyError) {
-                        console.error('登录状态验证失败:', verifyError)
-                        ElMessage.error('登录状态验证失败，请重试')
-                        localStorage.removeItem('userInfo')
-                    }
+                    // 直接跳转，让App.vue中的初始认证检查来验证
+                    setTimeout(() => {
+                        router.push('/').catch(err => {
+                            console.error('路由跳转失败:', err)
+                        })
+                    }, 1000)
                 } else {
                     ElMessage({
                         message: loginResponse.message || '登录失败，请重试',
@@ -152,8 +139,9 @@ export default defineComponent({
                 }
             } catch (error: any) {
                 console.error('登录失败:', error)
+                const errorMessage = error instanceof Error ? error.message : '登录失败，请检查网络连接';
                 ElMessage({
-                    message: error.message || '登录失败，请检查网络连接',
+                    message: errorMessage,
                     type: 'error',
                     duration: 3000,
                     showClose: true

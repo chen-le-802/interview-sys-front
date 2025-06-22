@@ -9,11 +9,12 @@ export default defineComponent({
   name: 'App',
   components: {},
   setup() {
-    // 在组件挂载前进行初始认证检查
     onBeforeMount(async () => {
-      // 执行初始登录验证
-      // 这会尝试从服务器获取当前用户信息，如果session有效会保存到localStorage
-      await initialAuthCheck()
+      // 只有在非登录页面才进行初始认证检查，避免与登录流程冲突
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login' && currentPath !== '/register') {
+        await initialAuthCheck()
+      }
     })
 
     return {}

@@ -7,6 +7,9 @@ let recentlyLoggedOut = false;
 // 用于存储上次验证时间
 let lastVerificationTime = 0;
 
+// 防止重复验证的标志
+let isVerifying = false;
+
 // 设置登出状态
 export const setLoggedOutState = () => {
   recentlyLoggedOut = true;
@@ -101,12 +104,20 @@ export const refreshUserInfo = async () => {
 
 // 验证登录状态
 export const verifyAuthStatus = async (force = false): Promise<boolean> => {
+  // 如果正在验证中，避免重复验证
+  if (isVerifying && !force) {
+    return isAuthenticated();
+  }
+  
   const now = Date.now();
+  
+  // 如果强制验证或者上次验证时间超过2分钟，则向服务器验证
   if (force || now - lastVerificationTime > 2 * 60 * 1000) {
+    isVerifying = true;
+    
     try {
       const response = await getCurrentUser();
       if (response.code === 0) {
-        // 更新用户信息和验证时间
         setUserInfo(response.data);
         lastVerificationTime = now;
         return true;
@@ -118,6 +129,8 @@ export const verifyAuthStatus = async (force = false): Promise<boolean> => {
       console.error('验证登录状态失败', error);
       clearAuth();
       return false;
+    } finally {
+      isVerifying = false;
     }
   }
   
@@ -137,5 +150,14 @@ export const isAdmin = (): boolean => {
 
 // 初始验证
 export const initialAuthCheck = async () => {
-  await verifyAuthStatus(true);
+  // 检查当前路径，避免在登录/注册页面进行验证
+  const currentPath = window.location.pathname;
+  if (currentPath === '/login' || currentPath === '/register') {
+    return;
+  }
+  
+  // 只有本地有用户信息时才进行服务器验证
+  if (isAuthenticated()) {
+    await verifyAuthStatus(true);
+  }
 }
