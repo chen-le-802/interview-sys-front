@@ -151,14 +151,14 @@
 
 <script setup lang="ts">
 import avatarImg from '/avatar.png';
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { ref, onMounted, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import {
     LikeOutlined,
     MessageOutlined
 } from '@ant-design/icons-vue';
 import dayjs from 'dayjs';
-import { getItem } from '@/utils/storage';
+import { isAuthenticated, getUserInfo, verifyAuthStatus } from '@/utils/auth';
 import router from '@/router';
 import { message } from 'ant-design-vue';
 import { getCommentList, addComment, likeComment, unlikeComment, type Comment, type CommentBase } from '@/apis/commentApi';
@@ -177,7 +177,7 @@ const emit = defineEmits<{
 
 // 响应式数据
 const route = useRoute();
-const isLogin = computed(() => getItem('token') !== null);
+const isLogin = ref(false);
 const editorRef = ref();
 const replyTextareaRef = ref();
 const isSubmitting = ref(false);
@@ -191,6 +191,17 @@ const replyToUser = ref<string>('');
 // 高亮相关状态
 const highlightCommentId = ref<string>('');
 const highlightReplyId = ref<string>('');
+
+// 检查认证状态
+const checkAuthStatus = async () => {
+    const authStatus = await verifyAuthStatus();
+    isLogin.value = authStatus;
+};
+
+// 获取当前用户信息
+const getCurrentUserInfo = () => {
+    return getUserInfo();
+};
 
 // 格式化评论内容，高亮@用户名
 const formatCommentContent = (content: string): string => {
@@ -618,8 +629,9 @@ const formatTime = (timestamp: number): string => {
 };
 
 // 监听questionId变化
-watch(() => props.questionId, (newId) => {
+watch(() => props.questionId, async (newId) => {
     if (newId) {
+        await checkAuthStatus();
         fetchComments();
     }
 }, { immediate: true });
@@ -631,8 +643,19 @@ watch(() => route.query, async (newQuery) => {
     }
 }, { deep: true });
 
+// 监听登录状态变化
+watch(isLogin, (newLoginStatus) => {
+    if (!newLoginStatus) {
+        // 登出时清理状态
+        replyingTo.value = null;
+        replyContent.value = '';
+        replyToUser.value = '';
+    }
+});
+
 // 组件挂载时获取数据
-onMounted(() => {
+onMounted(async () => {
+    await checkAuthStatus();
     if (props.questionId) {
         fetchComments();
     }

@@ -173,14 +173,14 @@
 
 <script setup lang="ts">
 import avatarImg from '/avatar.png';
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { ref, onMounted, watch, nextTick } from 'vue';
 import {
     LikeOutlined,
     MessageOutlined,
     DeleteOutlined
 } from '@ant-design/icons-vue';
 import dayjs from 'dayjs';
-import { getItem, getUserID } from '@/utils/storage';
+import { isAuthenticated, getUserInfo, verifyAuthStatus } from '@/utils/auth';
 import router from '@/router';
 import { message } from 'ant-design-vue';
 import { getCommentList, addComment, deleteComment, likeComment, unlikeComment, type Comment, type CommentBase } from '@/apis/commentApi';
@@ -193,8 +193,8 @@ interface Props {
 const props = defineProps<Props>();
 
 // 响应式数据
-const isLogin = computed(() => getItem('token') !== null);
-const currentUserId = computed(() => getUserID() || null);
+const isLogin = ref(false);
+const currentUserId = ref<string | null>(null);
 const editorRef = ref();
 const replyTextareaRef = ref();
 const isSubmitting = ref(false);
@@ -204,6 +204,14 @@ const myCommentList = ref<Comment[]>([]);
 const replyingTo = ref<string | null>(null);
 const replyContent = ref('');
 const replyToUser = ref<string>('');
+
+// 检查认证状态
+const checkAuthStatus = async () => {
+    const authStatus = await verifyAuthStatus();
+    isLogin.value = authStatus;
+    const userInfo = getUserInfo();
+    currentUserId.value = userInfo?.id;
+};
 
 // 格式化评论内容，高亮@用户名
 const formatCommentContent = (content: string): string => {
@@ -520,30 +528,27 @@ const formatTime = (timestamp: number): string => {
 };
 
 // 监听questionId变化
-watch(() => props.questionId, (newId) => {
-    if (newId && isLogin.value) {
-        fetchMyComments();
+watch(() => props.questionId, async (newId) => {
+    if (newId) {
+        await checkAuthStatus();
+        if (isLogin.value && currentUserId.value) {
+            fetchMyComments();
+        }
     }
 }, { immediate: true });
 
-// 监听登录状态变化
-watch(isLogin, (newLoginStatus) => {
-    if (newLoginStatus && props.questionId) {
+// 监听登录状态和用户ID变化
+watch([isLogin, currentUserId], ([newLoginStatus, newUserId]) => {
+    if (newLoginStatus && newUserId && props.questionId) {
         fetchMyComments();
     } else if (!newLoginStatus) {
         myCommentList.value = [];
     }
-}, { immediate: true });
-
-// 监听用户ID变化
-watch(currentUserId, (newUserId) => {
-    if (newUserId && props.questionId && isLogin.value) {
-        fetchMyComments();
-    }
-}, { immediate: true });
+});
 
 // 组件挂载时获取数据
-onMounted(() => {
+onMounted(async () => {
+    await checkAuthStatus();
     if (props.questionId && isLogin.value && currentUserId.value) {
         fetchMyComments();
     }
