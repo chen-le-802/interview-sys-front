@@ -96,7 +96,7 @@
                                 <BookFilled :style="{ color: book.color, fontSize: '18px' }" />
                                 <div class="book-info">
                                     <div class="book-name">{{ book.name }}</div>
-                                    <div class="book-meta">{{ formatTime(book.createTime) }}</div>
+                                    <div class="book-meta">{{ formatTime(book.createTime) }} · {{ book.count }}题</div>
                                 </div>
                             </div>
                         </div>
@@ -248,9 +248,11 @@ const fetchMistakeNotebooks = async () => {
         const response = await getMistakeNotebooks();
         if (response.code === 0) {
             mistakeNotebooks.value = response.data || [];
+        } else {
+            console.error('获取错题本列表失败:', response.message);
         }
     } catch (error) {
-        // 静默处理错题本获取失败
+        console.error('获取错题本列表失败:', error);
     }
 };
 
@@ -383,8 +385,15 @@ const confirmAddToWrongBook = async () => {
     }
 
     const question = questions.value[currentQuestionIndex.value];
+    const userAnswer = answers.value[currentQuestionIndex.value];
+    
     if (!question || !question.id) {
         message.error('题目信息不完整');
+        return;
+    }
+
+    if (!userAnswer) {
+        message.error('未找到用户答案');
         return;
     }
 
@@ -392,7 +401,8 @@ const confirmAddToWrongBook = async () => {
     try {
         const response = await addWrongQuestionToNotebook({
             choiceQuestionId: question.id,
-            mistakeNoteBookId: selectedBookId.value
+            mistakeNoteBookId: selectedBookId.value,
+            wrongAnswer: userAnswer // 传递错误答案
         });
 
         if (response.code === 0) {

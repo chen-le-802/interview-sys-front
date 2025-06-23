@@ -21,7 +21,7 @@
           </span>
           <span class="meta-item">
             <TagOutlined />
-            {{ error.knowledgePoint }}
+            {{ error.tags?.join(', ') || '暂无标签' }}
           </span>
           <span class="meta-item" v-if="error.source">
             <FileTextOutlined />
@@ -89,7 +89,22 @@ import {
   TagOutlined,
   FileTextOutlined
 } from '@ant-design/icons-vue';
-import type { ErrorQuestion } from '@/stores/errorNoteBook';
+
+// 错题接口定义
+interface ErrorQuestion {
+  id: string;
+  title: string;
+  status: 'solved' | 'unsolved';
+  date: string;
+  knowledgePoint: string;
+  source?: string;
+  options: string[];
+  correctAnswer: string;
+  userAnswer: string;
+  explanation: string;
+  relatedQuestion?: string;
+  tags: string[];
+}
 
 // Props
 interface Props {

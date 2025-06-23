@@ -6,7 +6,7 @@
                     @search="onSearchBook" />
                 <div class="book-nav">
                     <div v-for="book in filteredBooks" :key="book.id" class="item"
-                        :class="{ active: errorStore.activeBookId === book.id }" @click="selectBook(book.id)">
+                        :class="{ active: activeBookId === book.id }" @click="selectBook(book.id)">
                         <BookFilled :style="{ color: book.color || '#3760f7' }" class="icon" />
                         <span class="book-name">{{ book.name }}</span>
                         <span class="book-count">({{ book.count }})</span>
@@ -21,15 +21,15 @@
                     <div class="stat-title">学习统计</div>
                     <div class="stat-item">
                         <span class="stat-label">总错题：</span>
-                        <span class="stat-value">{{ errorStore.getStatistics.totalErrors }}</span>
+                        <span class="stat-value">{{ statistics.totalCount }}</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">已解决：</span>
-                        <span class="stat-value correct">{{ errorStore.getStatistics.solvedErrors }}</span>
+                        <span class="stat-value correct">{{ statistics.solvedCount }}</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">解决率：</span>
-                        <span class="stat-value">{{ errorStore.getStatistics.solvedRate }}%</span>
+                        <span class="stat-value">{{ statistics.solvedRate }}</span>
                     </div>
                 </div>
 
@@ -43,7 +43,7 @@
                 <div class="main-content">
                     <div class="search-container">
                         <div class="search-box">
-                            <a-input v-model:value="errorStore.searchKeyword" placeholder="搜索错题或关键字"
+                            <a-input v-model:value="searchKeyword" placeholder="搜索错题或关键字"
                                 class="question-search-input" @pressEnter="onQuestionSearch" allow-clear />
                             <a-button type="primary" class="question-search-btn" @click="onQuestionSearch"
                                 :icon="h(SearchOutlined)" />
@@ -52,13 +52,13 @@
                         <!-- 筛选选项 -->
                         <div class="filter-options">
                             <a-select v-model:value="statusFilter" placeholder="筛选状态"
-                                style="width: 120px; margin-right: 12px;" allowClear>
+                                style="width: 120px; margin-right: 12px;" allowClear @change="applyFilters">
                                 <a-select-option value="all">全部</a-select-option>
                                 <a-select-option value="unsolved">未解决</a-select-option>
                                 <a-select-option value="solved">已解决</a-select-option>
                             </a-select>
 
-                            <a-select v-model:value="tagFilter" placeholder="筛选标签" style="width: 120px;" allowClear>
+                            <a-select v-model:value="tagFilter" placeholder="筛选标签" style="width: 120px;" allowClear @change="applyFilters">
                                 <a-select-option value="all">全部标签</a-select-option>
                                 <a-select-option v-for="tag in availableTags" :key="tag" :value="tag">
                                     {{ tag }}
@@ -68,11 +68,11 @@
                     </div>
 
                     <!-- 当前错题本信息 -->
-                    <div class="book-header" v-if="errorStore.currentBook">
+                    <div class="book-header" v-if="currentBook">
                         <div class="book-info">
-                            <BookFilled :style="{ color: errorStore.currentBook.color }" />
-                            <span class="book-title">{{ errorStore.currentBook.name }}</span>
-                            <span class="book-subtitle">{{ errorStore.currentBook.count }} 道错题</span>
+                            <BookFilled :style="{ color: currentBook.color }" />
+                            <span class="book-title">{{ currentBook.name }}</span>
+                            <span class="book-subtitle">{{ currentBook.count }} 道错题</span>
                         </div>
                         <div class="book-actions">
                             <a-button type="default" size="small" @click="showBatchActions = !showBatchActions"
@@ -128,7 +128,7 @@
                     </div>
 
                     <!-- 加载状态 -->
-                    <div v-if="errorStore.loading" class="loading-state">
+                    <div v-if="loading" class="loading-state">
                         <a-spin size="large" tip="加载中..." />
                     </div>
 
@@ -140,7 +140,7 @@
                                 </div>
                                 <div class="empty-title">暂无错题数据</div>
                                 <div class="empty-description">
-                                    {{ errorStore.searchKeyword ? '没有找到相关错题，试试其他关键词' : '还没有错题记录，完成测试后可以添加错题' }}
+                                    {{ searchKeyword ? '没有找到相关错题，试试其他关键词' : '还没有错题记录，完成测试后可以添加错题' }}
                                 </div>
                             </div>
                         </div>
@@ -202,7 +202,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, h } from 'vue';
 import { useRouter } from 'vue-router';
 import {
     BookFilled,
@@ -214,13 +214,40 @@ import {
     DeleteOutlined,
     SwapOutlined
 } from '@ant-design/icons-vue';
-import { h } from 'vue';
 import { message } from 'ant-design-vue';
-import { useErrorNotebookStore, type ErrorQuestion } from '@/stores/errorNoteBook';
+import {
+    getMistakeNotebooks,
+    addMistakeNotebook,
+    deleteMistakeNotebook,
+    getWrongQuestionsByNotebookId,
+    getWrongQuestionsByCondition,
+    removeWrongQuestionFromNotebook,
+    setWrongQuestionState,
+    batchDeleteWrongQuestions,
+    batchMoveWrongQuestions,
+    getUserWrongQuestionAnalyze,
+    type MistakeNotebook,
+    type WrongQuestion,
+    type UserWrongQuestionAnalyze
+} from '@/apis/mistakeNotebookApi';
 import ErrorCard from '@/components/shared/ErrorCard.vue';
 
 const router = useRouter();
-const errorStore = useErrorNotebookStore();
+
+// 扩展错题接口，添加前端需要的字段
+interface ErrorQuestion extends WrongQuestion {
+    title: string;
+    status: 'solved' | 'unsolved';
+    date: string;
+    knowledgePoint: string;
+    source?: string;
+    options: string[];
+    correctAnswer: string;
+    userAnswer: string;
+    explanation: string;
+    relatedQuestion?: string;
+    tags: string[];
+}
 
 interface RelatedQuestion {
     id: number;
@@ -230,19 +257,25 @@ interface RelatedQuestion {
 }
 
 // 响应式数据
+const loading = ref(false);
+const books = ref<MistakeNotebook[]>([]);
+const activeBookId = ref<string>('');
+const currentErrors = ref<WrongQuestion[]>([]);
 const searchBook = ref('');
+const searchKeyword = ref('');
+const statusFilter = ref<string>('all');
+const tagFilter = ref<string>('all');
+
 const showAddBookModal = ref(false);
 const newBookName = ref('');
 const newBookColor = ref('#DE868F');
 const addBookLoading = ref(false);
 const bookColors = [
-    '#65A1DC', '#FCD13C', '#50BF5B', '#EF6973', '#BABBCF',
-    '#35C9DD', '#EE9762', '#3FD2A6', '#E573B4'
+    '#DE868F', '#65A1DC', '#FCD13C', '#50BF5B', '#EF6973',
+    '#BABBCF', '#35C9DD', '#EE9762', '#3FD2A6', '#E573B4'
 ];
 
 const selectedError = ref<ErrorQuestion | null>(null);
-const statusFilter = ref<string>('all');
-const tagFilter = ref<string>('all');
 
 // 批量操作相关
 const showBatchActions = ref(false);
@@ -250,6 +283,13 @@ const selectedErrors = ref<string[]>([]);
 const showMoveModal = ref(false);
 const targetBookId = ref<string>();
 const moveLoading = ref(false);
+
+// 统计数据
+const statistics = ref<UserWrongQuestionAnalyze>({
+    totalCount: 0,
+    solvedCount: 0,
+    solvedRate: '0'
+});
 
 // 模拟相关题目数据
 const relatedQuestions = ref<RelatedQuestion[]>([
@@ -259,26 +299,90 @@ const relatedQuestions = ref<RelatedQuestion[]>([
     { id: 104, title: 'Spring事务传播机制详解', heat: 600, tags: ['Spring', '事务'] }
 ]);
 
+// 数据转换函数
+const convertWrongQuestionToError = (wrongQuestion: WrongQuestion): ErrorQuestion => {
+    let tags: string[] = [];
+    if (wrongQuestion.knowledgeTags) {
+        if (Array.isArray(wrongQuestion.knowledgeTags)) {
+            tags = wrongQuestion.knowledgeTags;
+        } else if (typeof wrongQuestion.knowledgeTags === 'string') {
+            try {
+                const parsed = JSON.parse(wrongQuestion.knowledgeTags);
+                tags = Array.isArray(parsed) ? parsed : [wrongQuestion.knowledgeTags];
+            } catch {
+                tags = wrongQuestion.knowledgeTags.includes(',') 
+                    ? wrongQuestion.knowledgeTags.split(',').map(tag => tag.trim()).filter(tag => tag)
+                    : [wrongQuestion.knowledgeTags];
+            }
+        }
+    }
+
+    const status: 'solved' | 'unsolved' = wrongQuestion.state === 'solved' ? 'solved' : 'unsolved';
+    
+    return {
+        ...wrongQuestion,
+        title: wrongQuestion.topic,
+        status: status,
+        date: new Date().toLocaleDateString(),
+        knowledgePoint: tags[0] || '未分类',
+        options: [
+            `A.${wrongQuestion.a}`,
+            `B.${wrongQuestion.b}`,
+            `C.${wrongQuestion.c}`,
+            `D.${wrongQuestion.d}`
+        ],
+        correctAnswer: wrongQuestion.answer.toUpperCase(),
+        userAnswer: wrongQuestion.wrongAnswer?.toUpperCase() || 'A',
+        explanation: wrongQuestion.answerAnalysis || '暂无解析',
+        tags: tags,
+        source: '题目练习'
+    };
+};
+
 // 计算属性
 const filteredBooks = computed(() => {
     if (!searchBook.value.trim()) {
-        return errorStore.books;
+        return books.value;
     }
-    return errorStore.books.filter(book =>
+    return books.value.filter(book =>
         book.name.toLowerCase().includes(searchBook.value.toLowerCase())
     );
 });
 
+const currentBook = computed(() => 
+    books.value.find(book => book.id === activeBookId.value)
+);
+
+const errors = computed(() => 
+    currentErrors.value.map(convertWrongQuestionToError)
+);
+
 const availableTags = computed(() => {
     const tags = new Set<string>();
-    errorStore.errors.forEach(error => {
+    errors.value.forEach(error => {
         error.tags.forEach(tag => tags.add(tag));
     });
     return Array.from(tags);
 });
 
+const filteredErrors = computed(() => {
+    let result = errors.value;
+
+    // 搜索关键词过滤
+    if (searchKeyword.value.trim()) {
+        const keyword = searchKeyword.value.toLowerCase();
+        result = result.filter(error => 
+            error.title.toLowerCase().includes(keyword) ||
+            error.tags.some(tag => tag.toLowerCase().includes(keyword)) ||
+            error.knowledgePoint.toLowerCase().includes(keyword)
+        );
+    }
+
+    return result;
+});
+
 const displayedErrors = computed(() => {
-    let result = errorStore.filteredErrors;
+    let result = filteredErrors.value;
 
     // 状态筛选
     if (statusFilter.value && statusFilter.value !== 'all') {
@@ -294,7 +398,7 @@ const displayedErrors = computed(() => {
 });
 
 const availableTargetBooks = computed(() => {
-    return errorStore.books.filter(book => book.id !== errorStore.activeBookId);
+    return books.value.filter(book => book.id !== activeBookId.value);
 });
 
 // 全选相关计算属性
@@ -306,18 +410,82 @@ const indeterminate = computed(() => {
     return selectedErrors.value.length > 0 && selectedErrors.value.length < displayedErrors.value.length;
 });
 
+const fetchBooks = async () => {
+    try {
+        loading.value = true;
+        const response = await getMistakeNotebooks();
+        if (response.code === 0) {
+            books.value = response.data || [];
+            
+            if (!activeBookId.value && books.value.length > 0) {
+                activeBookId.value = books.value[0].id;
+            }
+        } else {
+            message.error(response.message || '获取错题本列表失败');
+        }
+    } catch (error) {
+        message.error('获取错题本列表失败');
+        console.error('获取错题本失败:', error);
+    } finally {
+        loading.value = false;
+    }
+};
+
+const fetchErrors = async (bookId: string) => {
+    if (!bookId) return;
+    
+    try {
+        loading.value = true;
+        const response = await getWrongQuestionsByNotebookId(bookId);
+        if (response.code === 0) {
+            currentErrors.value = response.data || [];
+            
+            // 同步更新错题本的count
+            const book = books.value.find(b => b.id === bookId);
+            if (book) {
+                book.count = currentErrors.value.length;
+            }
+        } else {
+            message.error(response.message || '获取错题列表失败');
+            currentErrors.value = [];
+        }
+    } catch (error) {
+        message.error('获取错题列表失败');
+        console.error('获取错题失败:', error);
+        currentErrors.value = [];
+    } finally {
+        loading.value = false;
+    }
+};
+
+const fetchStatistics = async () => {
+    try {
+        const response = await getUserWrongQuestionAnalyze();
+        if (response.code === 0) {
+            statistics.value = response.data;
+        }
+    } catch (error) {
+        console.error('获取统计数据失败:', error);
+    }
+};
+
 // 方法
 const goback = () => router.back();
 
 const selectBook = async (bookId: string) => {
+    if (activeBookId.value === bookId) return;
+    
     try {
-        await errorStore.setActiveBook(bookId);
+        activeBookId.value = bookId;
         selectedErrors.value = [];
         showBatchActions.value = false;
         statusFilter.value = 'all';
         tagFilter.value = 'all';
+        searchKeyword.value = '';
+        
+        await fetchErrors(bookId);
     } catch (error: any) {
-        message.error(error.message || '切换错题本失败');
+        message.error('切换错题本失败');
     }
 };
 
@@ -326,11 +494,37 @@ const onSearchBook = () => {
 };
 
 const onQuestionSearch = async () => {
+    if (!activeBookId.value) return;
+    
     try {
-        await errorStore.searchErrors(errorStore.searchKeyword);
-    } catch (error: any) {
-        message.error(error.message || '搜索错题失败');
+        if (searchKeyword.value.trim()) {
+            loading.value = true;
+            const response = await getWrongQuestionsByCondition({
+                mistakeNotebookId: activeBookId.value,
+                topic: searchKeyword.value,
+                knowledgeTags: []
+            });
+            
+            if (response.code === 0) {
+                currentErrors.value = response.data || [];
+            } else {
+                // 如果后端搜索失败，使用前端过滤
+                console.warn('后端搜索失败，使用前端搜索');
+            }
+        } else {
+            // 重新获取所有错题
+            await fetchErrors(activeBookId.value);
+        }
+    } catch (error) {
+        console.error('搜索错题失败:', error);
+    } finally {
+        loading.value = false;
     }
+};
+
+const applyFilters = () => {
+    // 过滤逻辑在计算属性中处理
+    console.log('应用过滤条件');
 };
 
 const selectError = (error: ErrorQuestion) => {
@@ -340,7 +534,6 @@ const selectError = (error: ErrorQuestion) => {
 
 const selectRelatedQuestion = (question: RelatedQuestion) => {
     console.log('选中相关题目:', question);
-    // TODO: 跳转到题目详情页面
 };
 
 const handleAddBook = async () => {
@@ -351,11 +544,20 @@ const handleAddBook = async () => {
 
     try {
         addBookLoading.value = true;
-        const newBook = await errorStore.addBook(newBookName.value.trim(), newBookColor.value);
-        message.success(`创建错题本 "${newBook.name}" 成功`);
-        cancelAddBook();
-    } catch (error: any) {
-        message.error(error.message || '创建错题本失败');
+        const response = await addMistakeNotebook({
+            name: newBookName.value.trim(),
+            color: newBookColor.value
+        });
+        
+        if (response.code === 0) {
+            message.success(`创建错题本 "${newBookName.value}" 成功`);
+            await fetchBooks(); // 重新获取错题本列表
+            cancelAddBook();
+        } else {
+            message.error(response.message || '创建错题本失败');
+        }
+    } catch (error) {
+        message.error('创建错题本失败');
     } finally {
         addBookLoading.value = false;
     }
@@ -368,33 +570,73 @@ const cancelAddBook = () => {
 };
 
 const deleteCurrentBook = async () => {
-    if (!errorStore.currentBook) return;
+    if (!currentBook.value) return;
 
     try {
-        const bookName = errorStore.currentBook.name;
-        await errorStore.deleteBook(errorStore.activeBookId);
-        message.success(`删除错题本 "${bookName}" 成功`);
-    } catch (error: any) {
-        message.error(error.message || '删除错题本失败');
+        const bookName = currentBook.value.name;
+        const response = await deleteMistakeNotebook(activeBookId.value);
+        
+        if (response.code === 0) {
+            message.success(`删除错题本 "${bookName}" 成功`);
+            await fetchBooks();
+            
+            // 切换到第一个错题本
+            if (books.value.length > 0) {
+                activeBookId.value = books.value[0].id;
+                await fetchErrors(activeBookId.value);
+            } else {
+                activeBookId.value = '';
+                currentErrors.value = [];
+            }
+        } else {
+            message.error(response.message || '删除错题本失败');
+        }
+    } catch (error) {
+        message.error('删除错题本失败');
     }
 };
 
 const deleteError = async (errorId: string) => {
+    if (!activeBookId.value) return;
+    
     try {
-        await errorStore.removeError(errorId);
-        selectedErrors.value = selectedErrors.value.filter(id => id !== errorId);
-        message.success('删除错题成功');
-    } catch (error: any) {
-        message.error(error.message || '删除错题失败');
+        const response = await removeWrongQuestionFromNotebook({
+            choiceQuestionId: errorId,
+            mistakeNoteBookId: activeBookId.value
+        });
+        
+        if (response.code === 0) {
+            selectedErrors.value = selectedErrors.value.filter(id => id !== errorId);
+            message.success('删除错题成功');
+            await fetchErrors(activeBookId.value); // 重新获取错题列表
+            await fetchStatistics(); // 重新获取统计数据
+        } else {
+            message.error(response.message || '删除错题失败');
+        }
+    } catch (error) {
+        message.error('删除错题失败');
     }
 };
 
 const updateErrorStatus = async (errorId: string, status: 'solved' | 'unsolved') => {
+    if (!activeBookId.value) return;
+    
     try {
-        await errorStore.updateErrorStatus(errorId, status);
-        message.success(`错题状态已更新为${status === 'solved' ? '已解决' : '未解决'}`);
-    } catch (error: any) {
-        message.error(error.message || '更新错题状态失败');
+        const response = await setWrongQuestionState({
+            choiceQuestionId: errorId,
+            mistakeNoteBookId: activeBookId.value,
+            state: status
+        });
+        
+        if (response.code === 0) {
+            message.success(`错题状态已更新为${status === 'solved' ? '已解决' : '未解决'}`);
+            await fetchErrors(activeBookId.value); // 重新获取错题列表
+            await fetchStatistics(); // 重新获取统计数据
+        } else {
+            message.error(response.message || '更新错题状态失败');
+        }
+    } catch (error) {
+        message.error('更新错题状态失败');
     }
 };
 
@@ -416,48 +658,69 @@ const onCheckError = (errorId: string, checked: boolean) => {
 };
 
 const batchDelete = async () => {
-    if (selectedErrors.value.length === 0) return;
+    if (selectedErrors.value.length === 0 || !activeBookId.value) return;
 
     try {
-        await errorStore.batchDeleteErrors(selectedErrors.value);
-        const count = selectedErrors.value.length;
-        selectedErrors.value = [];
-        message.success(`成功删除 ${count} 道错题`);
-    } catch (error: any) {
-        message.error(error.message || '批量删除失败');
+        const response = await batchDeleteWrongQuestions({
+            choiceQuestionIds: selectedErrors.value,
+            mistakeNoteBookId: activeBookId.value
+        });
+        
+        if (response.code === 0) {
+            const count = selectedErrors.value.length;
+            selectedErrors.value = [];
+            message.success(`成功删除 ${count} 道错题`);
+            await fetchErrors(activeBookId.value);
+            await fetchStatistics();
+        } else {
+            message.error(response.message || '批量删除失败');
+        }
+    } catch (error) {
+        message.error('批量删除失败');
     }
 };
 
 const handleMoveErrors = async () => {
-    if (!targetBookId.value || selectedErrors.value.length === 0) {
+    if (!targetBookId.value || selectedErrors.value.length === 0 || !activeBookId.value) {
         message.warning('请选择目标错题本');
         return;
     }
 
     try {
         moveLoading.value = true;
-        await errorStore.batchMoveErrors(selectedErrors.value, targetBookId.value);
-
-        const targetBook = errorStore.books.find(b => b.id === targetBookId.value);
-        const count = selectedErrors.value.length;
-        selectedErrors.value = [];
-        showMoveModal.value = false;
-
-        message.success(`成功移动 ${count} 道错题到 "${targetBook?.name}"`);
-    } catch (error: any) {
-        message.error(error.message || '移动错题失败');
+        const response = await batchMoveWrongQuestions({
+            choiceQuestionIds: selectedErrors.value,
+            oldMistakeNoteBookId: activeBookId.value,
+            newMistakeNoteBookId: targetBookId.value
+        });
+        
+        if (response.code === 0) {
+            const targetBook = books.value.find(b => b.id === targetBookId.value);
+            const count = selectedErrors.value.length;
+            selectedErrors.value = [];
+            showMoveModal.value = false;
+            
+            message.success(`成功移动 ${count} 道错题到 "${targetBook?.name}"`);
+            await fetchErrors(activeBookId.value);
+            await fetchBooks(); // 重新获取错题本列表以更新count
+        } else {
+            message.error(response.message || '移动错题失败');
+        }
+    } catch (error) {
+        message.error('移动错题失败');
     } finally {
         moveLoading.value = false;
     }
 };
 
 // 监听器
-watch(() => errorStore.activeBookId, () => {
+watch(() => activeBookId.value, () => {
     selectedError.value = null;
     selectedErrors.value = [];
     showBatchActions.value = false;
     statusFilter.value = 'all';
     tagFilter.value = 'all';
+    searchKeyword.value = '';
 });
 
 watch(showBatchActions, (newVal) => {
@@ -469,19 +732,22 @@ watch(showBatchActions, (newVal) => {
 // 生命周期
 onMounted(async () => {
     try {
-        await errorStore.initialize();
+        await Promise.all([
+            fetchBooks(),
+            fetchStatistics()
+        ]);
+        
+        if (activeBookId.value) {
+            await fetchErrors(activeBookId.value);
+        }
     } catch (error) {
         console.error('初始化失败:', error);
     }
 });
-
-onUnmounted(() => {
-    // 清理过期的临时数据
-    errorStore.cleanupTempData();
-});
 </script>
 
 <style scoped>
+/* ... 保持原有样式不变 ... */
 .container {
     background-color: #f5f5f5;
     display: flex;

@@ -21,6 +21,7 @@ export interface WrongQuestion {
   id: string;
   topic: string;
   answer: string;
+  wrongAnswer: string;
   questionId: string;
   a: string;
   b: string;
@@ -31,13 +32,20 @@ export interface WrongQuestion {
   state?: string;
 }
 
+// 用户错题分析统计
+export interface UserWrongQuestionAnalyze {
+  totalCount: number;
+  solvedCount: number;
+  solvedRate: string;
+}
+
 // 添加错题本
 export const addMistakeNotebook = (data: { name: string; color: string }): Promise<BaseResponse<string>> => {
   return request.post('/api/mistakeNotebook/add', data);
 };
 
 // 更新错题本
-export const updateMistakeNotebook = (data: { id: string; name: string; color: string }): Promise<BaseResponse<null>> => {
+export const updateMistakeNotebook = (data: { id: string; name: string; color: string }): Promise<BaseResponse<string>> => {
   return request.post('/api/mistakeNotebook/update', data);
 };
 
@@ -47,7 +55,7 @@ export const getMistakeNotebooks = (): Promise<BaseResponse<MistakeNotebook[]>> 
 };
 
 // 删除错题本
-export const deleteMistakeNotebook = (mistakeNoteBookId: string): Promise<BaseResponse<null>> => {
+export const deleteMistakeNotebook = (mistakeNoteBookId: string): Promise<BaseResponse<string>> => {
   return request.delete('/api/mistakeNotebook/delete', {
     params: { mistakeNoteBookId }
   });
@@ -57,7 +65,8 @@ export const deleteMistakeNotebook = (mistakeNoteBookId: string): Promise<BaseRe
 export const addWrongQuestionToNotebook = (data: {
   choiceQuestionId: string;
   mistakeNoteBookId: string;
-}): Promise<BaseResponse<null>> => {
+  wrongAnswer: string;
+}): Promise<BaseResponse<string>> => {
   return request.post('/api/mistakeNotebook/wrongQuestion/add', data);
 };
 
@@ -65,7 +74,7 @@ export const addWrongQuestionToNotebook = (data: {
 export const removeWrongQuestionFromNotebook = (data: {
   choiceQuestionId: string;
   mistakeNoteBookId: string;
-}): Promise<BaseResponse<null>> => {
+}): Promise<BaseResponse<string>> => {
   return request.delete('/api/mistakeNotebook/wrongQuestion/remove', { data });
 };
 
@@ -77,7 +86,7 @@ export const getWrongQuestionsByNotebookId = (mistakeNotebookId: string): Promis
 };
 
 // 动态条件查询错题
-export const searchWrongQuestions = (data: {
+export const getWrongQuestionsByCondition = (data: {
   knowledgeTags: string[];
   mistakeNotebookId: string;
   topic: string;
@@ -90,6 +99,28 @@ export const setWrongQuestionState = (data: {
   choiceQuestionId: string;
   mistakeNoteBookId: string;
   state: string;
-}): Promise<BaseResponse<null>> => {
+}): Promise<BaseResponse<string>> => {
   return request.post('/api/mistakeNotebook/wrongQuestion/setState', data);
+};
+
+// 批量删除错题
+export const batchDeleteWrongQuestions = (data: {
+  choiceQuestionIds: string[];
+  mistakeNoteBookId: string;
+}): Promise<BaseResponse<string>> => {
+  return request.post('/api/mistakeNotebook/wrongQuestion/deleteByBatch', data);
+};
+
+// 批量移动错题
+export const batchMoveWrongQuestions = (data: {
+  choiceQuestionIds: string[];
+  oldMistakeNoteBookId: string;
+  newMistakeNoteBookId: string;
+}): Promise<BaseResponse<string>> => {
+  return request.post('/api/mistakeNotebook/wrongQuestion/moveByBatch', data);
+};
+
+// 获取用户错题分析
+export const getUserWrongQuestionAnalyze = (): Promise<BaseResponse<UserWrongQuestionAnalyze>> => {
+  return request.get('/api/mistakeNotebook/getUserWrongQuestionAnalyze');
 };
