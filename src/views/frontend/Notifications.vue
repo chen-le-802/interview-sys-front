@@ -459,7 +459,7 @@ const deleteNotification = async (id: string) => {
   }
 }
 
-// 修改后的 handleNotificationClick 方法 - 整条消息都可以点击跳转
+// 消息处理
 const handleNotificationClick = async (item: Notification) => {
   // 如果正在跳转中，不处理点击
   if (item.jumping) {

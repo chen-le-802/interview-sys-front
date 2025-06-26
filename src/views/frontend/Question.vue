@@ -41,7 +41,7 @@
                     </QuestionAnswer>
 
                     <!-- 上一题下一题控制区 -->
-                    <div class="control-box" v-if="!loading">
+                    <!-- <div class="control-box" v-if="!loading">
                         <div class="pre" v-if="adjacentQuestions?.previous"
                             @click="navigateToQuestion(adjacentQuestions.previous.id)">
                             上一题
@@ -67,12 +67,11 @@
                         </div>
                         <div v-else class="next disabled">
                             下一题
-                            <!-- <div class="pre-next-question-title disabled"> -->
-                            <div class="next">
-                                请介绍操作系统的内存管理方式...
+                            <div class="pre-next-question-title disabled">
+                                没有下一题
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                     <Comments v-if="!loading" :question-id="currentQuestionId"></Comments>
                     <div style="width: 120px;height: 80px;"></div>
@@ -382,16 +381,16 @@ const navigateToQuestion = async (questionId: string) => {
 const handleOptionClick = (action: string) => {
     switch (action) {
         case 'mark':
-            ElMessage.success('标记功能待实现')
+            ElMessage.info('标记功能待实现')
             break
         case 'share':
-            ElMessage.success('分享功能待实现')
+            ElMessage.info('分享功能待实现')
             break
         case 'star':
-            ElMessage.success('收藏功能待实现')
+            ElMessage.info('收藏功能待实现')
             break
         case 'view':
-            ElMessage.success('浏览功能待实现')
+            ElMessage.info('浏览功能待实现')
             break
     }
 }

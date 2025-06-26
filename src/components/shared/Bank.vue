@@ -1,15 +1,16 @@
 <template>
     <div class="title-box">
-        <div 
-            class="bank-logo" 
-            :style="questionBank.picture ? `background-image: url(${questionBank.picture})` : ''"
-        ></div>
+        <div class="bank-logo" :style="questionBank.picture ? `background-image: url(${questionBank.picture})` : ''">
+        </div>
         <div class="bank-info">
             <div class="bank-name">{{ questionBank.title || '这里是题库标题' }}</div>
             <div class="bank-desc">{{ questionBank.description || '这里是题库描述' }}</div>
             <div class="options">
-                <el-button type="primary" size="default" color="#1677ff" round @click="gotoQuestion()">开始刷题</el-button>
-                <el-button type="default" size="default" round @click="gotoExam">
+                <el-button type="primary" size="default" color="#1677ff" round @click="gotoQuestion()"
+                    :loading="gotoQuestionLoading">
+                    开始刷题
+                </el-button>
+                <el-button type="default" size="default" round @click="gotoExam" :loading="gotoExamLoading">
                     <el-icon style="margin-right: 5px;">
                         <DocumentChecked />
                     </el-icon>在线测试
@@ -17,7 +18,8 @@
                 <el-button type="default" size="default" round>
                     <el-icon style="margin-right: 5px;">
                         <Share />
-                    </el-icon>分享</el-button>
+                    </el-icon>分享
+                </el-button>
             </div>
         </div>
     </div>
@@ -30,7 +32,10 @@
 import { ref, onMounted, watch } from 'vue';
 import { DocumentChecked, Share } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
-import { getQuestionBankVOById, type QuestionBankVO, type QuestionVO} from '@/apis/questionBankApi';
+import { getQuestionBankVOById, type QuestionBankVO, type QuestionVO } from '@/apis/questionBankApi';
+import { getQuestionVOById } from '@/apis/questionApi';
+import { getChoiceQuestionsByQuestionId, type ChoiceQuestion } from '@/apis/choiceQuestionApi';
+import { getQuestionsByBankId } from '@/apis/questionBankQuestionApi';
 import Table from '@/components/shared/Table.vue';
 import router from '@/router';
 
@@ -51,6 +56,8 @@ const questions = ref<
 >([]);
 
 const loading = ref(false);
+const gotoQuestionLoading = ref(false);
+const gotoExamLoading = ref(false);
 
 const fetchQuestionBankDetail = async () => {
     if (!props.bankId) {
@@ -102,7 +109,7 @@ const fetchQuestionBankDetail = async () => {
     }
 };
 
-// 监听当 bankId 改变时，重新拉取“题库详情+题目列表”
+// 监听当 bankId 改变时，重新拉取"题库详情+题目列表"
 watch(
     () => props.bankId,
     (newId) => {
@@ -121,15 +128,121 @@ onMounted(() => {
         fetchQuestionBankDetail();
     }
 });
-const gotoExam=()=>{
-    router.push('/exam');
-}
-const gotoQuestion = () => {
+
+// 开始刷题
+const gotoQuestion = async () => {
     if (!props.bankId) {
         ElMessage.warning('请先选择题库');
         return;
     }
-    router.push(`/question`);
+
+    gotoQuestionLoading.value = true;
+    try {
+        // 获取题库中的所有题目关联
+        const response = await getQuestionsByBankId(props.bankId, {
+            pageSize: 1000
+        });
+
+        if (response.code === 0 && response.data?.records?.length > 0) {
+            // 随机选择一道题目
+            const questionRelations = response.data.records;
+            const randomIndex = Math.floor(Math.random() * questionRelations.length);
+            const randomRelation = questionRelations[randomIndex];
+
+            // 跳转到题目详情页面，同时传递题库ID用于导航
+            router.push({
+                path: `/question/${randomRelation.questionId}`,
+                query: {
+                    bankId: props.bankId
+                }
+            });
+        } else {
+            ElMessage.warning('该题库暂无题目');
+        }
+    } catch (error) {
+        console.error('获取题目失败:', error);
+        ElMessage.error('获取题目失败，请稍后重试');
+    } finally {
+        gotoQuestionLoading.value = false;
+    }
+};
+
+// 在线测试 - 筛选选择题并随机选择20道
+const gotoExam = async () => {
+    if (!props.bankId) {
+        ElMessage.warning('请先选择题库');
+        return;
+    }
+
+    gotoExamLoading.value = true;
+    try {
+        // 获取题库中的所有题目关联
+        const response = await getQuestionsByBankId(props.bankId, {
+            pageSize: 1000
+        });
+
+        if (response.code === 0 && response.data?.records?.length > 0) {
+            const questionRelations = response.data.records;
+
+            // 获取每个题目的详细信息和选择题信息
+            const choiceQuestions = [];
+            ElMessage.info('正在为您准备题目，请稍候...');
+
+            for (const relation of questionRelations) {
+                try {
+                    // 获取题目详细信息
+                    const questionResponse = await getQuestionVOById(relation.questionId);
+                    if (questionResponse.code !== 0) {
+                        continue;
+                    }
+
+                    const questionDetail = questionResponse.data;
+
+                    // 获取选择题信息
+                    const choiceResponse = await getChoiceQuestionsByQuestionId(relation.questionId);
+                    if (choiceResponse.code === 0 && choiceResponse.data?.length > 0) {
+                        // 将题目信息和选择题信息合并
+                        choiceQuestions.push({
+                            questionId: relation.questionId,
+                            questionTitle: questionDetail.title || questionDetail.content,
+                            questionDifficulty: questionDetail.difficulty,
+                            questionTags: questionDetail.tags,
+                            choiceDetails: choiceResponse.data[0] // 取第一个选择题
+                        });
+                    }
+                } catch (error) {
+                    console.error(`获取题目${relation.questionId}的信息失败:`, error);
+                    // 继续处理下一个题目，不中断流程
+                }
+            }
+
+            if (choiceQuestions.length === 0) {
+                ElMessage.warning('该题库暂无选择题，无法进行在线测试');
+                return;
+            }
+
+            // 随机选择20道题目（如果不足20道则全部选择）
+            const shuffled = choiceQuestions.sort(() => 0.5 - Math.random());
+            const selectedQuestions = shuffled.slice(0, Math.min(20, choiceQuestions.length));
+
+            // 将题目数据存储到sessionStorage
+            sessionStorage.setItem('examQuestions', JSON.stringify(selectedQuestions));
+            sessionStorage.setItem('examBankTitle', questionBank.value.title || '在线测验');
+            sessionStorage.setItem('examBankId', props.bankId);
+
+            ElMessage.success(`已筛选出${selectedQuestions.length}道选择题`);
+
+            // 跳转到考试页面
+            router.push('/exam');
+        } else {
+            ElMessage.warning('该题库暂无题目');
+        }
+    } catch (error) {
+        console.error('获取题目失败:', error);
+        ElMessage.error('获取题目失败，请稍后重试');
+    } finally {
+        gotoExamLoading.value = false;
+    }
 };
 </script>
 
@@ -161,7 +274,6 @@ const gotoQuestion = () => {
     flex: 1;
     flex-direction: column;
     justify-content: space-between;
-
 }
 
 .title-box .bank-info .bank-name {
